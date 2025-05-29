@@ -1,0 +1,54 @@
+// 溢出隐藏
+.ellipsis(@lines: 1) {
+  display: -webkit-box;
+  -webkit-line-clamp: @lines; // 设置显示的行数
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// flex 水平垂直居中
+.flex-center() {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+// flex 垂直居中
+.flex-vertical-center() {
+  display: flex;
+  align-items: center;
+}
+
+// flex 水平居中
+.flex-horizontal-center() {
+  display: flex;
+  justify-content: center;
+}
+
+// 响应式grid
+.responsive-grid(@columns: 1, @gap: 10px) {
+  display: grid;
+  grid-gap: @gap;
+
+  grid-template-columns: if(
+    ispixel(@columns),
+    // 如果不是数字，使用 auto-fill 布局
+    repeat(auto-fill, minmax(@columns, 1fr)),
+    // 如果是数字，使用固定列数
+    repeat(@columns, 1fr)
+  );
+}
+
+// 滚动条宽度-颜色
+.scrollbar(@width: 6px, @color: #ccc) {
+  *::-webkit-scrollbar {
+    width: @width;
+    height: @width;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: @color;
+    border-radius: 12px;
+  }
+}

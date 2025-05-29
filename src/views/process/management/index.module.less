@@ -1,0 +1,130 @@
+.process-management {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+
+  .first-category-wrapper {
+    .first-category-title {
+      display: flex;
+      align-items: center;
+      height: 40px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.09);
+      font-family:
+        Source Han Sans CN,
+        Source Han Sans CN;
+      font-weight: 400;
+      font-size: 18px;
+      color: rgba(0, 0, 0, 0.85);
+      line-height: 22px;
+      margin-bottom: 16px;
+    }
+    .first-category-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+  }
+
+  .second-category-wrapper {
+    .second-category-title {
+      display: flex;
+      align-items: center;
+      font-family:
+        Source Han Sans CN,
+        Source Han Sans CN;
+      font-weight: 400;
+      font-size: 16px;
+      color: rgba(0, 0, 0, 0.65);
+      line-height: 20px;
+      margin-bottom: 16px;
+    }
+    .second-category-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(282px, 1fr));
+      gap: 16px;
+    }
+  }
+
+  .status {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 0;
+    min-width: 52px;
+    height: 26px;
+    .flex-center();
+    border-radius: 0px 4px 0px 4px;
+  }
+}
+
+.process-item {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  background: #ffffff;
+  box-shadow: 0px 0px 8px 0px rgba(57, 126, 240, 0.16);
+  border-radius: 4px 4px 4px 4px;
+  padding: 16px 12px;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0px 4px 12px 0px rgba(57, 126, 240, 0.24);
+    transition: all 0.3s linear;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+
+    .left {
+      margin-right: 8px;
+      .avatar {
+        width: 50px;
+        height: 50px;
+        background: #449bff;
+        border-radius: 10px;
+      }
+    }
+
+    .right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      .title {
+        font-family:
+          Source Han Sans CN,
+          Source Han Sans CN;
+        font-weight: 500;
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.65);
+      }
+
+      .tags-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+
+        .tag {
+          height: 24px;
+          line-height: 24px;
+          border-radius: 4px 4px 4px 4px;
+          padding: 0 8px;
+          color: @primary-color;
+        }
+      }
+    }
+  }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    button {
+      padding-inline: 12px !important;
+    }
+  }
+}

@@ -1,0 +1,18 @@
+.littleTitle {
+  position: relative;
+  height: 22px;
+  font-size: 16px;
+  color: #333333;
+  padding-left: 12px;
+  &::before {
+    position: absolute;
+    content: '';
+    display: block;
+    top: 3px;
+    left: 0;
+    width: 4px;
+    height: 16px;
+    background: @primary-color;
+    border-radius: 2px;
+  }
+}
