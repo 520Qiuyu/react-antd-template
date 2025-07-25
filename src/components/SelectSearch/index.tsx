@@ -10,7 +10,17 @@ const defaultSearchParams = {
 };
 
 export default function SelectSearch(props: Props) {
-  const { value, onChange, defaultValue, SearchSelectOptions, selectProps, inputProps } = props;
+  const {
+    value,
+    onChange,
+    defaultValue,
+    SearchSelectOptions,
+    selectProps,
+    inputProps,
+    width = 300,
+    selectWidth = 80,
+    inputWidth = 180,
+  } = props;
   // 设置搜索参数
   const [searchParams, setSearchParams] = useState(() => {
     if (value?.prop == undefined) return defaultValue || defaultSearchParams;
@@ -52,7 +62,7 @@ export default function SelectSearch(props: Props) {
     <Group
       compact
       style={{
-        width: 300,
+        width: width,
       }}
       className={Styles['select-search']}>
       <Select
@@ -61,14 +71,14 @@ export default function SelectSearch(props: Props) {
         value={searchParams.prop}
         onChange={handleSearchSelectChange}
         style={{
-          width: 80,
+          width: selectWidth,
           borderRadius: '6px 0 0 6px',
         }}
         {...selectProps}
       />
       <Input
         placeholder={`请输入`}
-        style={{ width: 180, height: 32 }}
+        style={{ width: inputWidth, height: 32 }}
         value={searchParams.value}
         onChange={handleSearchInputChange}
         allowClear
@@ -105,6 +115,9 @@ type Props = {
   SearchSelectOptions?: OptionItem[];
   selectProps?: SelectProps;
   inputProps?: InputProps;
+  width?: number;
+  selectWidth?: number;
+  inputWidth?: number;
 };
 
 // 导出Props

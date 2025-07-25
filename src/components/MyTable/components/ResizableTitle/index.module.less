@@ -1,0 +1,32 @@
+:global {
+  .react-resizable {
+    position: relative;
+    background-clip: padding-box;
+  }
+}
+
+.react-resizable-handle {
+  position: absolute;
+  right: -5px;
+  bottom: 0;
+  z-index: 1;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+  
+  &::after {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 4px;
+    width: 2px;
+    height: 100%;
+    background-color: #f0f0f0;
+    transition: background-color 0.2s;
+    content: '';
+  }
+  
+  &:hover::after {
+    background-color: @primary-color;
+  }
+}

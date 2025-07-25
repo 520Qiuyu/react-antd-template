@@ -1,25 +1,24 @@
-import type { ModalProps } from 'antd';
-import { Modal } from 'antd';
-import type { FC } from 'react';
-import styles from './index.module.less';
+import { Modal, type ModalProps } from 'antd';
+import { type FC } from 'react';
 
 const MyModal: FC<Props> = (props) => {
   const { okButtonProps, cancelButtonProps, ...restProps } = props;
   return (
     <Modal
-      forceRender
+      // forceRender
       destroyOnHidden
       centered
       width={700}
       title='title'
       okButtonProps={{
         type: 'primary',
+        shape: 'round',
         ...okButtonProps,
       }}
       cancelButtonProps={{
+        shape: 'round',
         ...cancelButtonProps,
       }}
-      className={styles['my-modal']}
       {...restProps}
     />
   );
@@ -27,6 +26,4 @@ const MyModal: FC<Props> = (props) => {
 
 export default MyModal;
 
-interface Props extends ModalProps {
-  // className?: string;
-}
+interface Props extends ModalProps {}

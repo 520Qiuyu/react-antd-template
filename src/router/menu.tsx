@@ -4,60 +4,29 @@ const isDev = import.meta.env.MODE === 'development';
 
 // 此处配置的是layout中的路由 非layout中的路由请前往App.tsx中配置
 export const routes: IMenu[] = [
-  // 流程服务
+  // qq音乐
   {
-    path: 'process',
-    name: '流程服务',
-    icon: 'connections',
+    path: 'qq-music',
+    name: 'qq音乐',
+    icon: 'customer-group',
     children: [
+      // 歌手查询
       {
-        path: 'management',
-        name: '流程管理',
-        component: lazy(() => import('@/views/process/management')),
+        path: 'singer',
+        name: '歌手查询',
+        icon: 'customer-group',
+        component: lazy(() => import('@/views/singer')),
       },
+      // 歌手首页
       {
-        path: 'instance',
-        name: '实例管理',
-        component: lazy(() => import('@/views/process/instance')),
-      },
-      {
-        path: 'evaluation',
-        name: '评价管理',
-        component: lazy(() => import('@/views/process/evaluation')),
-      },
-      {
-        path: 'change-record',
-        name: '变更记录',
-        component: lazy(() => import('@/views/process/change-record')),
-      },
-      {
-        path: 'process-handle',
-        name: '流程预处理',
-        component: lazy(() => import('@/views/process/process-handle')),
+        path: 'singer-home/:mid',
+        name: '歌手首页',
+        icon: 'customer-group',
+        component: lazy(() => import('@/views/singerHome')),
       },
     ],
   },
-  // 数据分析
-  {
-    path: 'data-analysis',
-    name: '数据分析',
-    icon: 'charts-line',
-    children: [],
-  },
-  // 权限管理
-  {
-    path: 'permission',
-    name: '权限管理',
-    icon: 'name-card',
-    children: [],
-  },
-  // 系统管理
-  {
-    path: 'system',
-    name: '系统管理',
-    icon: 'settings',
-    children: [],
-  },
+
   // 401
   {
     path: '401',

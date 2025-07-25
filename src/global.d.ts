@@ -27,12 +27,6 @@ interface Window {
 interface Config {
   baseUrl: string;
   title: string;
-  menuTitle: string;
-  login: string;
-  /** 使用手册模块名 */
-  manulModule: string;
-  /** 是否开启cas登录 */
-  casLogin: boolean;
 }
 
 interface UserInfo {

@@ -31,12 +31,12 @@ const SearchForm = (props: Props, ref: Ref) => {
     const asyncFn = async () => {
       try {
         options.map(async (item) => {
-          if (!item.getOptionsApi) return; // 没有api直接返回
+          if (!item.getOptionsApi || !item.name) return; // 没有api直接返回
           const res = await item.getOptionsApi(searchParams);
           setOptionsMap((prev) => {
             return {
               ...prev,
-              [item.name]: res.data,
+              [item.name!]: res.data,
             };
           });
           item.getOptionsApiAfter?.(res.data);
@@ -71,18 +71,19 @@ const SearchForm = (props: Props, ref: Ref) => {
     <Form
       layout='inline'
       form={formRef}
+      style={{ marginBottom: 16 }}
       className={Styles['search-form']}
       // preserve={false}
       {...restFormProps}>
-      {options.map((item) => {
+      {options.map((item, index) => {
         const { getOptionsApi, getOptionsApiAfter, ...rest } = item;
         return (
           <SearchFormItem
-            key={item.name}
+            key={item.name || index}
             {...rest}
             inputProps={{
               ...item.inputProps,
-              options: optionsMap[item.name] || item.options,
+              options: optionsMap[item.name!] || item.options,
             }}
           />
         );
@@ -91,12 +92,14 @@ const SearchForm = (props: Props, ref: Ref) => {
       {isAdvancedSearch && <AdvancedSearch params={searchParams} items={advancedOptions} />}
       {/* 按钮 */}
       <Item>
-        <Button type='primary' onClick={handleSearch} loading={loading}>
+        <Button type='primary' onClick={handleSearch} shape='round' loading={loading}>
           查询
         </Button>
       </Item>
       <Item>
-        <Button onClick={handleReset}>重置</Button>
+        <Button onClick={handleReset} shape='round'>
+          重置
+        </Button>
       </Item>
       {/* 需要打开高级搜索 */}
       {advancedOptions.length > 0 && (
@@ -138,7 +141,7 @@ type Ref = ForwardedRef<{
 }>;
 export interface Option<T extends COMPONENT_TYPE = COMPONENT_TYPE> extends FormItemProps {
   /** 表单Item的name */
-  name: string;
+  name?: string;
   /** 表单Item的label */
   label?: string;
   /** 表单类型 默认input */

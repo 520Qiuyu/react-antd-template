@@ -1,7 +1,7 @@
 import React from 'react';
 import { DatePicker } from 'antd';
 import type { RangePickerProps } from 'antd/es/date-picker';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import classNames from 'classnames';
 import styles from './index.module.less';
 
@@ -16,35 +16,32 @@ const RangePicker: React.FC<RangePickerCustomProps> = ({
   ...rest
 }) => {
   // 将任意值转换为dayjs对象
-  const toDayjs = (val: string | null | undefined): Dayjs | null => {
+  const toDayjs = (val: string | null | undefined) => {
     if (!val) return null;
-    if (dayjs.isDayjs(val)) return val as Dayjs;
+    if (dayjs.isDayjs(val)) return val;
     return dayjs(val);
   };
 
   // 处理范围值
-  const rangeValue: [Dayjs | null, Dayjs | null] | null = Array.isArray(value)
+  const rangeValue = Array.isArray(value)
     ? [toDayjs(value[0]), toDayjs(value[1])]
     : null;
 
   // 处理onChange
-  const handleChange = (
-    dates: [Dayjs | null, Dayjs | null] | null,
-    dateStrings: [string, string],
-  ): void => {
+  const handleChange: RangePickerProps['onChange'] = (dates, dateStrings) => {
     console.log('dates', dates);
     console.log('dateStrings', dateStrings);
     if (dates && onChange) {
       onChange(
-        dates.map((date) => (date ? dayjs(date).format(format) : '')) as string[],
-        dateStrings,
+        (dates as any).map((date: any) => (date ? date.format(format) : '')) as string[],
+        dateStrings as [string, string],
       );
     }
   };
 
   return (
     <AntRangePicker
-      value={rangeValue}
+      value={rangeValue as any}
       onChange={handleChange}
       format={format}
       className={classNames(styles['rangePicker'], className)}

@@ -4,9 +4,8 @@
   justify-content: space-between;
   position: relative;
   z-index: 99;
-  height: 64px;
-  padding: 0 12px;
-  background-color: #449bff;
+  padding: 12px;
+  background-color: @primary-color;
   color: #fff;
 
   .divider {
@@ -24,7 +23,7 @@
 
   .left {
     .logo-wrapper {
-      height: 60px;
+      height: 40px;
       .logo {
         height: 100%;
       }
@@ -199,6 +198,10 @@
   flex: 1;
   overflow: auto;
   background-color: #fff;
+
+  & > div {
+    padding: 16px;
+  }
 }
 
 // ================= Footer =================

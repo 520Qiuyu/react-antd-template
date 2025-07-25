@@ -89,13 +89,10 @@ export default defineConfig(({ command, mode }) => {
           changeOrigin: true,
         },
         '/api': {
-          target: 'http://172.22.43.162:50309', //
-          // target: "http://172.22.132.62:6272", //文
-          // target: "http://172.22.132.51:6272", //曾
-          // target: "http://172.22.132.66:6272", //唐
+          target: 'http://localhost:3200',
           secure: false,
           changeOrigin: true,
-          // rewrite: (path) => path.replace(/^\/api/, ''),
+          rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },
     },

@@ -20,7 +20,7 @@ export default SearchFormItem;
 
 interface Props {
   /** 表单项字段名 */
-  name: string;
+  name?: string;
   /** 表单项类型 */
   type?: COMPONENT_TYPE;
   /** 表单项label */

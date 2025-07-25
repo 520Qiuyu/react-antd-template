@@ -15,7 +15,7 @@ export default function Header() {
         </div>
         <Divider type='vertical' className={styles['divider']} />
         {/* title */}
-        <div className={styles['title']}>运营平台</div>
+        <div className={styles['title']}>音乐管理平台</div>
       </div>
       {/* 右边 */}
       <div className={styles['right']}>

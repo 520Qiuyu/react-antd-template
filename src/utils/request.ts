@@ -23,8 +23,8 @@ instance.interceptors.response.use(
     /**
      * 1、在响应拦截器中统一处理错误信息
      */
-    const { code, message, meta } = response.data || {};
-    checkStatus(code || meta!.statusCode, message || meta!.message, response);
+    // const { status, response } = response.data || {};
+    // checkStatus(status, response, response);
 
     return response?.data || response;
   },

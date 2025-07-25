@@ -4,11 +4,6 @@
  * @title 当前网页的标题名称
  */
 export const config: Config = {
-  baseUrl: 'api/sm-basic',
-  title: 'basic系统',
-  menuTitle: 'basic系统',
-  login: '/login',
-  manulModule: 'test',
-  // 是否开启cas登录
-  casLogin: true,
+  baseUrl: 'api/',
+  title: '音乐管理平台',
 };

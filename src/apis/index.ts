@@ -1,5 +1,6 @@
 import { get, post } from 'utils/request';
-export const base = window.baseUrl;
+import { config } from '@/config';
+export const base = config.baseUrl;
 // 公共接口
 export const reqGetLogout = () => get(`/logout`);
 
