@@ -62,3 +62,26 @@ export const getAlbumInfo = (params: {
   /** 专辑id */
   albummid: string;
 }) => get<AlbumInfoResponseData>(`${base}getAlbumInfo`, params);
+
+// GET getMusicPlay 获取歌曲播放链接
+export const getMusicPlay = (params: {
+  /** 歌曲id, 多个播放链接使用,分隔 */
+  songmid: string;
+  /** 仅返回播放链接, 默认是 play。[all | play] */
+  justPlayUrl?: 'all' | 'play';
+  /** 播放品质, 默认是 128。[m4a | 128 | 320 | ape | flac] */
+  quality?: 'm4a' | '128' | '320' | 'ape' | 'flac';
+  /** 是否返回播放链接, 默认是 true。[true | false] */
+  returnPlayUrl?: boolean;
+}) =>
+  get<{
+    /** 代码 */
+    code: number;
+    /** 子代码 */
+    subcode: number;
+    /** 数据 */
+    data: {
+      /** 播放链接 */
+      playUrl: string;
+    };
+  }>(`${base}getMusicPlay`, params);

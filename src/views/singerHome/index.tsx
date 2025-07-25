@@ -1,6 +1,7 @@
 import {
   getAlbumCover,
   getAlbumInfo,
+  getMusicPlay,
   getSingerAlbum,
   getSingerAvatar,
   getSingerDesc,
@@ -110,6 +111,18 @@ export default function SingerHome() {
     });
   };
 
+  const handlePlay = async (songMid: string) => {
+    try {
+      const res = await getMusicPlay({
+        songmid: songMid,
+        quality: 'flac',
+      });
+      console.log(res);
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+
   const renderHotSongs = () => {
     if (songLoading) return <Skeleton active paragraph={{ rows: 10 }} />;
     if (!songList.length) return <Empty description='暂无热门歌曲' />;
@@ -128,7 +141,10 @@ export default function SingerHome() {
                 <Text type='secondary'>· {song.interval}秒</Text>
               </div>
             </div>
-            <PlayCircleOutlined className={styles['play-icon']} />
+            <PlayCircleOutlined
+              className={styles['play-icon']}
+              onClick={() => handlePlay(song.mid)}
+            />
           </div>
         ))}
       </div>

@@ -23,6 +23,7 @@ export const routes: IMenu[] = [
         name: '歌手首页',
         icon: 'customer-group',
         component: lazy(() => import('@/views/singerHome')),
+        hidden: true,
       },
     ],
   },
