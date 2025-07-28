@@ -2,12 +2,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import template from './modules/template';
 import app from './modules/app';
 import user from './modules/user';
+import music from './modules/music';
 
 const store = configureStore({
   reducer: {
     template,
     app,
     user,
+    music,
   },
 });
 

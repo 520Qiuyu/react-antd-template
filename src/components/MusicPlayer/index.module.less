@@ -1,0 +1,352 @@
+.music-player {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 320px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  user-select: none;
+  z-index: 1000;
+  transition:
+    width 0.3s,
+    height 0.3s 0.1s,
+    padding 0.3s,
+    border-radius 0.3s,
+    background-color 0.3s 0.1s,
+    box-shadow 0.3s 0.1s;
+  transform-origin: bottom right;
+
+  // 最小化模式
+  &.minimized {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+
+    .info-section {
+      margin: 0;
+      padding: 0;
+      gap: 0;
+
+      .cover {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        flex-shrink: 0;
+
+        img {
+          border-radius: 50%;
+          animation: rotate 12s linear infinite;
+          animation-play-state: var(--play-state, running);
+        }
+      }
+
+      .song-info {
+        opacity: 0;
+        transform: translateX(20px);
+        width: 0;
+        margin: 0;
+        padding: 0;
+      }
+    }
+
+    .control-section,
+    .function-section {
+      opacity: 0;
+      transform: translateY(20px);
+      margin: 0;
+      padding: 0;
+      height: 0;
+    }
+
+    &:hover {
+      transform: scale(1.1);
+      transition: transform 0.2s;
+    }
+  }
+
+  // 信息区域
+  .info-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: default;
+    transition: all 0.3s;
+
+    .cover {
+      width: 48px;
+      height: 48px;
+      border-radius: 4px;
+      background: #f0f0f0;
+      overflow: hidden;
+      flex-shrink: 0;
+      transition: all 0.3s;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: all 0.3s;
+        transform-origin: center center;
+      }
+    }
+
+    .song-info {
+      flex: 1;
+      min-width: 0;
+      opacity: 1;
+      transform: translateX(0);
+      transition: all 0.3s;
+
+      .song-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+
+        .name {
+          font-size: 14px;
+          font-weight: 500;
+          color: #333;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .subtitle {
+          flex-shrink: 0;
+          font-size: 12px;
+          padding: 0 6px;
+          line-height: 18px;
+          height: 18px;
+          border-radius: 9px;
+        }
+      }
+
+      .song-meta {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        color: #666;
+        white-space: nowrap;
+        overflow: hidden;
+
+        .artist {
+          color: #666;
+          transition: color 0.2s;
+
+          &:hover {
+            color: #1890ff;
+          }
+        }
+
+        .divider {
+          color: #999;
+          margin: 0 2px;
+        }
+
+        .album {
+          color: #666;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          transition: color 0.2s;
+
+          &:hover {
+            color: #1890ff;
+          }
+        }
+
+        .time-tag {
+          flex-shrink: 0;
+          font-size: 12px;
+          padding: 0 6px;
+          line-height: 16px;
+          height: 16px;
+          border-radius: 8px;
+          background: #f5f5f5;
+          color: #666;
+          border: none;
+          margin-left: 4px;
+        }
+      }
+    }
+  }
+
+  // 控制区域
+  .control-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: default;
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.3s 0.1s;
+
+    .control-buttons {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+
+      .control-icon {
+        font-size: 20px;
+        color: #666;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          color: #1890ff;
+          transform: scale(1.1);
+        }
+      }
+
+      .play-pause {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #f5f5f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          background: #e6f7ff;
+          transform: scale(1.1);
+
+          .control-icon {
+            color: #1890ff;
+          }
+        }
+
+        .control-icon {
+          font-size: 24px;
+        }
+      }
+    }
+
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: default;
+
+      .time {
+        font-size: 12px;
+        color: #999;
+        min-width: 40px;
+        text-align: center;
+      }
+
+      :global {
+        .ant-slider {
+          flex: 1;
+          margin: 0;
+          cursor: pointer;
+
+          .ant-slider-rail {
+            background-color: #f0f0f0;
+          }
+
+          .ant-slider-track {
+            background-color: #1890ff;
+          }
+
+          .ant-slider-handle {
+            border-color: #1890ff;
+            cursor: grab;
+            transition: transform 0.2s;
+
+            &:hover {
+              transform: scale(1.2);
+            }
+
+            &:active {
+              cursor: grabbing;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 功能区域
+  .function-section {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    padding-top: 4px;
+    cursor: default;
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.3s 0.2s;
+
+    .function-icon {
+      font-size: 16px;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        color: #1890ff;
+        transform: scale(1.1);
+      }
+    }
+
+    .volume-control {
+      position: relative;
+      display: flex;
+      align-items: center;
+
+      .volume-slider {
+        position: absolute;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(10px);
+        height: 80px;
+        padding: 8px 0;
+        background: #fff;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.2s;
+
+        :global {
+          .ant-slider {
+            margin: 0;
+          }
+        }
+      }
+
+      &:hover {
+        .volume-slider {
+          opacity: 1;
+          pointer-events: auto;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+    }
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

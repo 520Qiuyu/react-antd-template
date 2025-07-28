@@ -84,4 +84,9 @@ export const getMusicPlay = (params: {
       /** 播放链接 */
       playUrl: string;
     };
-  }>(`${base}getMusicPlay`, params);
+  }>(`${base}getMusicPlay`, {
+    quality: 'flac',
+    justPlayUrl: 'play',
+    returnPlayUrl: true,
+    ...params,
+  });

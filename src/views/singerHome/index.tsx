@@ -15,6 +15,7 @@ import { Avatar, Card, Descriptions, Empty, Skeleton, Tabs, Tag, Typography } fr
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import styles from './index.module.less';
+import SongItem from './components/SongItem';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -111,41 +112,13 @@ export default function SingerHome() {
     });
   };
 
-  const handlePlay = async (songMid: string) => {
-    try {
-      const res = await getMusicPlay({
-        songmid: songMid,
-        quality: 'flac',
-      });
-      console.log(res);
-    } catch (error) {
-      console.log('error', error);
-    }
-  };
-
   const renderHotSongs = () => {
     if (songLoading) return <Skeleton active paragraph={{ rows: 10 }} />;
     if (!songList.length) return <Empty description='暂无热门歌曲' />;
     return (
       <div className={styles['hot-songs']}>
-        {songList.map((song: SongInfo, index: number) => (
-          <div key={song.mid} className={styles['song-item']}>
-            <div className={styles['song-index']}>{index + 1}</div>
-            <div className={styles['song-info']}>
-              <div className={styles['song-name']}>
-                <Text>{song.name}</Text>
-                {song.subtitle && <Tag color='blue'>{song.subtitle}</Tag>}
-              </div>
-              <div className={styles['song-meta']}>
-                <Text type='secondary'>{song.album?.name}</Text>
-                <Text type='secondary'>· {song.interval}秒</Text>
-              </div>
-            </div>
-            <PlayCircleOutlined
-              className={styles['play-icon']}
-              onClick={() => handlePlay(song.mid)}
-            />
-          </div>
+        {songList.map((song, index) => (
+          <SongItem key={song.mid} song={song} index={index} />
         ))}
       </div>
     );
@@ -206,7 +179,7 @@ export default function SingerHome() {
   const renderAlbumDetail = () => {
     if (albumInfoLoading) return <Skeleton active paragraph={{ rows: 10 }} />;
     if (!albumInfoData?.data) return <Empty description='暂无专辑信息' />;
-    const { name, desc, company, lan, genre, list = [] } = albumInfoData.data;
+    const { name, desc, company, lan, genre, list = [], aDate } = albumInfoData.data;
 
     return (
       <div className={styles['album-detail']}>
@@ -233,23 +206,22 @@ export default function SingerHome() {
           <Title level={4}>专辑歌曲</Title>
           <div className={styles['song-list']}>
             {list.map((song, index) => (
-              <div key={song.songmid} className={styles['song-item']}>
-                <div className={styles['song-index']}>{index + 1}</div>
-                <div className={styles['song-info']}>
-                  <div className={styles['song-name']}>
-                    <Text>{song.songname}</Text>
-                    {song.albumdesc && <Tag color='blue'>{song.albumdesc}</Tag>}
-                  </div>
-                  <div className={styles['song-meta']}>
-                    <Text type='secondary'>{song.singer?.map((s) => s.name).join(' / ')}</Text>
-                    <Text type='secondary'>
-                      · {Math.floor(song.interval / 60)}:
-                      {(song.interval % 60).toString().padStart(2, '0')}
-                    </Text>
-                  </div>
-                </div>
-                <PlayCircleOutlined className={styles['play-icon']} />
-              </div>
+              <SongItem
+                key={song.songmid}
+                song={{
+                  ...song,
+                  id: song.songid,
+                  mid: song.songmid,
+                  name: song.songname,
+                  subtitle: song.albumdesc,
+                  album: {
+                    mid: song.albummid,
+                    name: song.albumname,
+                    time_public: aDate,
+                  },
+                }}
+                index={index}
+              />
             ))}
           </div>
         </div>

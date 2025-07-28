@@ -1,4 +1,5 @@
 import AuthGuard from '@/components/AuthGuard';
+import MusicPlayer from '@/components/MusicPlayer';
 import { Layout } from 'antd';
 import Footer from './components/Footer';
 import Header from './components/Header';
@@ -19,6 +20,7 @@ export default function MainLayout() {
           <Footer />
         </Content>
       </Layout>
+      <MusicPlayer />
     </Layout>
   );
 }
