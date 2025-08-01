@@ -193,6 +193,12 @@
       }
     }
 
+    .btn-box {
+      display: flex;
+      justify-content: flex-end;
+      gap: 16px;
+    }
+
     .albums-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -212,6 +218,35 @@
       }
 
       .album-card {
+        position: relative;
+        transition: all 0.3s;
+
+        .album-checkbox {
+          position: absolute;
+          top: 12px;
+          left: 12px;
+          z-index: 1;
+          background: rgba(255, 255, 255, 0.9);
+          border-radius: 4px;
+          padding: 4px;
+          width: 24px;
+          height: 24px;
+        }
+
+        .album-index {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          z-index: 1;
+          .flex-center();
+          width: 24px;
+          aspect-ratio: 1;
+          color: #fff;
+          background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(10px);
+          border-radius: 50%;
+        }
+
         .album-meta {
           display: flex;
           justify-content: space-between;
@@ -223,6 +258,34 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+          }
+
+          .ant-card-cover {
+            position: relative;
+            overflow: hidden;
+
+            &::after {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: rgba(24, 144, 255, 0.1);
+              opacity: 0;
+              transition: opacity 0.3s;
+            }
+          }
+        }
+
+        &.album-selected {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+
+          :global {
+            .ant-card-cover::after {
+              opacity: 1;
+            }
           }
         }
       }

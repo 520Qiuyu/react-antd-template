@@ -8,16 +8,17 @@ import {
   StepBackwardOutlined,
   StepForwardOutlined,
   SoundOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch, useAppSelector } from '@/hooks';
-import { setIsPlaying } from '@/redux/modules/music';
-import { Slider, Tag } from 'antd';
+import { PlayMode, playNextSong, playPrevSong, setIsPlaying, setPlayMode } from '@/redux/modules/music';
+import { Slider, Tag, Tooltip } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './index.module.less';
 
 export default function MusicPlayer() {
   const dispatch = useAppDispatch();
-  const { currentSong, isPlaying, playList } = useAppSelector((state) => state.music);
+  const { currentSong, isPlaying, playList, playMode } = useAppSelector((state) => state.music);
   const [volume, setVolume] = useState(60);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -42,6 +43,91 @@ export default function MusicPlayer() {
     },
     [currentSong, isPlaying, dispatch],
   );
+
+  // 上一首
+  const handlePrevSong = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      dispatch(playPrevSong());
+    },
+    [dispatch],
+  );
+
+  // 下一首
+  const handleNextSong = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      dispatch(playNextSong());
+    },
+    [dispatch],
+  );
+
+  // 切换播放模式
+  const handleChangePlayMode = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      const modeMap = {
+        [PlayMode.SEQUENCE]: PlayMode.SINGLE_CYCLE,
+        [PlayMode.SINGLE_CYCLE]: PlayMode.RANDOM,
+        [PlayMode.RANDOM]: PlayMode.SEQUENCE,
+      };
+      dispatch(setPlayMode(modeMap[playMode]));
+    },
+    [dispatch, playMode],
+  );
+
+  // 获取播放模式图标和提示文字
+  const getPlayModeIconAndText = useCallback(() => {
+    switch (playMode) {
+      case PlayMode.SEQUENCE:
+        return {
+          icon: <SwapOutlined className={styles['function-icon']} />,
+          text: '顺序播放',
+        };
+      case PlayMode.SINGLE_CYCLE:
+        return {
+          icon: <RetweetOutlined className={styles['function-icon']} />,
+          text: '单曲循环',
+        };
+      case PlayMode.RANDOM:
+        return {
+          icon: <RetweetOutlined className={styles['function-icon']} rotate={90} />,
+          text: '随机播放',
+        };
+      default:
+        return {
+          icon: <SwapOutlined className={styles['function-icon']} />,
+          text: '顺序播放',
+        };
+    }
+  }, [playMode]);
+
+  // 监听音频播放结束
+  useEffect(() => {
+    const handleEnded = () => {
+      if (playMode === PlayMode.SINGLE_CYCLE) {
+        // 单曲循环
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play();
+        }
+      } else {
+        // 其他模式播放下一首
+        dispatch(playNextSong());
+      }
+    };
+
+    const audio = audioRef.current;
+    if (audio) {
+      audio.addEventListener('ended', handleEnded);
+    }
+
+    return () => {
+      if (audio) {
+        audio.removeEventListener('ended', handleEnded);
+      }
+    };
+  }, [dispatch, playMode]);
 
   // 音量改变
   const handleVolumeChange = useCallback((value: number) => {
@@ -162,47 +248,49 @@ export default function MusicPlayer() {
 
       {/* 控制区域 */}
       <div className={styles['control-section']}>
-        <div className={styles['control-buttons']}>
-          <StepBackwardOutlined className={styles['control-icon']} />
-          <div className={styles['play-pause']} onClick={handlePlayPause}>
-            {isPlaying ? (
-              <PauseOutlined className={styles['control-icon']} />
-            ) : (
-              <CaretRightOutlined className={styles['control-icon']} />
-            )}
-          </div>
-          <StepForwardOutlined className={styles['control-icon']} />
+              <div className={styles['control-buttons']}>
+        <StepBackwardOutlined className={styles['control-icon']} onClick={handlePrevSong} />
+        <div className={styles['play-pause']} onClick={handlePlayPause}>
+          {isPlaying ? (
+            <PauseOutlined className={styles['control-icon']} />
+          ) : (
+            <CaretRightOutlined className={styles['control-icon']} />
+          )}
         </div>
-        <div className={styles['progress-bar']}>
-          <span className={styles['time']}>{formatTime(isDragging ? tempTime : currentTime)}</span>
-          <Slider
-            value={isDragging ? tempTime : currentTime}
-            min={0}
-            max={duration}
-            onChange={handleTimeChange}
-            onAfterChange={handleTimeAfterChange}
-            tooltip={{ formatter: formatTime }}
-          />
-          <span className={styles['time']}>{formatTime(duration)}</span>
-        </div>
+        <StepForwardOutlined className={styles['control-icon']} onClick={handleNextSong} />
       </div>
+      <div className={styles['progress-bar']}>
+        <span className={styles['time']}>{formatTime(isDragging ? tempTime : currentTime)}</span>
+        <Slider
+          value={isDragging ? tempTime : currentTime}
+          min={0}
+          max={duration}
+          onChange={handleTimeChange}
+          onAfterChange={handleTimeAfterChange}
+          tooltip={{ formatter: formatTime }}
+        />
+        <span className={styles['time']}>{formatTime(duration)}</span>
+      </div>
+    </div>
 
-      {/* 功能区域 */}
-      <div className={styles['function-section']}>
-        <div className={styles['volume-control']}>
-          <SoundOutlined className={styles['function-icon']} />
-          <Slider
-            vertical
-            value={volume}
-            onChange={handleVolumeChange}
-            className={styles['volume-slider']}
-          />
-        </div>
-        <RetweetOutlined className={styles['function-icon']} />
-        <HeartOutlined className={styles['function-icon']} />
-        <DownloadOutlined className={styles['function-icon']} />
-        <MenuOutlined className={styles['function-icon']} />
+    {/* 功能区域 */}
+    <div className={styles['function-section']}>
+      <div className={styles['volume-control']}>
+        <SoundOutlined className={styles['function-icon']} />
+        <Slider
+          vertical
+          value={volume}
+          onChange={handleVolumeChange}
+          className={styles['volume-slider']}
+        />
       </div>
+      <Tooltip title={getPlayModeIconAndText().text}>
+        <div onClick={handleChangePlayMode}>{getPlayModeIconAndText().icon}</div>
+      </Tooltip>
+      <HeartOutlined className={styles['function-icon']} />
+      <DownloadOutlined className={styles['function-icon']} />
+      <MenuOutlined className={styles['function-icon']} />
+    </div>
     </div>
   );
 }

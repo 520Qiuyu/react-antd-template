@@ -6,6 +6,7 @@ import type {
   SingerListResponseData,
   SingerFullInfo,
   AlbumInfoResponseData,
+  AlbumInfo,
 } from '@/types/qqMusic/singer';
 
 // GET getSingerList 获取热门歌手列表
@@ -41,14 +42,37 @@ export const getSingerStarNum = (params: any) =>
   }>(`${base}getSingerStarNum`, params);
 
 // GET getSingerAlbum 获取歌手专辑
-export const getSingerAlbum = (params: {
+export const getSingerAlbum = async (params: {
   /** 歌手id */
   singermid: string;
-  /** 当前页数, 默认为1 */
-  page?: number;
-  /** 取出歌单数量, 默认为20 */
-  limit?: number;
-}) => get<SingerAlbumResponseData>(`${base}getSingerAlbum`, params);
+}) => {
+  const limit = 80;
+  let page = 0;
+  const result: AlbumInfo[] = [];
+  const res = await get<SingerAlbumResponseData>(`${base}getSingerAlbum`, {
+    ...params,
+    limit,
+    page,
+  });
+  const total = res.response?.singer?.data?.total;
+  result.push(...res.response?.singer?.data?.albumList);
+
+  while (result.length < total) {
+    page = page + limit;
+    const nextRes = await get<SingerAlbumResponseData>(`${base}getSingerAlbum`, {
+      ...params,
+      limit,
+      page,
+    });
+    result.push(...nextRes.response?.singer?.data?.albumList);
+  }
+  return {
+    status: 200,
+    response: {
+      albumList: result,
+    },
+  };
+};
 
 // 获取歌手头像
 export const getSingerAvatar = (singerMid: string) =>
@@ -88,5 +112,28 @@ export const getMusicPlay = (params: {
     quality: 'flac',
     justPlayUrl: 'play',
     returnPlayUrl: true,
+    ...params,
+  });
+
+// GET getLyric 获取歌曲歌词
+export const getLyric = (params: {
+  /** 歌曲id */
+  songmid: string;
+  /** 是否格式化歌词, 默认值为 false */
+  isFormat?: boolean;
+}) =>
+  get<{
+    /** 返回码 */
+    retcode: number;
+    /** 代码 */
+    code: number;
+    /** 子代码 */
+    subcode: number;
+    /** 歌词内容 */
+    lyric: string;
+    /** 翻译歌词 */
+    trans: string;
+  }>(`${base}getLyric`, {
+    isFormat: false,
     ...params,
   });

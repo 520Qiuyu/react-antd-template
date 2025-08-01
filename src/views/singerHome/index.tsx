@@ -1,6 +1,7 @@
 import {
   getAlbumCover,
   getAlbumInfo,
+  getLyric,
   getMusicPlay,
   getSingerAlbum,
   getSingerAvatar,
@@ -11,11 +12,27 @@ import {
 import { useGetData, useSearchParams } from '@/hooks';
 import type { AlbumInfo, SongInfo } from '@/types/qqMusic/singer';
 import { PlayCircleOutlined, UserOutlined } from '@ant-design/icons';
-import { Avatar, Card, Descriptions, Empty, Skeleton, Tabs, Tag, Typography } from 'antd';
+import {
+  Avatar,
+  Button,
+  Card,
+  Checkbox,
+  Descriptions,
+  Empty,
+  InputNumber,
+  Skeleton,
+  Space,
+  Tabs,
+  Tag,
+  Typography,
+} from 'antd';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import styles from './index.module.less';
 import SongItem from './components/SongItem';
+import { NOOP } from '@/constants';
+import { msgSuccess } from '@/utils/modal';
+import { downloadAsJson, downloadWithFileName } from '@/utils/download';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -58,7 +75,6 @@ export default function SingerHome() {
   // 歌手专辑
   const { data: albumData, loading: albumLoading } = useGetData(getSingerAlbum, {
     singermid: mid,
-    limit: 400,
   });
 
   // 专辑信息
@@ -102,15 +118,7 @@ export default function SingerHome() {
 
   const loading = !descData || !songData || !starData || albumLoading;
   const songList = songData?.singer?.data?.songlist || [];
-  const albumList = albumData?.singer?.data?.albumList || [];
-
-  const handleAlbumClick = (album: AlbumInfo) => {
-    setSearchParams({
-      ...searchParams,
-      currentAlbum: album,
-      activeKey: `album-${album.albumMid}`,
-    });
-  };
+  const albumList = albumData?.albumList || [];
 
   const renderHotSongs = () => {
     if (songLoading) return <Skeleton active paragraph={{ rows: 10 }} />;
@@ -124,40 +132,174 @@ export default function SingerHome() {
     );
   };
 
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedAlbums, setSelectedAlbums] = useState<string[]>([]);
+  const handleAlbumClick = (album: AlbumInfo) => {
+    if (isSelectMode) {
+      const hasSelected = selectedAlbums.includes(album.albumMid);
+      if (hasSelected) {
+        setSelectedAlbums((prev) => prev.filter((mid) => mid !== album.albumMid));
+      } else {
+        setSelectedAlbums((prev) => [...prev, album.albumMid]);
+      }
+      return;
+    }
+    setSearchParams({
+      ...searchParams,
+      currentAlbum: album,
+      activeKey: `album-${album.albumMid}`,
+    });
+  };
+  const [downloading, setDownloading] = useState(false);
+  const handleDownloadSelectedAlbums = async () => {
+    try {
+      setDownloading(true);
+      const promises = selectedAlbums.map(async (albumMid) => {
+        const res = await getAlbumInfo({ albummid: albumMid });
+        const songs = res.response?.data?.list || [];
+        return songs;
+      });
+      const results = await Promise.all(promises);
+      msgSuccess('专辑歌曲获取成功！');
+      console.log('results', results);
+      const URLData: AlbumDownLoadData[] = [];
+      for (const result of results) {
+        
+        const songMidMap = Object.fromEntries(result.map((item) => [item.songmid, item]));
+        const songMids = result.map((item) => item.songmid);
+        const songRes: any = await getMusicPlay({ songmid: songMids.join(',') });
+        const URLMap = songRes?.data?.playUrl;
+        const newData: AlbumDownLoadData = {
+          albumName: result[0].albumname,
+          ablumCover: getAlbumCover(result[0].albummid),
+          list: [],
+        };
+        URLData.push(newData);
+        for (const songMid in URLMap) {
+          const url = URLMap[songMid];
+          const songName = songMidMap[songMid].songname;
+          const lrcUrlRes = await getLyric({ songmid: songMid });
+          if (!url.error) {
+            newData.list.push({
+              songName,
+              url: url.url,
+              lrcUrl: lrcUrlRes.response?.lyric,
+            });
+          }
+        }
+
+        // 打印当前专辑信息
+        console.log('当前处理专辑', result[0].albumname, newData);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      downloadAsJson(URLData, 'URLData');
+    } catch (error) {
+      console.log('error', error);
+    } finally {
+      setDownloading(false);
+    }
+  };
+  const [albumRange, setAlbumRange] = useState<[number, number]>([1, 1]);
+  const handleAlbumRangeSelect = () => {
+    const [start, end] = albumRange;
+    setSelectedAlbums(albumList.slice(start - 1, end).map((item) => item.albumMid));
+  };
   const renderAlbums = () => {
     if (albumLoading) return <Skeleton active paragraph={{ rows: 10 }} />;
     if (!albumList.length) return <Empty description='暂无专辑' />;
+    console.log('albumList', albumList);
     return (
-      <div className={styles['albums-grid']}>
-        {albumList.map((item: AlbumInfo) => (
-          <Card
-            key={item.albumMid}
-            hoverable
-            onClick={() => handleAlbumClick(item)}
-            styles={{
-              cover: {
-                overflow: 'hidden',
-              },
-            }}
-            cover={
-              <img
-                className={styles['album-cover']}
-                alt={item.albumName}
-                src={getAlbumCover(item.albumMid)}
-              />
-            }
-            className={styles['album-card']}>
-            <Card.Meta
-              title={item.albumName}
-              description={
-                <div className={styles['album-meta']}>
-                  <Text type='secondary'>{item.publishDate}</Text>
-                  <Text type='secondary'>{item.totalNum}首</Text>
-                </div>
+      <div className={styles['albums-container']}>
+        <div className={styles['btn-box']}>
+          {isSelectMode}
+          {isSelectMode ? (
+            <>
+              {/* 区间选择 */}
+              <Space>
+                <InputNumber
+                  min={1}
+                  max={albumList.length}
+                  value={albumRange[0]}
+                  onChange={(value) => value && setAlbumRange([value, albumRange[1]])}
+                />
+                <span>~</span>
+                <InputNumber
+                  min={1}
+                  max={albumList.length}
+                  value={albumRange[1]}
+                  onChange={(value) => value && setAlbumRange([albumRange[0], value])}
+                />
+                <Button type='primary' onClick={handleAlbumRangeSelect}>
+                  区间选择
+                </Button>
+              </Space>
+              {/* 全部选择 */}
+              <Button
+                type='primary'
+                onClick={() => setSelectedAlbums(albumList.map((item) => item.albumMid))}>
+                全选
+              </Button>
+              {/* 下载所选专辑的歌曲 */}
+              <Button
+                type='primary'
+                color='green'
+                disabled={!selectedAlbums.length}
+                onClick={handleDownloadSelectedAlbums}
+                loading={downloading}>
+                下载所选专辑的歌曲
+              </Button>
+              {/* 退出选择 */}
+              <Button type='default' onClick={() => setIsSelectMode(false)}>
+                退出选择
+              </Button>
+            </>
+          ) : (
+            <Button type='primary' onClick={() => setIsSelectMode(true)}>
+              批量选择
+            </Button>
+          )}
+        </div>
+        <div className={styles['albums-grid']}>
+          {albumList.map((item: AlbumInfo, index) => (
+            <Card
+              key={item.albumMid}
+              hoverable
+              onClick={() => handleAlbumClick(item)}
+              styles={{
+                cover: {
+                  overflow: 'hidden',
+                },
+              }}
+              cover={
+                <>
+                  {isSelectMode && (
+                    <Checkbox
+                      checked={selectedAlbums.includes(item.albumMid)}
+                      className={styles['album-checkbox']}
+                    />
+                  )}
+                  {/* 索引 */}
+                  <div className={styles['album-index']}>{index + 1}</div>
+                  <img
+                    className={styles['album-cover']}
+                    alt={item.albumName}
+                    src={getAlbumCover(item.albumMid)}
+                  />
+                </>
               }
-            />
-          </Card>
-        ))}
+              className={styles['album-card']}>
+              <Card.Meta
+                title={item.albumName}
+                description={
+                  <div className={styles['album-meta']}>
+                    <Text type='secondary'>{item.publishDate}</Text>
+                    <Text type='secondary'>{item.totalNum}首</Text>
+                  </div>
+                }
+              />
+            </Card>
+          ))}
+        </div>
       </div>
     );
   };
@@ -266,7 +408,7 @@ export default function SingerHome() {
     }
 
     return defaultTabs;
-  }, [singerInfo, songList, albumList, searchParams, albumInfoData]);
+  }, [singerInfo, songList, albumList, searchParams, albumInfoData, isSelectMode, selectedAlbums]);
 
   const handleTabChange = (key: string) => {
     setSearchParams({
@@ -321,4 +463,14 @@ export default function SingerHome() {
       )}
     </div>
   );
+}
+
+interface AlbumDownLoadData {
+  albumName: string;
+  ablumCover: string;
+  list: {
+    songName: string;
+    url: string;
+    lrcUrl: string;
+  }[];
 }

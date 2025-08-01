@@ -27,6 +27,18 @@ interface SongInfo {
   album?: Album;
 }
 
+// 播放模式
+export const PlayMode = {
+  /** 顺序播放 */
+  SEQUENCE: 'sequence',
+  /** 单曲循环 */
+  SINGLE_CYCLE: 'singleCycle',
+  /** 随机播放 */
+  RANDOM: 'random',
+} as const;
+
+export type PlayMode = typeof PlayMode[keyof typeof PlayMode];
+
 export const musicSlice = createSlice({
   name: 'music',
   initialState: {
@@ -68,6 +80,8 @@ export const musicSlice = createSlice({
     currentSongIndex: 0,
     // 是否播放
     isPlaying: false,
+    // 播放模式
+    playMode: PlayMode.SEQUENCE as PlayMode,
   },
   reducers: {
     // 设置播放列表
@@ -89,6 +103,7 @@ export const musicSlice = createSlice({
     // 设置当前播放歌曲
     setCurrentSong: (state, action) => {
       state.currentSong = action.payload;
+      state.isPlaying = true;
     },
     // 设置当前播放歌曲索引
     setCurrentSongIndex: (state, action) => {
@@ -98,12 +113,22 @@ export const musicSlice = createSlice({
     setIsPlaying: (state, action) => {
       state.isPlaying = action.payload;
     },
+    // 设置播放模式
+    setPlayMode: (state, action: PayloadAction<PlayMode>) => {
+      state.playMode = action.payload;
+    },
   },
 });
 
 // 为每个reducer生成action creators
-export const { setPlayList, addToPlayList, setCurrentSong, setCurrentSongIndex, setIsPlaying } =
-  musicSlice.actions;
+export const {
+  setPlayList,
+  addToPlayList,
+  setCurrentSong,
+  setCurrentSongIndex,
+  setIsPlaying,
+  setPlayMode,
+} = musicSlice.actions;
 
 // 异步action
 export const addToPlayListAsync = (song: SongInfo) => async (dispatch: AppDispatch) => {
@@ -123,6 +148,63 @@ export const addToPlayListAsync = (song: SongInfo) => async (dispatch: AppDispat
   console.log('添加到仓库song', newSong);
   dispatch(addToPlayList(newSong));
   return newSong;
+};
+
+// 播放控制相关的异步action
+export const playNextSong = () => (dispatch: AppDispatch, getState: () => any) => {
+  const { playList, currentSongIndex, playMode } = getState().music;
+  if (!playList.length) return;
+
+  let nextIndex = currentSongIndex;
+  switch (playMode) {
+    case PlayMode.SEQUENCE:
+      // 顺序播放，到最后一首就回到第一首
+      nextIndex = currentSongIndex + 1;
+      if (nextIndex >= playList.length) {
+        nextIndex = 0;
+      }
+      break;
+    case PlayMode.SINGLE_CYCLE:
+      // 单曲循环，索引不变
+      break;
+    case PlayMode.RANDOM:
+      // 随机播放
+      nextIndex = Math.floor(Math.random() * playList.length);
+      break;
+    default:
+      break;
+  }
+
+  dispatch(setCurrentSongIndex(nextIndex));
+  dispatch(setCurrentSong(playList[nextIndex]));
+};
+
+export const playPrevSong = () => (dispatch: AppDispatch, getState: () => any) => {
+  const { playList, currentSongIndex, playMode } = getState().music;
+  if (!playList.length) return;
+
+  let prevIndex = currentSongIndex;
+  switch (playMode) {
+    case PlayMode.SEQUENCE:
+      // 顺序播放，到第一首就回到最后一首
+      prevIndex = currentSongIndex - 1;
+      if (prevIndex < 0) {
+        prevIndex = playList.length - 1;
+      }
+      break;
+    case PlayMode.SINGLE_CYCLE:
+      // 单曲循环，索引不变
+      break;
+    case PlayMode.RANDOM:
+      // 随机播放
+      prevIndex = Math.floor(Math.random() * playList.length);
+      break;
+    default:
+      break;
+  }
+
+  dispatch(setCurrentSongIndex(prevIndex));
+  dispatch(setCurrentSong(playList[prevIndex]));
 };
 
 // 将reducer导出去
