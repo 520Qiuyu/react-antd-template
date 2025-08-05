@@ -183,7 +183,7 @@ export default function SingerHome() {
             newData.list.push({
               songName,
               url: url.url,
-              lrcUrl: lrcUrlRes.response?.lyric,
+              lrcContent: lrcUrlRes.response?.lyric,
             });
           }
         }
@@ -465,12 +465,12 @@ export default function SingerHome() {
   );
 }
 
-interface AlbumDownLoadData {
+export interface AlbumDownLoadData {
   albumName: string;
   ablumCover: string;
   list: {
     songName: string;
     url: string;
-    lrcUrl: string;
+    lrcContent: string;
   }[];
 }

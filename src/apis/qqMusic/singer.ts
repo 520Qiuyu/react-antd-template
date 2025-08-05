@@ -134,6 +134,5 @@ export const getLyric = (params: {
     /** 翻译歌词 */
     trans: string;
   }>(`${base}getLyric`, {
-    isFormat: false,
     ...params,
   });
