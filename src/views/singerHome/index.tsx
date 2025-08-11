@@ -132,6 +132,13 @@ export default function SingerHome() {
     );
   };
 
+  const handleDownloadAllAlbumsCover = () => {
+    const albumList = albumData?.albumList || [];
+    albumList.forEach((item) => {
+      downloadWithFileName(getAlbumCover(item.albumMid), item.albumName);
+    });
+    msgSuccess('专辑图片下载成功！');
+  };
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedAlbums, setSelectedAlbums] = useState<string[]>([]);
   const handleAlbumClick = (album: AlbumInfo) => {
@@ -164,7 +171,6 @@ export default function SingerHome() {
       console.log('results', results);
       const URLData: AlbumDownLoadData[] = [];
       for (const result of results) {
-        
         const songMidMap = Object.fromEntries(result.map((item) => [item.songmid, item]));
         const songMids = result.map((item) => item.songmid);
         const songRes: any = await getMusicPlay({ songmid: songMids.join(',') });
@@ -254,9 +260,15 @@ export default function SingerHome() {
               </Button>
             </>
           ) : (
-            <Button type='primary' onClick={() => setIsSelectMode(true)}>
-              批量选择
-            </Button>
+            <>
+              {/* 下载所有专辑图片 */}
+              <Button type='primary' onClick={() => handleDownloadAllAlbumsCover()}>
+                下载所有专辑图片
+              </Button>
+              <Button type='primary' onClick={() => setIsSelectMode(true)}>
+                批量选择
+              </Button>
+            </>
           )}
         </div>
         <div className={styles['albums-grid']}>

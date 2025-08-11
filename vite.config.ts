@@ -94,6 +94,12 @@ export default defineConfig(({ command, mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
+        '/qqmusic': {
+          target: 'https://y.qq.com',
+          secure: false,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/qqmusic/, ''),
+        },
       },
     },
     preview: {
@@ -121,6 +127,12 @@ export default defineConfig(({ command, mode }) => {
           secure: false,
           changeOrigin: true,
           // rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+        '/qqmusic': {
+          target: 'https://y.qq.com',
+          secure: false,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/qqmusic/, ''),
         },
       },
     },
