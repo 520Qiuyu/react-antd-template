@@ -26,10 +26,10 @@ export const useGetData = <T = any>(api: API<T>, params?: any, options?: Options
     try {
       setLoading(true);
       const res = await api(params);
-      const { status = 200, response } = res;
+      const { status = 200, response, data } = res;
       if (status === 200) {
-        setData(response || ({} as T));
-        callback && callback(response || ({} as T));
+        setData(response || data || ({} as T));
+        callback && callback(response || data || ({} as T));
       }
     } catch (error) {
       console.log('error', error);

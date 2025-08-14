@@ -2,6 +2,7 @@
 export interface IApiResponse<T = any> {
   status: number;
   response: T;
+  data: T;
 }
 
 /** 分页数据 */

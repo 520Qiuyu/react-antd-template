@@ -66,33 +66,33 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   };
 
   // 获取用户信息 从cas跳转回来会重新加载页面，只需要挂载的时候获取一次
-  useEffect(() => {
-    // 登录后返回到当前页面会携带此参数 默认history路由
-    let ticket = searchParams.ticket;
-    setSearchParams((sp) => ({
-      ...sp,
-      ticket: undefined,
-    }));
-    if (isHashRouter) {
-      const location = window.location;
-      // 在hash路由模式下，从URL中解析ticket参数
-      const urlParams = new URLSearchParams(location.search);
-      ticket = urlParams.get('ticket');
-      // 清除URL中的ticket参数
-      if (ticket) {
-        const newUrl = location.origin + '/' + location.hash;
-        window.history.replaceState({}, document.title, newUrl);
-      }
-    }
+  // useEffect(() => {
+  //   // 登录后返回到当前页面会携带此参数 默认history路由
+  //   let ticket = searchParams.ticket;
+  //   setSearchParams((sp) => ({
+  //     ...sp,
+  //     ticket: undefined,
+  //   }));
+  //   if (isHashRouter) {
+  //     const location = window.location;
+  //     // 在hash路由模式下，从URL中解析ticket参数
+  //     const urlParams = new URLSearchParams(location.search);
+  //     ticket = urlParams.get('ticket');
+  //     // 清除URL中的ticket参数
+  //     if (ticket) {
+  //       const newUrl = location.origin + '/' + location.hash;
+  //       window.history.replaceState({}, document.title, newUrl);
+  //     }
+  //   }
 
-    // 只在有ticket参数时获取用户信息
-    if (ticket) {
-      getUserInfo(ticket);
-    } else {
-      // 没有ticket时只获取权限信息
-      getAuthInfo();
-    }
-  }, []);
+  //   // 只在有ticket参数时获取用户信息
+  //   if (ticket) {
+  //     getUserInfo(ticket);
+  //   } else {
+  //     // 没有ticket时只获取权限信息
+  //     getAuthInfo();
+  //   }
+  // }, []);
 
   // 重定向
   useEffect(() => {

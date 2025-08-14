@@ -1,5 +1,5 @@
 import { Button, Form, type FormInstance, type FormItemProps, type FormProps } from 'antd';
-import { type FC, type ForwardedRef } from 'react';
+import { type ForwardedRef } from 'react';
 import AdvancedSearch from './components/AdvancedSearch';
 import SearchFormItem from './components/SearchFormItem';
 import { type COMPONENT_TYPE, type COMPONENT_TYPE_PROPS_MAP } from './config';

@@ -25,6 +25,13 @@ export const routes: IMenu[] = [
         component: lazy(() => import('@/views/singerHome')),
         hidden: true,
       },
+      // 歌单查询
+      {
+        path: 'songList',
+        name: '歌单查询',
+        icon: 'customer-group',
+        component: lazy(() => import('@/views/songList')),
+      },
     ],
   },
 
