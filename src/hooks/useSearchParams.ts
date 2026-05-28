@@ -5,21 +5,36 @@ import { useLocation, useNavigate } from 'react-router';
 export const useSearchParams = <T extends Record<string, any>>(initSearchParams: T = {} as T) => {
   const navigate = useNavigate();
   const { search, pathname } = useLocation();
-  const [searchParams, setSearchParams] = useState<T>({
+  const [searchParams, _setSearchParams] = useState<T>({
     ...initSearchParams,
     ...getObjectFromSearch(search),
   });
 
+  const setSearchParams = (params: T | ((prev: T) => T)) => {
+    if (typeof params === 'function') {
+      _setSearchParams((prev) => {
+        const newParams = params(prev);
+        setSearchParamsToQuery(removeUndefined(newParams));
+        return removeUndefined(newParams);
+      });
+    } else {
+      _setSearchParams(removeUndefined(params));
+    }
+  };
+
   // 监听searchParams变化，同步值search
   useEffect(() => {
     if (isObjectEqual(searchParams, getObjectFromSearch(search))) return;
-    setSearchParamsToQuery(searchParams);
+    setSearchParamsToQuery({
+      ...getObjectFromSearch(search),
+      ...searchParams,
+    });
   }, [searchParams]);
   // 监听search变化，同步值searchParams
   useEffect(() => {
     const mergeSearchParams = {
-      ...searchParams,
-      ...getObjectFromSearch(search),
+      ...initSearchParams,
+      ...(getObjectFromSearch(search) as T),
     };
     if (isObjectEqual(searchParams, mergeSearchParams)) return;
     setSearchParams(mergeSearchParams);
@@ -63,8 +78,8 @@ export function isObjectEqual(obj1: Record<string, any>, obj2: Record<string, an
   }
 
   // 获取两个对象的键
-  const keys1 = Object.keys(obj1);
-  const keys2 = Object.keys(obj2);
+  const keys1 = Object.keys(obj1).filter((key) => obj1[key] !== undefined);
+  const keys2 = Object.keys(obj2).filter((key) => obj2[key] !== undefined);
 
   // 如果两个对象的键的数量不同，则它们不相等
   if (keys1.length !== keys2.length) {
@@ -91,4 +106,17 @@ export function tryParseJson(str: any) {
   } catch (e) {
     return str;
   }
+}
+
+/** 递归去掉对象中的undefined */
+export function removeUndefined(obj: any) {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  if (Array.isArray(obj)) return obj.map(removeUndefined);
+  const newObj: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      newObj[key] = removeUndefined(value);
+    }
+  }
+  return newObj;
 }

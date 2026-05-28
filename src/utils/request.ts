@@ -2,10 +2,9 @@ import type { IApiResponse } from '@/types/request';
 import type { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import qs from 'qs';
+import eventBus from './eventBus';
 import { msgError } from './modal';
-import { clearAllLocalUserInfo, getLocalUserInfo } from './userInfo';
-import { goToLogin } from './casLogin';
-import { clearTabInfo } from './app';
+import { getLocalUserInfo } from './userInfo';
 
 const instance = axios.create({
   timeout: 1000 * 300,
@@ -31,12 +30,9 @@ instance.interceptors.response.use(
   function (error) {
     console.log('响应拦截器 error', error);
     // 401 未登录
-    // 未登录则跳转登录页面，并携带当前页面的路径
-    // 在登录成功后返回当前页面，这一步需要在登录页操作。
+    // 触发未登录
     if (error.response.status === 401) {
-      clearAllLocalUserInfo();
-      clearTabInfo()
-      goToLogin();
+      eventBus.emit('401');
     }
     return error?.response?.data || error?.response;
   },
