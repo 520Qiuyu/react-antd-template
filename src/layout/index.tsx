@@ -1,15 +1,20 @@
-import AuthGuard from '@/components/AuthGuard';
+import { useCurrentRoute } from '@/hooks';
 import { Layout } from 'antd';
 import Footer from './components/Footer';
 import Header from './components/Header';
+import Main from './components/Main';
 import Sider from './components/Sider';
 import styles from './index.module.less';
-import Main from './components/Main';
 
 const { Content } = Layout;
 
 export default function MainLayout() {
-  return (
+  const routeInfo = useCurrentRoute();
+  const { hiddenLayout } = routeInfo || {};
+
+  return hiddenLayout ? (
+    <Main />
+  ) : (
     <Layout className={styles['main-layout']}>
       <Header />
       <Layout>

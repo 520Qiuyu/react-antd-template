@@ -1,8 +1,6 @@
 import { AuthGuard } from '@/components';
 import { theme } from '@/config/theme';
 import Layout from '@/layout';
-import { ReduxProvider } from '@/redux';
-import Login from '@/views/login';
 import { App as AntdApp, ConfigProvider } from 'antd';
 import locale from 'antd/locale/zh_CN';
 import { Route, Routes } from 'react-router';
@@ -28,25 +26,20 @@ function App() {
     };
   }, []);
 
-  
   return (
-    <ReduxProvider>
-      <ConfigProvider locale={locale} theme={theme}>
-        <AntdApp>
-          <ModalUtils />
-          <TransitionProvider>
-            <AuthGuard>
-              <Routes>
-                {/* 登录 */}
-                <Route path='/login' element={<Login />} />
-                {/* 主体布局 */}
-                <Route path='/*' element={<Layout />} />
-              </Routes>
-            </AuthGuard>
-          </TransitionProvider>
-        </AntdApp>
-      </ConfigProvider>
-    </ReduxProvider>
+    <ConfigProvider locale={locale} theme={theme}>
+      <AntdApp>
+        <ModalUtils />
+        <TransitionProvider>
+          <AuthGuard>
+            <Routes>
+              {/* 主体布局 */}
+              <Route path='/*' element={<Layout />} />
+            </Routes>
+          </AuthGuard>
+        </TransitionProvider>
+      </AntdApp>
+    </ConfigProvider>
   );
 }
 

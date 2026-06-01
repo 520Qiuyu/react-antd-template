@@ -1,8 +1,8 @@
 import { TransitionComponent } from '@/components';
-import { useAppDispatch, useAppSelector } from '@/hooks';
 import { useCurrentRoute } from '@/hooks/useCurrentRoute';
-import { removeTab, type ITab } from '@/redux/modules/app';
 import { flattenRoutesList } from '@/router/menu';
+import { useAppStore, useUserStore } from '@/store';
+import type { ITab } from '@/types/app';
 import { msgError } from '@/utils/modal';
 import { Spin, Tag } from 'antd';
 import classNames from 'classnames';
@@ -14,19 +14,19 @@ import styles from './index.module.less';
 export default function Main() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const userInfoStore = useAppSelector((state) => state.user);
   const currentRoute = useCurrentRoute();
-  const { tabs } = useAppSelector((state) => state.app);
-  const dispatch = useAppDispatch();
+  const auth = useUserStore((state) => state.auth);
+  const tabs = useAppStore((state) => state.tabs);
+  const removeTab = useAppStore((state) => state.removeTab);
 
   // 根据权限过滤出路由
   const authRoutes = useMemo(() => {
     return flattenRoutesList?.filter((route) => {
       if (!route.auth) return true;
       const routeAuth = Array.isArray(route.auth) ? route.auth : [route.auth];
-      return routeAuth.some((auth) => userInfoStore.auth?.includes(auth));
+      return routeAuth.some((item) => auth?.includes(item));
     });
-  }, [userInfoStore.auth, flattenRoutesList]);
+  }, [auth]);
 
   const handleTabClose = (tab: ITab) => {
     /**
@@ -40,7 +40,7 @@ export default function Main() {
       return;
     }
     const { key } = tab;
-    dispatch(removeTab(key));
+    removeTab(key);
     if (currentRoute?.key === key) {
       const index = tabs.findIndex((t) => t.key === currentRoute?.key);
       if (index === -1) return msgError('tab跳转错误，未找到现存的tab');
@@ -80,50 +80,30 @@ export default function Main() {
     }),
   );
 
-  // ↓这段代码还有些存疑
-  // 1、suspense 组件检测不到子组件的加载状态，导致无法显示加载动画
-  // 2、页面切换动画时会先显示目标页面动画退出然后显示目标页面动画进入，本应是旧页面动画退出后再显示目标页面动画进入
-  /* const renderRoutes = useMemo(
-    () => (
-      <Routes>
-        {authRoutes?.map((route) => {
-          const { path } = route;
-          const Component = route.component;
-          return (
-            <Route
-              key={path}
-              path={path}
-              element={Component ? <Component /> : <Navigate to='/' replace />}
-            />
-          );
-        })}
-      </Routes>
-    ),
-    [authRoutes],
-  ); */
-
   return (
     <>
       {/* 窗口标签容器 */}
-      <div className={styles['tabs-wrapper']}>
-        {tabs?.map((tab) => {
-          const { title, key } = tab;
-          return (
-            <Tag
-              key={key}
-              bordered={false}
-              closable
-              className={classNames(styles['tab-tag'], {
-                [styles['active']]: currentRoute && currentRoute.key === key,
-              })}
-              color={isTabCanVisit(tab) ? undefined : 'red'}
-              onClose={() => handleTabClose(tab)}
-              onClick={() => handleTabClick(tab)}>
-              {title}
-            </Tag>
-          );
-        })}
-      </div>
+      {tabs?.length && !currentRoute?.hiddenLayout ? (
+        <div className={styles['tabs-wrapper']}>
+          {tabs?.map((tab) => {
+            const { title, key } = tab;
+            return (
+              <Tag
+                key={key}
+                bordered={false}
+                closable
+                className={classNames(styles['tab-tag'], {
+                  [styles['active']]: currentRoute && currentRoute.key === key,
+                })}
+                color={isTabCanVisit(tab) ? undefined : 'red'}
+                onClose={() => handleTabClose(tab)}
+                onClick={() => handleTabClick(tab)}>
+                {title}
+              </Tag>
+            );
+          })}
+        </div>
+      ) : null}
       <TransitionComponent>
         {(nodeRef) => (
           <div className={styles['content']} ref={nodeRef as RefObject<HTMLDivElement>}>

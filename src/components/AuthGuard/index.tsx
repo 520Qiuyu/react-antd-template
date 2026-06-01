@@ -1,6 +1,5 @@
-import { useAppDispatch } from '@/hooks';
 import { useCurrentRoute } from '@/hooks/useCurrentRoute';
-import { addTab } from '@/redux/modules/app';
+import { useAppStore } from '@/store';
 import { hasAuthority } from '@/utils/userInfo';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -12,7 +11,7 @@ interface AuthGuardProps {
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const navigate = useNavigate();
   const currentRoute = useCurrentRoute();
-  const dispatch = useAppDispatch();
+  const addTab = useAppStore((state) => state.addTab);
   const { pathname } = useLocation();
   const { indexName } = currentRoute || {};
 
@@ -41,14 +40,12 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
 
     if (!currentRoute.hiddenBreadcrumb) {
-      dispatch(
-        addTab({
-          key: currentRoute!.key,
-          path: currentRoute!.path,
-          title: currentRoute!.name,
-          fullPath: currentRoute!.fullPath!,
-        }),
-      );
+      addTab({
+        key: currentRoute!.key,
+        path: currentRoute!.path,
+        title: currentRoute!.name,
+        fullPath: currentRoute!.fullPath!,
+      });
     }
   }, [currentRoute]);
 

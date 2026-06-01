@@ -34,10 +34,10 @@ const RangePicker: React.FC<RangePickerCustomProps> = ({
   ): void => {
     console.log('dates', dates);
     console.log('dateStrings', dateStrings);
-    if (dates && onChange) {
+    if (onChange) {
       onChange(
-        dates.map((date) => (date ? dayjs(date).format(format) : '')) as string[],
-        dateStrings,
+        (dates?.map((date) => (date ? dayjs(date).format(format) : '')) as string[]) ?? undefined,
+        dateStrings ?? undefined,
       );
     }
   };

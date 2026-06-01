@@ -31,32 +31,27 @@ interface Config {
   login: string;
 }
 
+type UserStatus = 'active' | 'disabled' | 'locked';
+
 interface UserInfo {
-  accessToken: string;
-  apps: Record<string, unknown>; // 如果 apps 可以包含任意键值对
-  attributes: string;
-  authorization: Record<string, string>;
-  departmentId: string;
-  departmentName: string;
-  email: string;
-  expiresIn: number;
-  firstLogin: boolean;
-  headPortrait: string;
-  id: string;
-  menus: Record<string, unknown>; // 如果 menus 可以包含任意键值对
-  nickName: string;
-  orderNumber: string;
-  orgId: string;
-  phone: string;
-  qq: string;
-  refreshToken: string;
-  sessionId: string;
-  sex: string;
-  skin: string;
-  status: string;
+  /** 用户唯一标识，用于登录态判断、接口请求头等场景 */
   userId: string;
-  userName: string;
-  userType: string;
+  /** 登录账号 */
+  account: string;
+  /** 用户昵称 */
+  nickName?: string;
+  /** 用户头像 */
+  avatar?: string;
+  /** 邮箱 */
+  email?: string;
+  /** 手机号 */
+  phone?: string;
+  /** 账号状态 */
+  status?: UserStatus;
+  /** 用户类型，例如 admin、user、guest */
+  userType?: string;
+  /** 业务扩展字段 */
+  extra?: Record<string, unknown>;
 }
 
 interface IMenu {
@@ -84,6 +79,8 @@ interface IMenu {
   children?: IMenu[];
   /** 剔除参数之后的路径 /a/b/:param/c => /a/b/c */
   key?: string;
+  /** 是否隐藏layout 隐藏外面的框架 */
+  hiddenLayout?: boolean;
 }
 
 interface IFormatMenu extends IMenu {

@@ -58,6 +58,16 @@ export const routes: IMenu[] = [
     icon: 'settings',
     children: [],
   },
+  // 登录
+  {
+    path: 'login',
+    name: '登录',
+    icon: 'customer-group',
+    component: lazy(() => import('@/views/login')),
+    hiddenLayout: true,
+    hiddenBreadcrumb: true,
+    hidden: true,
+  },
   // 401
   {
     path: '401',

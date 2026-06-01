@@ -1,6 +1,5 @@
-import logo from '@/assets/images/logo.png';
 import { BellOutlined } from '@ant-design/icons';
-import { Badge, Divider } from 'antd';
+import { Badge } from 'antd';
 import styles from './index.module.less';
 import UserInfo from './UserInfo';
 
@@ -9,11 +8,6 @@ export default function Header() {
     <div className={styles['header']}>
       {/* 左边 */}
       <div className={styles['left']}>
-        {/* logo */}
-        <div className={styles['logo-wrapper']}>
-          <img src={logo} alt='中山大学' className={styles['logo']} />
-        </div>
-        <Divider type='vertical' className={styles['divider']} />
         {/* title */}
         <div className={styles['title']}>运营平台</div>
       </div>

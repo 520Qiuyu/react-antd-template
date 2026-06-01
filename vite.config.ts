@@ -1,11 +1,11 @@
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import AutoImport from 'unplugin-auto-import/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, type UserConfig } from 'vite';
 import { analyzer } from 'vite-bundle-analyzer';
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 
-export default defineConfig(({ command, mode }) => {
+export default defineConfig(({ mode }): UserConfig => {
   console.log('mode', mode);
   return {
     define: {
@@ -62,12 +62,9 @@ export default defineConfig(({ command, mode }) => {
         images: path.resolve(__dirname, './src/assets/images'),
       },
     },
-    esbuild: {
-      // jsxInject: `import React from 'react'`,
-    },
     // 依赖预构建
     optimizeDeps: {
-      include: ['react', 'react-dom', 'react-router-dom', 'ahooks', 'antd'],
+      include: ['react', 'react-dom', 'react-router-dom', 'ahooks', 'antd', 'axios'],
     },
     server: {
       port: 2558,
@@ -132,13 +129,14 @@ export default defineConfig(({ command, mode }) => {
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
-          // 分包
-          manualChunks: {
-            antd: ['antd'],
-            react: ['react', 'react-dom'],
-            reactRouter: ['react-router-dom'],
-            ahooks: ['ahooks'],
-            reactRedux: ['react-redux'],
+          advancedChunks: {
+            groups: [
+              { name: 'antd ', test: /node_modules\/antd/ },
+              { name: 'react', test: /node_modules\/react/ },
+              { name: 'reactRouter', test: /node_modules\/react-router/ },
+              { name: 'ahooks', test: /node_modules\/ahooks/ },
+              { name: 'zustand', test: /node_modules\/zustand/ },
+            ],
           },
         },
       },

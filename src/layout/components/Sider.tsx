@@ -1,22 +1,20 @@
 import MyIcon from '@/components/MyIcon';
 import { useCurrentRoute } from '@/hooks/useCurrentRoute';
 import { getRoutesList } from '@/router/menu';
+import { useAppStore } from '@/store';
+import { hasAuthority } from '@/utils/userInfo';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { Layout, Menu } from 'antd';
 import classNames from 'classnames';
 import { useDrag } from '../hooks/useDrag';
 import styles from './index.module.less';
-import { useAppDispatch, useAppSelector } from '@/hooks';
-import { addTab } from '@/redux/modules/app';
-import { hasAuthority } from '@/utils/userInfo';
 
 export default function Sider() {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
   const currentRoute = useCurrentRoute();
-  const appState = useAppSelector((state) => state.app);
-  const dispatch = useAppDispatch();
+  const addTab = useAppStore((state) => state.addTab);
 
   // 折叠
   const [collapsed, setCollapsed] = useState(false);
@@ -87,14 +85,12 @@ export default function Sider() {
       setTimeout(() => {
         navigate(firstRoute.path, { replace: true });
       }, 0);
-      dispatch(
-        addTab({
-          key: firstRoute.key,
-          path: firstRoute.path,
-          title: firstRoute.name,
-          fullPath: firstRoute.path,
-        }),
-      );
+      addTab({
+        key: firstRoute.key,
+        path: firstRoute.path,
+        title: firstRoute.name,
+        fullPath: firstRoute.path,
+      });
     }
   }, [pathname]);
 
@@ -106,16 +102,14 @@ export default function Sider() {
     console.log('click ', e);
     const { key, item } = e!;
     navigate(key);
-    dispatch(
-      addTab({
-        key: key,
-        // @ts-ignore
-        title: item.props.name,
-        path: key,
-        // @ts-ignore
-        fullPath: item.props.path,
-      }),
-    );
+    addTab({
+      key: key,
+      // @ts-ignore
+      title: item.props.name,
+      path: key,
+      // @ts-ignore
+      fullPath: item.props.path,
+    });
   };
 
   const [selectedKeys, setSelectedKeys] = useState([currentRoute?.key || '']);

@@ -40,7 +40,7 @@ export default function AdvancedSearch(props: Props) {
             type={item.type}
             inputProps={{
               ...item.inputProps,
-              options: optionsMap[item.name],
+              options: optionsMap[item.name] || item.options,
             }}
           />
         );

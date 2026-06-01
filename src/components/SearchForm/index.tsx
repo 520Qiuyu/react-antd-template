@@ -1,4 +1,4 @@
-import { Button, Form, type FormInstance, type FormItemProps, type FormProps } from 'antd';
+import { Button, Form, type ButtonProps, type FormInstance, type FormItemProps, type FormProps } from 'antd';
 import { type FC, type ForwardedRef } from 'react';
 import AdvancedSearch from './components/AdvancedSearch';
 import SearchFormItem from './components/SearchFormItem';
@@ -16,6 +16,12 @@ const SearchForm = (props: Props, ref: Ref) => {
     onSearch = () => {},
     loading = false,
     keepAdvancedSearchValue = true,
+    showSearchButton = true,
+    showResetButton = true,
+    advancedSearchText = '高级搜索',
+    advancedSearchButtonProps = {},
+    resetButtonProps = {},
+    searchButtonProps = {},
     ...restFormProps
   } = props;
 
@@ -90,19 +96,30 @@ const SearchForm = (props: Props, ref: Ref) => {
       {/* 高级搜索 */}
       {isAdvancedSearch && <AdvancedSearch params={searchParams} items={advancedOptions} />}
       {/* 按钮 */}
-      <Item>
-        <Button type='primary' onClick={handleSearch} loading={loading}>
-          查询
-        </Button>
-      </Item>
-      <Item>
-        <Button onClick={handleReset}>重置</Button>
-      </Item>
+      {showSearchButton &&
+        (options.length > 0 || (advancedOptions.length > 0 && isAdvancedSearch)) && (
+          <Item>
+            <Button type='primary' onClick={handleSearch} loading={loading} {...searchButtonProps}>
+              查询
+            </Button>
+          </Item>
+        )}
+      {showResetButton &&
+        (options.length > 0 || (advancedOptions.length > 0 && isAdvancedSearch)) && (
+          <Item>
+            <Button onClick={handleReset} {...resetButtonProps}>
+              重置
+            </Button>
+          </Item>
+        )}
       {/* 需要打开高级搜索 */}
       {advancedOptions.length > 0 && (
         <Item>
-          <Button type='link' onClick={() => setIsAdvancedSearch(!isAdvancedSearch)}>
-            {isAdvancedSearch ? '关闭' : '高级搜索'}
+          <Button
+            type='link'
+            onClick={() => setIsAdvancedSearch(!isAdvancedSearch)}
+            {...advancedSearchButtonProps}>
+            {isAdvancedSearch ? '关闭' : advancedSearchText}
           </Button>
         </Item>
       )}
@@ -127,6 +144,18 @@ interface Props extends FormProps {
   loading?: boolean;
   /** 高级搜索关闭之后，当他再次开启时是否保持原值 */
   keepAdvancedSearchValue?: boolean;
+  /** 是否展示查询按钮 */
+  showSearchButton?: boolean;
+  /** 是否展示重置按钮 */
+  showResetButton?: boolean;
+  /** 高级搜索按钮文本 */
+  advancedSearchText?: string;
+  /** 高级搜索按钮props */
+  advancedSearchButtonProps?: ButtonProps;
+  /** 重置按钮props */
+  resetButtonProps?: ButtonProps;
+  /** 查询按钮props */
+  searchButtonProps?: ButtonProps;
 }
 type Ref = ForwardedRef<{
   /** 重置表单 */

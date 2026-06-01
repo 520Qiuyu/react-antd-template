@@ -1,4 +1,4 @@
-import type { ITab } from '@/redux/modules/app';
+import type { ITab } from '@/types/app';
 
 const StorageType = sessionStorage;
 const TabKey = 'tab';
