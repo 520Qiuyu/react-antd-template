@@ -3,9 +3,13 @@ import { clearTabInfo, getTabInfo, setTabInfo } from '@/utils/app';
 import { create } from 'zustand';
 
 interface AppStoreState {
+  /** 标签卡 */
   tabs: ITab[];
+  /** 添加标签卡 */
   addTab: (tab: ITab) => void;
+  /** 移除标签卡 */
   removeTab: (key: string) => void;
+  /** 清空标签卡 */
   clearTabs: () => void;
 }
 
