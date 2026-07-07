@@ -1,3 +1,5 @@
+import type { RefObject } from 'react';
+
 /** 习惯使用函数式弹窗
  * 通过ref调用组件内部的
  * 方法来打开弹窗，可以避
@@ -56,13 +58,22 @@ export const useVisible = (props: Props = {}, ref?: React.ForwardedRef<any>) => 
 };
 
 interface Props {
-  onOpen?: () => void;
+  onOpen?: (params?: any) => void;
   onClose?: () => void;
   onReset?: () => void;
   /** 打开的时候是否reset 默认为true */
   resetOnOpen?: boolean;
   /** 关闭的时候是否reset 默认为false */
   resetOnClose?: boolean;
+}
+
+/** T submit的返回值类型 O open的参数类型 */
+export interface Ref<T = any, O = any> {
+  open: (params?: O) => void;
+  close: () => void;
+  reset: () => void;
+  submit: () => Promise<T>;
+  resolve: RefObject<(p: T) => void>;
 }
 
 const NOOP = () => {};

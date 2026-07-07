@@ -31,28 +31,42 @@ interface Config {
   login: string;
 }
 
-type UserStatus = 'active' | 'disabled' | 'locked';
+// undefinedToNull
+type UndefinedToNull<T> = undefined extends T ? T | null : T;
+// 将interface中的？类型转成 undefined|null类型
+type InterfaceToUndefinedNull<T> = {
+  [K in keyof T]: UndefinedToNull<T[K]>;
+};
 
-interface UserInfo {
+type UserStatus = 'normal' | 'disabled' | 'deleted';
+type UserGender = 'male' | 'female' | 'unknown';
+
+interface UserInfoBase {
   /** 用户唯一标识，用于登录态判断、接口请求头等场景 */
-  userId: string;
+  id: string;
   /** 登录账号 */
   account: string;
   /** 用户昵称 */
-  nickName?: string;
+  nickname?: string;
   /** 用户头像 */
   avatar?: string;
   /** 邮箱 */
   email?: string;
   /** 手机号 */
   phone?: string;
+  /** 微信号 */
+  wechat?: string;
+  /** QQ 号 */
+  qq?: string;
+  /** 性别 */
+  gender?: UserGender;
+  /** 生日 */
+  birthday?: string | Date;
   /** 账号状态 */
-  status?: UserStatus;
-  /** 用户类型，例如 admin、user、guest */
-  userType?: string;
-  /** 业务扩展字段 */
-  extra?: Record<string, unknown>;
+  status: UserStatus;
 }
+
+type UserInfo = InterfaceToUndefinedNull<UserInfoBase>;
 
 interface IMenu {
   /** 路径 */

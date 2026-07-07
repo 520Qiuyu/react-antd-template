@@ -70,26 +70,8 @@ export default defineConfig(({ mode }): UserConfig => {
       port: 2558,
       host: '0.0.0.0',
       proxy: {
-        '/api/sm-sso': {
-          target: 'http://172.22.43.162:50309', //
-          secure: false,
-          changeOrigin: true,
-        },
-        '/sso/login': {
-          target: 'http://172.22.43.162:50309', //
-          secure: false,
-          changeOrigin: true,
-        },
-        '/logout': {
-          target: 'http://172.22.43.162:50309', //
-          secure: false,
-          changeOrigin: true,
-        },
         '/api': {
-          target: 'http://172.22.43.162:50309', //
-          // target: "http://172.22.132.62:6272", //文
-          // target: "http://172.22.132.51:6272", //曾
-          // target: "http://172.22.132.66:6272", //唐
+          target: 'http://localhost:3000', //
           secure: false,
           changeOrigin: true,
           // rewrite: (path) => path.replace(/^\/api/, ''),
@@ -98,26 +80,8 @@ export default defineConfig(({ mode }): UserConfig => {
     },
     preview: {
       proxy: {
-        '/api/sm-sso': {
-          target: 'http://172.22.43.162:50309', //
-          secure: false,
-          changeOrigin: true,
-        },
-        '/sso/login': {
-          target: 'http://172.22.43.162:50309', //
-          secure: false,
-          changeOrigin: true,
-        },
-        '/logout': {
-          target: 'http://172.22.43.162:50309', //
-          secure: false,
-          changeOrigin: true,
-        },
         '/api': {
-          target: 'http://172.22.43.162:50309', //
-          // target: "http://172.22.132.62:6272", //文
-          // target: "http://172.22.132.51:6272", //曾
-          // target: "http://172.22.132.66:6272", //唐
+          target: 'http://localhost:3000', //
           secure: false,
           changeOrigin: true,
           // rewrite: (path) => path.replace(/^\/api/, ''),

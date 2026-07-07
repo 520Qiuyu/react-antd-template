@@ -38,12 +38,7 @@ export default function CopyText(props: CopyTextProps) {
           },
         }}
       />
-      <Button
-        type='link'
-        icon={<CopyOutlined />}
-        onClick={handleCopy}
-        className={styles['copy-btn']}
-      />
+      <CopyOutlined onClick={handleCopy} className={styles['copy-btn']} />
     </div>
   );
 }

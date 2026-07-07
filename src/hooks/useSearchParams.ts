@@ -5,22 +5,10 @@ import { useLocation, useNavigate } from 'react-router';
 export const useSearchParams = <T extends Record<string, any>>(initSearchParams: T = {} as T) => {
   const navigate = useNavigate();
   const { search, pathname } = useLocation();
-  const [searchParams, _setSearchParams] = useState<T>({
+  const [searchParams, setSearchParams] = useState<T>({
     ...initSearchParams,
     ...getObjectFromSearch(search),
   });
-
-  const setSearchParams = (params: T | ((prev: T) => T)) => {
-    if (typeof params === 'function') {
-      _setSearchParams((prev) => {
-        const newParams = params(prev);
-        setSearchParamsToQuery(removeUndefined(newParams));
-        return removeUndefined(newParams);
-      });
-    } else {
-      _setSearchParams(removeUndefined(params));
-    }
-  };
 
   // 监听searchParams变化，同步值search
   useEffect(() => {

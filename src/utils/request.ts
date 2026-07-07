@@ -4,9 +4,10 @@ import axios from 'axios';
 import qs from 'qs';
 import eventBus from './eventBus';
 import { msgError } from './modal';
-import { getLocalUserInfo } from './userInfo';
+import { getLocalToken, getLocalUserInfo } from './userInfo';
 
 const instance = axios.create({
+  baseURL: '/api',
   timeout: 1000 * 300,
   withCredentials: true,
   // 更改axios序列化方式 params参数时 传入 [1,2,3] => 1,2,3 // https://github.com/ljharb/qs
@@ -40,12 +41,10 @@ instance.interceptors.response.use(
 
 // 请求拦截器
 instance.interceptors.request.use(function (config: InternalAxiosRequestConfig) {
-  let user = getLocalUserInfo();
-  if (user?.userId) {
-    config.headers['loginUserOrgId'] = user.orgId;
-    config.headers['loginUserId'] = user.userId;
+  let token = getLocalToken();
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
   }
-  // console.log('config', config);
   return config;
 });
 

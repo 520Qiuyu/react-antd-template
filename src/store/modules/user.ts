@@ -1,4 +1,3 @@
-import { reqGetAuthList } from '@/apis';
 import {
   clearAllLocalUserInfo,
   clearLocalUserInfo,
@@ -61,10 +60,10 @@ export const useUserStore = create<UserStore>((set, get) => ({
   },
   getAuth: async () => {
     try {
-      const res = await reqGetAuthList();
+      /* const res = await reqGetAuthList();
       const auth = Array.isArray(res.data) ? res.data : [];
 
-      get().setAuth(auth);
+      get().setAuth(auth); */
     } catch (error) {
       console.log('error', error);
     }
