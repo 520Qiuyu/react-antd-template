@@ -13,10 +13,10 @@ export const useVisible = (props: Props = {}, ref?: React.ForwardedRef<any>) => 
     resetOnClose = false,
   } = props;
   const [visible, setVisible] = useState(false);
-  const open = () => {
+  const open = (params?: any) => {
     resetOnOpen && reset();
     setVisible(true);
-    onOpen();
+    onOpen(params);
   };
   const close = () => {
     resetOnClose && reset();

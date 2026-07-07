@@ -24,7 +24,7 @@ export default (props: Props) => {
       onChange={onChange}
       showTotal={(total) => `共 ${total} 条记录`}
       {...other}
-      className={classNames(styles.pagination, className)}
+      className={classNames(styles['pagination'], className)}
       itemRender={(_, type, originalElement) => {
         if (type === 'prev') {
           return <LeftOutlined />;

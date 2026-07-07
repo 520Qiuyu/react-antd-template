@@ -4,46 +4,6 @@ const isDev = import.meta.env.MODE === 'development';
 
 // 此处配置的是layout中的路由 非layout中的路由请前往App.tsx中配置
 export const routes: IMenu[] = [
-  // 流程服务
-  {
-    path: 'process',
-    name: '流程服务',
-    icon: 'connections',
-    children: [
-      {
-        path: 'management',
-        name: '流程管理',
-        component: lazy(() => import('@/views/process/management')),
-      },
-      {
-        path: 'instance',
-        name: '实例管理',
-        component: lazy(() => import('@/views/process/instance')),
-      },
-      {
-        path: 'evaluation',
-        name: '评价管理',
-        component: lazy(() => import('@/views/process/evaluation')),
-      },
-      {
-        path: 'change-record',
-        name: '变更记录',
-        component: lazy(() => import('@/views/process/change-record')),
-      },
-      {
-        path: 'process-handle',
-        name: '流程预处理',
-        component: lazy(() => import('@/views/process/process-handle')),
-      },
-    ],
-  },
-  // 数据分析
-  {
-    path: 'data-analysis',
-    name: '数据分析',
-    icon: 'charts-line',
-    children: [],
-  },
   // 权限管理
   {
     path: 'permission',
@@ -56,7 +16,23 @@ export const routes: IMenu[] = [
     path: 'system',
     name: '系统管理',
     icon: 'settings',
-    children: [],
+    children: [
+      {
+        path: 'user',
+        name: '用户管理',
+        component: lazy(() => import('@/views/system/user')),
+      },
+      {
+        path: 'role',
+        name: '角色管理',
+        component: lazy(() => import('@/views/system/role')),
+      },
+      {
+        path: 'resource',
+        name: '资源管理',
+        component: lazy(() => import('@/views/system/resource')),
+      },
+    ],
   },
   // 登录
   {

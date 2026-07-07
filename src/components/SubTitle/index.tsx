@@ -3,7 +3,7 @@ import styles from './style.module.less';
 export default function SubTitle(props: Props) {
   const { title, className, children, ...other } = props;
   return (
-    <div className={classNames(styles.littleTitle, className)} {...other}>
+    <div className={classNames(styles['littleTitle'], className)} {...other}>
       {title}
       {children}
     </div>

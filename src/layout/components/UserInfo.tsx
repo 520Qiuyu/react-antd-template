@@ -7,6 +7,7 @@ import { EditOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { Avatar, Button, Descriptions, Divider, Tag } from 'antd';
 import EditUserInfoModal from './EditUserInfoModal';
 import styles from './index.module.less';
+import dayjs from 'dayjs';
 
 export default function UserInfo() {
   const navigate = useNavigate();
@@ -49,13 +50,7 @@ export default function UserInfo() {
     editUserInfoModalRef.current?.open();
   };
 
-  const formatBirthday = (birthday?: UserInfo['birthday']) => {
-    if (!birthday) return '';
-    if (birthday instanceof Date) {
-      return birthday.toLocaleDateString('zh-CN');
-    }
-    return birthday;
-  };
+
 
   return (
     <div className={styles['user-info-container']}>
@@ -102,7 +97,7 @@ export default function UserInfo() {
               )}
               {userInfo?.birthday && (
                 <Descriptions.Item label='生日'>
-                  {formatBirthday(userInfo.birthday)}
+                  {dayjs(userInfo.birthday).format('YYYY-MM-DD')}
                 </Descriptions.Item>
               )}
               {userInfo?.status && (

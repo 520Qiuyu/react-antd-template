@@ -57,3 +57,70 @@ export interface UserInfoResponseData {
   /** 用户状态 */
   status: UserStatus;
 }
+
+/** 用户列表项 */
+export interface UserListItem {
+  id: string;
+  account: string;
+  nickname?: string | null;
+  avatar?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  wechat?: string | null;
+  qq?: string | null;
+  gender?: UserGender | null;
+  birthday?: string | Date | null;
+  status: UserStatus;
+  ctime: string;
+  utime: string;
+}
+
+/** 用户列表查询参数 */
+export interface ListUserParams {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+  status?: Exclude<UserStatus, 'deleted'>;
+}
+
+/** 用户列表分页数据 */
+export interface UserListData {
+  list: UserListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** 更新用户状态参数 */
+export interface UpdateUserStatusParams {
+  status: Exclude<UserStatus, 'deleted'>;
+}
+
+/** 创建用户参数 */
+export interface CreateUserParams {
+  account: string;
+  password: string;
+  nickname?: string;
+  avatar?: string;
+  email?: string;
+  phone?: string;
+  wechat?: string;
+  qq?: string;
+  gender?: UserGender;
+  birthday?: string;
+  status?: Exclude<UserStatus, 'deleted'>;
+}
+
+/** 管理员更新用户参数 */
+export interface AdminUpdateUserParams {
+  nickname?: string;
+  avatar?: string;
+  email?: string;
+  phone?: string;
+  wechat?: string;
+  qq?: string;
+  gender?: UserGender;
+  birthday?: string;
+  status?: Exclude<UserStatus, 'deleted'>;
+  password?: string;
+}

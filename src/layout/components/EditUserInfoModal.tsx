@@ -51,7 +51,7 @@ function EditUserInfoModal(props: Props, ref: React.ForwardedRef<Ref<void, void>
   return (
     <MyModal title='修改个人信息' open={visible} onOk={handleSave} onCancel={close}>
       <Form form={formRef} layout='vertical'>
-        <Form.Item label='头像' name='avatar'>
+        <Form.Item label='头像'>
           <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
             <Avatar
               size={72}
@@ -59,12 +59,14 @@ function EditUserInfoModal(props: Props, ref: React.ForwardedRef<Ref<void, void>
               icon={<UserOutlined />}
               shape='circle'
             />
-            <Input
-              placeholder='请输入头像 URL'
-              style={{
-                flex: 1,
-              }}
-            />
+            <Form.Item name='avatar' noStyle>
+              <Input
+                placeholder='请输入头像 URL'
+                style={{
+                  flex: 1,
+                }}
+              />
+            </Form.Item>
           </div>
         </Form.Item>
         <div
