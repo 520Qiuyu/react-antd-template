@@ -31,13 +31,6 @@ interface Config {
   login: string;
 }
 
-// undefinedToNull
-type UndefinedToNull<T> = undefined extends T ? T | null : T;
-// 将interface中的？类型转成 undefined|null类型
-type InterfaceToUndefinedNull<T> = {
-  [K in keyof T]: UndefinedToNull<T[K]>;
-};
-
 type UserStatus = 'normal' | 'disabled' | 'deleted';
 type UserGender = 'male' | 'female' | 'unknown';
 
@@ -110,4 +103,22 @@ namespace React {
   interface CSSProperties {
     [key: `--${string}`]: string | number | undefined; // 允许所有以 '--' 开头的 CSS 属性
   }
+}
+
+type SortOrder = 'ascend' | 'descend';
+
+// 页码查询参数
+interface PaginationParams {
+  pageNum: number;
+  pageSize: number;
+  sortField?: string;
+  sortOrder?: SortOrder;
+}
+
+// 页码查询参数
+interface PaginationData<T> {
+  list: T[];
+  total: number;
+  pageNum: number;
+  pageSize: number;
 }

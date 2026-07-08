@@ -76,20 +76,13 @@ export interface UserListItem {
 }
 
 /** 用户列表查询参数 */
-export interface ListUserParams {
-  page?: number;
-  pageSize?: number;
+export interface ListUserParams extends PaginationParams {
   keyword?: string;
   status?: Exclude<UserStatus, 'deleted'>;
 }
 
 /** 用户列表分页数据 */
-export interface UserListData {
-  list: UserListItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export interface UserListData extends PaginationData<UserListItem> {}
 
 /** 更新用户状态参数 */
 export interface UpdateUserStatusParams {

@@ -19,3 +19,10 @@ type RefType<T> =
       ? R
       : never
     : never;
+
+// undefinedToNull
+type UndefinedToNull<T> = undefined extends T ? T | null : T;
+// 将interface中的？类型转成 undefined|null类型
+type InterfaceToUndefinedNull<T> = {
+  [K in keyof T]: UndefinedToNull<T[K]>;
+};

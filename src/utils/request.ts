@@ -1,10 +1,15 @@
 import type { IApiResponse } from '@/types/request';
-import type { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import type {
+  AxiosError,
+  AxiosRequestConfig,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import axios from 'axios';
 import qs from 'qs';
 import eventBus from './eventBus';
 import { msgError } from './modal';
-import { getLocalToken, getLocalUserInfo } from './userInfo';
+import { getLocalToken } from './userInfo';
 
 const instance = axios.create({
   baseURL: '/api',
@@ -23,16 +28,29 @@ instance.interceptors.response.use(
     /**
      * 1、在响应拦截器中统一处理错误信息
      */
-    const { code, message, meta } = response.data || {};
-    checkStatus(code || meta!.statusCode, message || meta!.message, response);
+    const config = response.config as IAxiosConfig;
+    if (config.showError !== false) {
+      const { code, message, meta } = response.data || {};
+      checkStatus(code || meta!.statusCode, message || meta!.message, response);
+    }
 
     return response?.data || response;
   },
-  function (error) {
+  function (error: AxiosError<IApiResponse>) {
     console.log('响应拦截器 error', error);
+    const response = error.response;
+    if (!response) {
+      return error;
+    }
+    const config = error.config as IAxiosConfig;
+    const status = error.response?.status;
+    if (config.showError !== false) {
+      const { message } = error.response?.data || {};
+      checkStatus(status!, message, error.response);
+    }
     // 401 未登录
     // 触发未登录
-    if (error.response.status === 401) {
+    if (response.status === 401) {
       eventBus.emit('401');
     }
     return error?.response?.data || error?.response;
@@ -54,7 +72,7 @@ instance.interceptors.request.use(function (config: InternalAxiosRequestConfig) 
  * @param {object} params 请求参数
  * @param {object} config 请求配置
  */
-export function get<R = any, T = any>(url: string, params?: T, config: AxiosRequestConfig = {}) {
+export function get<R = any, T = any>(url: string, params?: T, config: IAxiosConfig = {}) {
   return instance.get<any, IApiResponse<R>>(url, { params: params, ...config });
 }
 /**
@@ -69,7 +87,7 @@ export function post<R = any, D = any, T = any>(
   url: string,
   data?: D,
   params?: T,
-  config: AxiosRequestConfig<D> = {},
+  config: IAxiosConfig<D> = {},
 ) {
   return instance.post<any, IApiResponse<R>>(url, data, { params: params, ...config });
 }
@@ -85,7 +103,7 @@ export function put<R = any, D = any, T = any>(
   url: string,
   data?: D,
   params?: T,
-  config: AxiosRequestConfig<D> = {},
+  config: IAxiosConfig<D> = {},
 ) {
   return instance.put<any, IApiResponse<R>>(url, data, { params: params, ...config });
 }
@@ -96,7 +114,7 @@ export function put<R = any, D = any, T = any>(
  * @param config  请求配置
  * @returns
  * */
-export function del<R = any, T = any>(url: string, params?: T, config: AxiosRequestConfig = {}) {
+export function del<R = any, T = any>(url: string, params?: T, config: IAxiosConfig = {}) {
   return instance.delete<any, IApiResponse<R>>(url, { params: params, ...config });
 }
 
@@ -126,6 +144,14 @@ function checkStatus(code: number, message?: string, response?: AxiosResponse<an
     if (response && whiteList.includes(response.status)) {
       return;
     }
+    if (code === 401) {
+      eventBus.emit('401');
+    }
     return msgError(message || STATUS_MAP[code] || '未知错误');
   }
+}
+
+interface IAxiosConfig<D = any> extends AxiosRequestConfig<D> {
+  /** 是否显示错误信息 */
+  showError?: boolean;
 }

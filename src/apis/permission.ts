@@ -3,12 +3,14 @@ import type {
   CreatePermissionRoleParams,
   CreatePermissionRoleResourceParams,
   CreatePermissionUserRoleParams,
+  GetPermissionResourceTreeParams,
   ListPermissionResourceParams,
   ListPermissionRoleParams,
   ListPermissionRoleResourceParams,
   ListPermissionUserRoleParams,
   PermissionResourceItem,
   PermissionResourceListData,
+  PermissionResourceTreeNode,
   PermissionRoleItem,
   PermissionRoleListData,
   PermissionRoleResourceItem,
@@ -20,7 +22,10 @@ import type {
   UpdatePermissionRoleResourceParams,
   UpdatePermissionUserRoleParams,
 } from '@/types/permission';
+import type { IApiResponse } from '@/types/request';
 import { del, get, post, put } from 'utils/request';
+
+const MAX_PAGE_SIZE = 100;
 
 /** 获取权限资源列表 */
 export const reqListPermissionResources = (params?: ListPermissionResourceParams) =>
@@ -41,6 +46,13 @@ export const reqUpdatePermissionResource = (id: string, data: UpdatePermissionRe
 /** 删除权限资源 */
 export const reqDeletePermissionResource = (id: string) =>
   del<PermissionResourceItem>(`/permission/resource/${id}`);
+
+/** 获取权限资源树 */
+export const reqGetPermissionResourceTree = (params?: GetPermissionResourceTreeParams) =>
+  get<PermissionResourceTreeNode[], GetPermissionResourceTreeParams>(
+    '/permission/resource/tree',
+    params,
+  );
 
 /** 获取权限角色列表 */
 export const reqListPermissionRoles = (params?: ListPermissionRoleParams) =>
@@ -112,3 +124,60 @@ export const reqUpdatePermissionUserRole = (id: string, data: UpdatePermissionUs
 /** 删除用户角色关联 */
 export const reqDeletePermissionUserRole = (id: string) =>
   del<PermissionUserRoleItem>(`/permission/user-role/${id}`);
+
+/** 获取用户全部角色关联（自动翻页） */
+export const reqListAllPermissionUserRoles = async (userId: string) => {
+  const all: PermissionUserRoleItem[] = [];
+  let pageNum = 1;
+
+  while (true) {
+    const res = await reqListPermissionUserRoles({
+      userId,
+      pageNum,
+      pageSize: MAX_PAGE_SIZE,
+    });
+    if (res.code !== 200) {
+      throw new Error(res.message);
+    }
+
+    const list = res.data?.list ?? [];
+    all.push(...list);
+
+    const total = res.data?.total ?? 0;
+    if (all.length >= total || list.length === 0) {
+      break;
+    }
+    pageNum += 1;
+  }
+
+  return all;
+};
+
+/** 同步用户角色授权（对比 diff 后批量创建/删除） */
+export const reqSyncPermissionUserRoles = async (
+  userId: string,
+  roleIds: string[],
+): Promise<IApiResponse> => {
+  const existing = await reqListAllPermissionUserRoles(userId);
+  const existingRoleIdSet = new Set(existing.map((item) => item.roleId));
+  const targetRoleIdSet = new Set(roleIds);
+
+  const toCreate = roleIds.filter((roleId) => !existingRoleIdSet.has(roleId));
+  const toDelete = existing.filter((item) => !targetRoleIdSet.has(item.roleId));
+
+  const results = await Promise.all([
+    ...toCreate.map((roleId) => reqCreatePermissionUserRole({ userId, roleId })),
+    ...toDelete.map((item) => reqDeletePermissionUserRole(item.id)),
+  ]);
+
+  const failed = results.find((res) => res.code !== 200);
+  if (failed) {
+    return failed;
+  }
+
+  return {
+    code: 200,
+    data: null,
+    message: 'success',
+  };
+};

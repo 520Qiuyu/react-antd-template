@@ -1,4 +1,12 @@
-import { Button, Form, type ButtonProps, type FormInstance, type FormItemProps, type FormProps } from 'antd';
+import {
+  Button,
+  Form,
+  type ButtonProps,
+  type FormInstance,
+  type FormItemProps,
+  type FormProps,
+  type SelectProps,
+} from 'antd';
 import { type FC, type ForwardedRef } from 'react';
 import AdvancedSearch from './components/AdvancedSearch';
 import SearchFormItem from './components/SearchFormItem';
@@ -88,7 +96,8 @@ const SearchForm = (props: Props, ref: Ref) => {
             {...rest}
             inputProps={{
               ...item.inputProps,
-              options: optionsMap[item.name] || item.options,
+              options:
+                optionsMap[item.name] || item.options || (item.inputProps as SelectProps)?.options,
             }}
           />
         );

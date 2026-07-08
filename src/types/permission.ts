@@ -1,5 +1,5 @@
 /** 权限资源类型 */
-export type PermissionResourceType = 'menu' | 'button' | 'api';
+export type PermissionResourceType = 'menu' | 'button' | 'api' | 'module';
 
 /** 权限资源请求方法 */
 export type PermissionResourceMethod =
@@ -26,6 +26,21 @@ export interface PermissionResourceItem {
   remark?: string | null;
   ctime: string;
   utime: string;
+}
+
+/** 权限资源树返回模式 */
+export type PermissionResourceTreeMode = 'full' | 'lazy';
+
+/** 权限资源树查询参数 */
+export interface GetPermissionResourceTreeParams {
+  mode?: PermissionResourceTreeMode;
+  parentId?: string;
+}
+
+/** 权限资源树节点 */
+export interface PermissionResourceTreeNode extends PermissionResourceItem {
+  children?: PermissionResourceTreeNode[];
+  hasChildren?: boolean;
 }
 
 /** 权限角色项 */
@@ -62,7 +77,7 @@ export interface PermissionUserRoleItem {
 
 /** 分页查询基础参数 */
 export interface PaginationQuery {
-  page?: number;
+  pageNum?: number;
   pageSize?: number;
 }
 
@@ -70,7 +85,7 @@ export interface PaginationQuery {
 export interface PermissionPageData<T> {
   list: T[];
   total: number;
-  page: number;
+  pageNum: number;
   pageSize: number;
 }
 

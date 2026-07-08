@@ -8,6 +8,7 @@ import { Avatar, Button, Descriptions, Divider, Tag } from 'antd';
 import EditUserInfoModal from './EditUserInfoModal';
 import styles from './index.module.less';
 import dayjs from 'dayjs';
+import eventBus from '@/utils/eventBus';
 
 export default function UserInfo() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function UserInfo() {
     try {
       clearUser();
       clearTabs();
+      eventBus.emit('401');
     } catch (error) {
       console.log('error', error);
     }
@@ -49,8 +51,6 @@ export default function UserInfo() {
   const handleEditInfo = () => {
     editUserInfoModalRef.current?.open();
   };
-
-
 
   return (
     <div className={styles['user-info-container']}>

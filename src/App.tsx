@@ -15,7 +15,9 @@ function App() {
   // 监听401事件
   useEffect(() => {
     eventBus.on('401', () => {
+      debugger;
       const callbackUrl = `${pathname}${search}`;
+      console.log('callbackUrl',callbackUrl)
       navigate(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`, {
         replace: true,
       });

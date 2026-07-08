@@ -33,7 +33,7 @@ export default defineConfig(({ mode }): UserConfig => {
       // 图片压缩 https://github.com/FatehAK/vite-plugin-image-optimizer
       ViteImageOptimizer(),
       // 打包分析 https://github.com/nonzzz/vite-bundle-analyzer
-      mode === 'production' && analyzer(),
+      // mode === 'production' && analyzer(),
     ],
     css: {
       preprocessorOptions: {

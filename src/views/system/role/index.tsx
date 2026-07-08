@@ -26,7 +26,7 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
 };
 
 const DEFAULT_SEARCH = {
-  page: 1,
+  pageNum: 1,
   pageSize: 10,
   keyword: undefined,
   status: undefined,
@@ -58,11 +58,11 @@ const RoleManagement: React.FC = () => {
   }, [searchParams]);
 
   const handleSearch = (values: typeof DEFAULT_SEARCH) => {
-    setSearchParams({ ...searchParams, ...values, page: 1 });
+    setSearchParams({ ...searchParams, ...values, pageNum: 1 });
   };
 
-  const handlePageChange = (page: number, pageSize: number) => {
-    setSearchParams({ ...searchParams, page, pageSize });
+  const handlePageChange = (pageNum: number, pageSize: number) => {
+    setSearchParams({ ...searchParams, pageNum, pageSize });
   };
 
   const handleDelete = async (record: PermissionRoleItem) => {
@@ -149,7 +149,7 @@ const RoleManagement: React.FC = () => {
         scroll={{ x: 1100 }}
       />
       <MyPagination
-        current={searchParams.page}
+        current={searchParams.pageNum}
         pageSize={searchParams.pageSize}
         total={total}
         onChange={handlePageChange}

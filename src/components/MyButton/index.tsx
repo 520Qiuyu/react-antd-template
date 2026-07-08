@@ -1,12 +1,14 @@
-import { Button, type ButtonProps } from 'antd';
+import { Button, Tooltip, type ButtonProps, type TooltipProps } from 'antd';
 import { useEffect, useState } from 'react';
 
 interface Props extends ButtonProps {
   onClick?: (...args: any[]) => Promise<any> | any | void;
+  toolTip?: string;
+  toolTipProps?: TooltipProps;
 }
 
 export default function MyButton(props: Props) {
-  const { loading, onClick, ...rest } = props;
+  const { loading, onClick, toolTip, toolTipProps, ...rest } = props;
 
   const [_loading, setLoading] = useState(loading);
   const handleClick = async (...args) => {
@@ -24,5 +26,9 @@ export default function MyButton(props: Props) {
     setLoading(loading);
   }, [loading]);
 
-  return <Button {...rest} onClick={handleClick} loading={_loading} />;
+  return (
+    <Tooltip {...toolTipProps} title={toolTip}>
+      <Button {...rest} onClick={handleClick} loading={_loading} />
+    </Tooltip>
+  );
 }

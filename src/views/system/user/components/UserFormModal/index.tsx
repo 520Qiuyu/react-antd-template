@@ -1,29 +1,14 @@
 import { reqCreateUser, reqUpdateUser } from '@/apis';
 import { MyModal } from '@/components';
-import { Gender, Status } from '@/constants';
+import { Gender, GENDER_OPTIONS, Status, STATUS_OPTIONS } from '@/constants';
 import { useVisible } from '@/hooks';
 import type { Ref } from '@/hooks/useVisible';
-import type {
-  AdminUpdateUserParams,
-  CreateUserParams,
-  UserListItem,
-} from '@/types/user';
+import type { AdminUpdateUserParams, CreateUserParams, UserListItem } from '@/types/user';
 import { msgError, msgSuccess } from '@/utils/modal';
 import { Avatar, DatePicker, Form, Input, Select, Space } from 'antd';
 import dayjs from 'dayjs';
 import { forwardRef } from 'react';
 import styles from './index.module.less';
-
-const STATUS_OPTIONS = [
-  { label: '正常', value: Status.NORMAL },
-  { label: '禁用', value: Status.DISABLED },
-];
-
-const GENDER_OPTIONS = [
-  { label: '男', value: Gender.MALE },
-  { label: '女', value: Gender.FEMALE },
-  { label: '未知', value: Gender.UNKNOWN },
-];
 
 function UserFormModal(props: Props, ref: React.ForwardedRef<Ref<void, UserListItem | void>>) {
   const { onSuccess } = props;

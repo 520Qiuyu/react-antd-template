@@ -15,6 +15,5 @@ export interface IPageData<T> {
   pageNum: number;
   pageSize: number;
   total: number;
-  pageCount: number;
   list: T[];
 }

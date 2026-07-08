@@ -1,4 +1,4 @@
-import { Form } from 'antd';
+import { Form, type SelectProps } from 'antd';
 import type { Option } from '../..';
 import SearchFormItem from '../SearchFormItem';
 
@@ -40,7 +40,8 @@ export default function AdvancedSearch(props: Props) {
             type={item.type}
             inputProps={{
               ...item.inputProps,
-              options: optionsMap[item.name] || item.options,
+              options:
+                optionsMap[item.name] || item.options || (item.inputProps as SelectProps)?.options,
             }}
           />
         );

@@ -1,68 +1,37 @@
 import { reqDeleteUser, reqListUsers, reqUpdateUserStatus } from '@/apis';
 import { CopyText, MyButton, MyPagination, SearchForm } from '@/components';
-import { Status } from '@/constants';
-import { useSearchParams } from '@/hooks';
-import type { Ref } from '@/hooks/useVisible';
+import { Status, STATUS_OPTIONS } from '@/constants';
+import { useCompRef, useGetList, useSearchParams } from '@/hooks';
 import type { UserGender, UserListItem } from '@/types/user';
 import { confirm, msgError, msgSuccess } from '@/utils/modal';
-import { PlusOutlined, UserOutlined } from '@ant-design/icons';
-import { Avatar, Button, Space, Switch, Table } from 'antd';
+import { DeleteOutlined, EditOutlined, PlusOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons';
+import { Avatar, Space, Switch, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
+import UserAuthorizeModal from './components/UserAuthorizeModal';
 import UserFormModal from './components/UserFormModal';
 import styles from './index.module.less';
 
-const STATUS_OPTIONS = [
-  { label: '正常', value: Status.NORMAL },
-  { label: '禁用', value: Status.DISABLED },
-];
-
-const GENDER_TEXT_MAP: Record<UserGender, string> = {
-  male: '男',
-  female: '女',
-  unknown: '未知',
-};
-
-const renderText = (val?: string | null) => val || '-';
-
-const DEFAULT_SEARCH = {
-  page: 1,
+const defaultSearchParams: SearchParams = {
+  pageNum: 1,
   pageSize: 10,
-  keyword: undefined,
-  status: undefined,
 };
 
 const UserManagement: React.FC = () => {
-  const { searchParams, setSearchParams } = useSearchParams(DEFAULT_SEARCH);
-  const [list, setList] = useState<UserListItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const formModalRef = useRef<Ref<void, UserListItem | void>>(null);
-
-  const fetchList = async () => {
-    try {
-      setLoading(true);
-      const res = await reqListUsers(searchParams);
-      if (res.code !== 200) return msgError(res.message);
-      setList(res.data?.list ?? []);
-      setTotal(res.data?.total ?? 0);
-    } catch (error) {
-      console.log('error', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchList();
+  const formModalRef = useCompRef(UserFormModal);
+  const authorizeModalRef = useCompRef(UserAuthorizeModal);
+  const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
+  const usedSearchParams = useMemo(() => {
+    const { sortOrder, ...rest } = searchParams;
+    return {
+      ...rest,
+      sortOrder: sortOrder === 'ascend' ? 'asc' : 'desc',
+    };
   }, [searchParams]);
 
-  const handleSearch = (values: typeof DEFAULT_SEARCH) => {
-    setSearchParams({ ...searchParams, ...values, page: 1 });
-  };
-
-  const handlePageChange = (page: number, pageSize: number) => {
-    setSearchParams({ ...searchParams, page, pageSize });
+  const handleSearch = (values: SearchParams) => {
+    setSearchParams({ ...searchParams, ...values, pageNum: 1 });
   };
 
   const handleDelete = async (record: UserListItem) => {
@@ -71,7 +40,7 @@ const UserManagement: React.FC = () => {
       const res = await reqDeleteUser(record.id);
       if (res.code !== 200) return msgError(res.message);
       msgSuccess('删除成功');
-      fetchList();
+      setSearchParams({ ...searchParams });
     } catch (error) {
       console.log('error', error);
     }
@@ -85,7 +54,7 @@ const UserManagement: React.FC = () => {
       const res = await reqUpdateUserStatus(record.id, { status: nextStatus });
       if (res.code !== 200) return msgError(res.message);
       msgSuccess(`${actionText}成功`);
-      fetchList();
+      setSearchParams({ ...searchParams });
     } catch (error) {
       console.log('error', error);
     }
@@ -114,9 +83,11 @@ const UserManagement: React.FC = () => {
   const columns: ColumnsType<UserListItem> = [
     {
       title: '用户',
-      key: 'user',
+      dataIndex: 'account',
       width: 220,
       fixed: 'left',
+      sorter: true,
+      sortOrder: searchParams.sortField === 'account' ? searchParams.sortOrder : undefined,
       render: (_, record) => renderUserCell(record),
     },
     { title: '邮箱', dataIndex: 'email', width: 180, ellipsis: true, render: renderText },
@@ -139,6 +110,8 @@ const UserManagement: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       width: 88,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'status' ? searchParams.sortOrder : undefined,
       render: (status: string, record) => (
         <Switch
           checked={status === Status.NORMAL}
@@ -152,31 +125,55 @@ const UserManagement: React.FC = () => {
       title: '创建时间',
       dataIndex: 'ctime',
       width: 170,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'ctime' ? searchParams.sortOrder : undefined,
       render: (val) => (val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'),
     },
     {
       title: '更新时间',
       dataIndex: 'utime',
       width: 170,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'utime' ? searchParams.sortOrder : undefined,
       render: (val) => (val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'),
     },
     {
       title: '操作',
       key: 'action',
-      width: 140,
+      width: 120,
+      align: 'center',
       fixed: 'right',
       render: (_, record) => (
-        <Space>
-          <Button type='link' onClick={() => formModalRef.current?.open(record)}>
-            编辑
-          </Button>
-          <Button type='link' danger onClick={() => handleDelete(record)}>
-            删除
-          </Button>
+        <Space align='center' size={4}>
+          <MyButton
+            size='small'
+            variant='text'
+            color='primary'
+            icon={<EditOutlined />}
+            toolTip='编辑'
+            onClick={() => formModalRef.current?.open(record)}
+          />
+          <MyButton
+            size='small'
+            variant='text'
+            color='green'
+            icon={<SafetyCertificateOutlined />}
+            toolTip='授权'
+            onClick={() => authorizeModalRef.current?.open(record)}
+          />
+          <MyButton
+            type='text'
+            size='small'
+            danger
+            icon={<DeleteOutlined />}
+            toolTip='删除'
+            onClick={() => handleDelete(record)}
+          />
         </Space>
       ),
     },
   ];
+  const { list, loading, total } = useGetList(reqListUsers, usedSearchParams);
 
   return (
     <div className={styles['page']}>
@@ -186,20 +183,27 @@ const UserManagement: React.FC = () => {
           loading={loading}
           onSearch={handleSearch}
           options={[
-            { name: 'keyword', label: '关键词', inputProps: { placeholder: '账号/昵称/邮箱/手机号' } },
+            {
+              name: 'keyword',
+              label: '关键词',
+              inputProps: { placeholder: '账号/昵称/邮箱/手机号' },
+            },
             {
               name: 'status',
               label: '状态',
               type: 'select',
+              options: STATUS_OPTIONS,
               inputProps: {
                 mode: undefined,
                 placeholder: '请选择状态',
-                options: STATUS_OPTIONS,
               },
             },
           ]}
         />
-        <MyButton type='primary' icon={<PlusOutlined />} onClick={() => formModalRef.current?.open()}>
+        <MyButton
+          type='primary'
+          icon={<PlusOutlined />}
+          onClick={() => formModalRef.current?.open()}>
           新建用户
         </MyButton>
       </div>
@@ -210,16 +214,47 @@ const UserManagement: React.FC = () => {
         loading={loading}
         pagination={false}
         scroll={{ x: 1560 }}
+        onChange={(_, __, sorter) => {
+          console.log('sorter', sorter);
+          const { field, order } = sorter as SorterResult<UserListItem>;
+          setSearchParams({
+            ...searchParams,
+            sortField: field as string,
+            sortOrder: order as SortOrder,
+          });
+        }}
       />
       <MyPagination
-        current={searchParams.page}
+        current={searchParams.pageNum}
         pageSize={searchParams.pageSize}
         total={total}
-        onChange={handlePageChange}
+        onChange={(pageNum, pageSize) => setSearchParams({ ...searchParams, pageNum, pageSize })}
       />
-      <UserFormModal ref={formModalRef} onSuccess={fetchList} />
+      <UserFormModal
+        ref={formModalRef}
+        onSuccess={() =>
+          setSearchParams({
+            ...searchParams,
+            pageNum: 1,
+          })
+        }
+      />
+      <UserAuthorizeModal ref={authorizeModalRef} />
     </div>
   );
 };
 
 export default UserManagement;
+
+interface SearchParams extends PaginationParams {
+  keyword?: string;
+  status?: Exclude<UserStatus, 'deleted'>;
+}
+
+const GENDER_TEXT_MAP: Record<UserGender, string> = {
+  male: '男',
+  female: '女',
+  unknown: '未知',
+};
+
+const renderText = (val?: string | null) => val || '-';

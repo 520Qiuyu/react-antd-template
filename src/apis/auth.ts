@@ -7,7 +7,7 @@ import type {
 } from '@/types/auth';
 
 export const reqPostLogin = (data: LoginRequestParams) =>
-  post<LoginResponseData>('/auth/login', data);
+  post<LoginResponseData>('/auth/login', data, {}, { showError: false });
 
 export const reqPostRegister = (data: RegisterRequestParams) =>
   post<RegisterResponseData>('/auth/register', data);
