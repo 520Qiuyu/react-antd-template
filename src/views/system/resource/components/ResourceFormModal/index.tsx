@@ -188,7 +188,7 @@ function ResourceFormModal(
                 </Form.Item>
               </>
             )}
-            {resourceType === 'menu' && (
+            {/* {resourceType === 'menu' && (
               <Form.Item
                 label='路由路径'
                 name='url'
@@ -196,7 +196,7 @@ function ResourceFormModal(
                 rules={[{ required: true, message: '请输入菜单路由路径' }]}>
                 <Input placeholder='例如：/system/user' />
               </Form.Item>
-            )}
+            )} */}
             {resourceType === 'button' && (
               <Form.Item label='使用说明' className={styles['fullWidth']}>
                 <Input
