@@ -3,12 +3,22 @@ import { CopyText, MyButton, MyPagination, SearchForm } from '@/components';
 import { Status, STATUS_OPTIONS } from '@/constants';
 import { useCompRef, useGetList, useSearchParams } from '@/hooks';
 import type { UserGender, UserListItem } from '@/types/user';
+import { downloadAsJson } from '@/utils/download';
 import { confirm, msgError, msgSuccess } from '@/utils/modal';
-import { DeleteOutlined, EditOutlined, PlusOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  ExportOutlined,
+  ImportOutlined,
+  PlusOutlined,
+  SafetyCertificateOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import { Avatar, Space, Switch, Table } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnsType, TableProps } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
+import ImportUserModal from './components/ImportUserModal';
 import UserAuthorizeModal from './components/UserAuthorizeModal';
 import UserFormModal from './components/UserFormModal';
 import styles from './index.module.less';
@@ -21,6 +31,9 @@ const defaultSearchParams: SearchParams = {
 const UserManagement: React.FC = () => {
   const formModalRef = useCompRef(UserFormModal);
   const authorizeModalRef = useCompRef(UserAuthorizeModal);
+  const importUserModalRef = useCompRef(ImportUserModal);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [selectedRows, setSelectedRows] = useState<UserListItem[]>([]);
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
   const usedSearchParams = useMemo(() => {
     const { sortOrder, ...rest } = searchParams;
@@ -55,6 +68,33 @@ const UserManagement: React.FC = () => {
       if (res.code !== 200) return msgError(res.message);
       msgSuccess(`${actionText}成功`);
       setSearchParams({ ...searchParams });
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+
+  const rowSelection: TableProps<UserListItem>['rowSelection'] = {
+    selectedRowKeys,
+    preserveSelectedRowKeys: true,
+    onChange: (keys, rows) => {
+      setSelectedRowKeys(keys as string[]);
+      setSelectedRows(rows as UserListItem[]);
+    },
+  };
+
+  const handleImport = () => {
+    importUserModalRef.current?.open();
+  };
+
+  const handleExport = async () => {
+    if (selectedRows.length === 0) {
+      msgError('请至少选择一个用户');
+      return;
+    }
+
+    try {
+      downloadAsJson(selectedRows, 'userList', { timestamp: true });
+      msgSuccess('导出成功');
     } catch (error) {
       console.log('error', error);
     }
@@ -200,12 +240,24 @@ const UserManagement: React.FC = () => {
             },
           ]}
         />
-        <MyButton
-          type='primary'
-          icon={<PlusOutlined />}
-          onClick={() => formModalRef.current?.open()}>
-          新建用户
-        </MyButton>
+        <Space>
+          <MyButton type='primary' icon={<ImportOutlined />} onClick={handleImport}>
+            导入用户
+          </MyButton>
+          <MyButton
+            type='primary'
+            icon={<ExportOutlined />}
+            onClick={handleExport}
+            disabled={!selectedRowKeys.length}>
+            导出用户 ({selectedRowKeys.length})
+          </MyButton>
+          <MyButton
+            type='primary'
+            icon={<PlusOutlined />}
+            onClick={() => formModalRef.current?.open()}>
+            新建用户
+          </MyButton>
+        </Space>
       </div>
       <Table
         rowKey='id'
@@ -213,6 +265,7 @@ const UserManagement: React.FC = () => {
         dataSource={list}
         loading={loading}
         pagination={false}
+        rowSelection={rowSelection}
         scroll={{ x: 1560 }}
         onChange={(_, __, sorter) => {
           console.log('sorter', sorter);
@@ -240,6 +293,15 @@ const UserManagement: React.FC = () => {
         }
       />
       <UserAuthorizeModal ref={authorizeModalRef} />
+      <ImportUserModal
+        ref={importUserModalRef}
+        onSuccess={() =>
+          setSearchParams({
+            ...searchParams,
+            pageNum: 1,
+          })
+        }
+      />
     </div>
   );
 };

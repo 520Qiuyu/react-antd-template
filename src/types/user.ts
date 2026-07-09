@@ -104,6 +104,14 @@ export interface CreateUserParams {
   status?: Exclude<UserStatus, 'deleted'>;
 }
 
+/** 批量导入用户项 */
+export interface ImportUserItem extends Omit<CreateUserParams, 'password'> {
+  id?: string;
+  password?: string;
+  ctime?: string;
+  utime?: string;
+}
+
 /** 管理员更新用户参数 */
 export interface AdminUpdateUserParams {
   nickname?: string;

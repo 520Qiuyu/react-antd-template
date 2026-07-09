@@ -23,3 +23,34 @@ export function downloadByFileId(fileId: string, name: string = '') {
   a.target = '_blank';
   a.click();
 }
+
+/**
+ * 将数据下载为 JSON 文件
+ */
+export const downloadAsJson = <T,>(
+  data: T,
+  filename: string,
+  options: { space?: number; timestamp?: boolean } = {},
+) => {
+  const { space = 2, timestamp = false } = options;
+  const jsonString = JSON.stringify(data, null, space);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const blobUrl = window.URL.createObjectURL(blob);
+
+  let finalFilename = filename;
+  if (timestamp) {
+    const date = new Date();
+    const timeString = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(
+      date.getDate(),
+    ).padStart(2, '0')}_${String(date.getHours()).padStart(2, '0')}${String(
+      date.getMinutes(),
+    ).padStart(2, '0')}${String(date.getSeconds()).padStart(2, '0')}`;
+    finalFilename = `${filename}_${timeString}`;
+  }
+
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = `${finalFilename}.json`;
+  link.click();
+  window.URL.revokeObjectURL(blobUrl);
+};

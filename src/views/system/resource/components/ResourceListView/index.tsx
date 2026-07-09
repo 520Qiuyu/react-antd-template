@@ -1,13 +1,15 @@
 import { reqDeletePermissionResource, reqListPermissionResources } from '@/apis';
 import { MyButton, MyPagination, SearchForm } from '@/components';
-import { useGetList, useSearchParams } from '@/hooks';
+import { useCompRef, useGetList, useSearchParams } from '@/hooks';
 import type { Ref } from '@/hooks/useVisible';
 import type { PermissionResourceItem, PermissionResourceType } from '@/types/permission';
+import { downloadAsJson } from '@/utils/download';
 import { confirm, msgError, msgSuccess } from '@/utils/modal';
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Space, Table, Tag } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { DeleteOutlined, EditOutlined, ExportOutlined, ImportOutlined, PlusOutlined } from '@ant-design/icons';
+import { Space, Table, Tag } from 'antd';
+import type { ColumnsType, TableProps } from 'antd/es/table';
 import dayjs from 'dayjs';
+import ImportResourceModal from '../ImportResourceModal';
 import { RESOURCE_TYPE_MAP, RESOURCE_TYPE_OPTIONS } from '../../constants';
 import styles from './index.module.less';
 
@@ -22,6 +24,9 @@ interface Props {
 }
 
 const ResourceListView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
+  const importResourceModalRef = useCompRef(ImportResourceModal);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [selectedRows, setSelectedRows] = useState<PermissionResourceItem[]>([]);
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
   const usedSearchParams = useMemo(() => {
     return {
@@ -41,6 +46,33 @@ const ResourceListView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
         msgSuccess('删除成功');
         setSearchParams({ ...searchParams, pageNum: 1 });
       }
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+
+  const rowSelection: TableProps<PermissionResourceItem>['rowSelection'] = {
+    selectedRowKeys,
+    preserveSelectedRowKeys: true,
+    onChange: (keys, rows) => {
+      setSelectedRowKeys(keys as string[]);
+      setSelectedRows(rows as PermissionResourceItem[]);
+    },
+  };
+
+  const handleImport = () => {
+    importResourceModalRef.current?.open();
+  };
+
+  const handleExport = async () => {
+    if (selectedRows.length === 0) {
+      msgError('请至少选择一个资源');
+      return;
+    }
+
+    try {
+      downloadAsJson(selectedRows, 'resourceList', { timestamp: true });
+      msgSuccess('导出成功');
     } catch (error) {
       console.log('error', error);
     }
@@ -119,12 +151,24 @@ const ResourceListView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
             },
           ]}
         />
-        <MyButton
-          type='primary'
-          icon={<PlusOutlined />}
-          onClick={() => formModalRef.current?.open()}>
-          新建资源
-        </MyButton>
+        <Space>
+          <MyButton type='primary' icon={<ImportOutlined />} onClick={handleImport}>
+            导入资源
+          </MyButton>
+          <MyButton
+            type='primary'
+            icon={<ExportOutlined />}
+            onClick={handleExport}
+            disabled={!selectedRowKeys.length}>
+            导出资源 ({selectedRowKeys.length})
+          </MyButton>
+          <MyButton
+            type='primary'
+            icon={<PlusOutlined />}
+            onClick={() => formModalRef.current?.open()}>
+            新建资源
+          </MyButton>
+        </Space>
       </div>
       <Table
         rowKey='id'
@@ -132,6 +176,7 @@ const ResourceListView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
         dataSource={list}
         loading={loading}
         pagination={false}
+        rowSelection={rowSelection}
         scroll={{ x: 1300 }}
       />
       <MyPagination
@@ -139,6 +184,10 @@ const ResourceListView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
         pageSize={searchParams.pageSize}
         total={total}
         onChange={(pageNum, pageSize) => setSearchParams({ ...searchParams, pageNum, pageSize })}
+      />
+      <ImportResourceModal
+        ref={importResourceModalRef}
+        onSuccess={() => setSearchParams({ ...searchParams })}
       />
     </div>
   );

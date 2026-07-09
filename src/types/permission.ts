@@ -113,6 +113,13 @@ export interface CreatePermissionResourceParams {
   remark?: string;
 }
 
+/** 批量导入权限资源项 */
+export interface ImportPermissionResourceItem extends CreatePermissionResourceParams {
+  id?: string;
+  ctime?: string;
+  utime?: string;
+}
+
 /** 更新权限资源参数 */
 export type UpdatePermissionResourceParams = Partial<CreatePermissionResourceParams>;
 
@@ -123,6 +130,13 @@ export interface CreatePermissionRoleParams {
   description?: string;
   status?: PermissionRoleStatus;
   remark?: string;
+}
+
+/** 批量导入权限角色项 */
+export interface ImportPermissionRoleItem extends CreatePermissionRoleParams {
+  id?: string;
+  ctime?: string;
+  utime?: string;
 }
 
 /** 更新权限角色参数 */

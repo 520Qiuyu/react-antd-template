@@ -7,7 +7,7 @@ import type {
   PermissionResourceType,
 } from '@/types/permission';
 import { confirm, msgError, msgSuccess } from '@/utils/modal';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { Button, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -81,9 +81,7 @@ const ResourceTreeView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
       });
       if (res.code !== 200) return msgError(res.message);
       const children = mapLazyNodes(res.data ?? []);
-      setDataSource((prev) =>
-        updateTreeNode(prev, record.id, (node) => ({ ...node, children })),
-      );
+      setDataSource((prev) => updateTreeNode(prev, record.id, (node) => ({ ...node, children })));
     } catch (error) {
       console.log('error', error);
     } finally {
@@ -131,12 +129,20 @@ const ResourceTreeView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
       fixed: 'right',
       render: (_, record) => (
         <Space>
-          <Button type='link' onClick={() => formModalRef.current?.open(record)}>
-            编辑
-          </Button>
-          <Button type='link' danger onClick={() => handleDelete(record)}>
-            删除
-          </Button>
+          <MyButton
+            variant='text'
+            color='primary'
+            icon={<EditOutlined />}
+            toolTip='编辑'
+            onClick={() => formModalRef.current?.open(record)}
+          />
+          <MyButton
+            variant='text'
+            color='danger'
+            icon={<DeleteOutlined />}
+            toolTip='删除'
+            onClick={() => handleDelete(record)}
+          />
         </Space>
       ),
     },
@@ -148,7 +154,10 @@ const ResourceTreeView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
         <MyButton icon={<ReloadOutlined />} onClick={fetchTree} loading={loading}>
           刷新
         </MyButton>
-        <MyButton type='primary' icon={<PlusOutlined />} onClick={() => formModalRef.current?.open()}>
+        <MyButton
+          type='primary'
+          icon={<PlusOutlined />}
+          onClick={() => formModalRef.current?.open()}>
           新建资源
         </MyButton>
       </div>
@@ -166,9 +175,7 @@ const ResourceTreeView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
             }
           },
         }}
-        rowClassName={(record) =>
-          loadingKeys.includes(record.id) ? styles['rowLoading'] : ''
-        }
+        rowClassName={(record) => (loadingKeys.includes(record.id) ? styles['rowLoading'] : '')}
       />
     </div>
   );

@@ -1,0 +1,175 @@
+.roleSummary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8fbff 0%, #f3f7ff 100%);
+  border: 1px solid rgba(68, 155, 255, 0.12);
+}
+
+.roleIcon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 50%;
+  background: #fff;
+  color: @primary-color;
+  font-size: 20px;
+}
+
+.roleMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.roleName {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+  color: rgba(0, 0, 0, 0.88);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roleCode {
+  font-size: 12px;
+  line-height: 20px;
+  color: rgba(0, 0, 0, 0.45);
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+}
+
+.selectedCount {
+  flex-shrink: 0;
+  margin-inline-end: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.itemList {
+  min-height: 200px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.itemGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.itemRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s;
+
+  &:hover {
+    border-color: rgba(68, 155, 255, 0.35);
+    background: rgba(68, 155, 255, 0.04);
+  }
+}
+
+.itemRowDisabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+
+  &:hover {
+    border-color: rgba(0, 0, 0, 0.06);
+    background: transparent;
+  }
+}
+
+.itemContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.itemTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.itemSubTitle {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 20px;
+  color: rgba(0, 0, 0, 0.45);
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+}
+
+.itemDesc {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 18px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.treePanel {
+  min-height: 280px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 8px 4px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  // background: #fafafa;
+}
+
+.treeNodeTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.treeNodeName {
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 500;
+}
+
+.treeNodeTag {
+  margin-inline-end: 0;
+}
+
+.treeNodeCode {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+}
