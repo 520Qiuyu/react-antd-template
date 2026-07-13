@@ -1,7 +1,7 @@
 import MyIcon from '@/components/MyIcon';
 import { useCurrentRoute } from '@/hooks/useCurrentRoute';
 import { getRoutesList } from '@/router/menu';
-import { useAppStore } from '@/store';
+import { useAppStore, useUserStore } from '@/store';
 import { hasAuthority } from '@/utils/userInfo';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
@@ -15,6 +15,7 @@ export default function Sider() {
   const { pathname, search } = useLocation();
   const currentRoute = useCurrentRoute();
   const addTab = useAppStore((state) => state.addTab);
+  const userInfo = useUserStore((state) => state.userInfo);
 
   // 折叠
   const [collapsed, setCollapsed] = useState(false);
@@ -61,7 +62,7 @@ export default function Sider() {
         return shouldAdd;
       });
     }
-  }, []);
+  }, [userInfo]);
 
   const getFirstRoute = (routes: IFormatMenu[]) => {
     for (let i = 0; i < routes.length; i++) {

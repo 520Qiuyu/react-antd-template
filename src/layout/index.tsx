@@ -21,7 +21,7 @@ export default function MainLayout() {
         <Sider />
         <Content className={styles['content-wrapper']}>
           <Main />
-          <Footer />
+          {/* <Footer /> */}
         </Content>
       </Layout>
     </Layout>

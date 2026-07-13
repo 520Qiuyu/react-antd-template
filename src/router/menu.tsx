@@ -4,12 +4,33 @@ const isDev = import.meta.env.MODE === 'development';
 
 // 此处配置的是layout中的路由 非layout中的路由请前往App.tsx中配置
 export const routes: IMenu[] = [
-  // 权限管理
+  // 汽水音乐
   {
-    path: 'permission',
-    name: '权限管理',
-    icon: 'name-card',
-    children: [],
+    path: 'qishui',
+    name: '汽水音乐',
+    icon: 'listening-fill',
+    children: [
+      {
+        path: 'card-secret',
+        name: '卡密管理',
+        component: lazy(() => import('@/views/qishui/cardSecret')),
+      },
+      {
+        path: 'auth-info',
+        name: '认证信息管理',
+        component: lazy(() => import('@/views/qishui/authInfo')),
+      },
+      {
+        path: 'link-parse',
+        name: '链接解析',
+        component: lazy(() => import('@/views/qishui/linkParse')),
+      },
+      {
+        path: 'logs',
+        name: '日志管理',
+        component: lazy(() => import('@/views/qishui/logs')),
+      },
+    ],
   },
   // 系统管理
   {
@@ -87,7 +108,7 @@ isDev &&
 export const getRoutesList = (parentPath?: string) => formatter(routes, parentPath);
 /** 格式化后的菜单 */
 export const formatRoutesList = getRoutesList();
-console.log('formatRoutesList', formatRoutesList);
+// console.log('formatRoutesList', formatRoutesList);
 // @ts-ignore /** 格式化菜单打平 */
 export const flattenRoutesList = flatten<IFormatMenu>(formatRoutesList);
-console.log('flattenRoutesList', flattenRoutesList);
+// console.log('flattenRoutesList', flattenRoutesList);

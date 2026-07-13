@@ -1,0 +1,91 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  // padding: @page-container-padding;
+}
+
+.listCard {
+  :global {
+    .ant-card-head {
+      min-height: 56px;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .ant-card-head-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.88);
+    }
+
+    .ant-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px;
+    }
+  }
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.parseCount {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 120px;
+}
+
+.parseCountText {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  line-height: 20px;
+}
+
+.parsed {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.divider {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+.unparsed {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.parseBar {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+}
+
+.parseBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, @primary-color 0%, lighten(@primary-color, 12%) 100%);
+  border-radius: inherit;
+  transition: width 0.25s ease;
+}
+
+.cookieEmpty {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+.idCell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}

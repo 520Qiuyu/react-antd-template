@@ -1,0 +1,45 @@
+.form {
+  :global {
+    .ant-form-item {
+      margin-bottom: 16px;
+    }
+  }
+}
+
+.section {
+  & + & {
+    margin-top: 8px;
+  }
+}
+
+.sectionTitle {
+  margin-bottom: 16px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  :global {
+    .ant-slider {
+      flex: 1;
+      margin: 8px 8px 20px;
+    }
+  }
+}
+
+.sliderInput {
+  width: 72px;
+  flex-shrink: 0;
+}
