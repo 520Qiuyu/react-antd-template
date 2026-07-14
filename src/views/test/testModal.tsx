@@ -1,52 +1,102 @@
-import { MyModal } from '@/components';
-import { confirm, msgError, msgSuccess } from '@/utils/modal';
-import { Button } from 'antd';
+import { SodaAudioDecryptor } from '@/views/qishui/linkParse/sodaDecryptor';
+import { msgError, msgSuccess } from '@/utils/modal';
+import { Button, Input, Space } from 'antd';
 import { useState } from 'react';
 
+const { TextArea } = Input;
+
+const downloadBlob = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+const guessFilename = (audioUrl: string) => {
+  try {
+    const pathname = new URL(audioUrl).pathname;
+    const last = pathname.split('/').filter(Boolean).pop() || '';
+    if (last.includes('.')) return `${last.replace(/\.[^.]+$/, '')}.decrypted.m4a`;
+  } catch {
+    // ignore
+  }
+  return 'decrypted.m4a';
+};
+
 export default function TestModal() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [audioUrl, setAudioUrl] = useState('');
+  const [playAuth, setPlayAuth] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const showModal = () => {
-    setIsModalOpen(true);
-  };
-  const handleOk = () => {
-    setIsModalOpen(false);
-  };
-  const handleCancel = () => {
-    setIsModalOpen(false);
-  };
+  const handleDecrypt = async () => {
+    const url = audioUrl.trim();
+    if (!url) {
+      msgError('请先粘贴音频地址');
+      return;
+    }
+    if (!playAuth.trim()) {
+      msgError('请输入 playAuth');
+      return;
+    }
 
-  const testMessage = () => {
-    msgSuccess('hello');
-  };
-
-  const testConfirm = async () => {
+    setLoading(true);
     try {
-      await confirm('确定吗？？？？', '提示');
-      msgSuccess('确定了');
+      const res = await fetch(url, {
+        referrerPolicy: 'no-referrer',
+        mode: 'cors',
+      });
+      if (!res.ok) {
+        msgError(`下载失败：${res.status} ${res.statusText}`);
+        return;
+      }
+      const fileBlob = await res.blob();
+      const { blob, decrypted, reason } = await SodaAudioDecryptor.decryptBlob(
+        fileBlob,
+        playAuth.trim(),
+      );
+      if (!decrypted) {
+        msgError(reason || '解密失败');
+        return;
+      }
+      downloadBlob(blob, guessFilename(url));
+      msgSuccess('解密成功，已开始下载');
     } catch (error) {
-      msgError('取消了');
+      console.error(error);
+      msgError('下载或解密过程出错（可能是 CORS）');
+    } finally {
+      setLoading(false);
     }
   };
+
   return (
-    <div style={{ display: 'flex', gap: 16, padding: '20px' }}>
-      {/* 测试弹窗 */}
-      <Button type='primary' onClick={showModal}>
-        打开弹窗
-      </Button>
-      <MyModal title='测试弹窗' open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
-        <p>这是一个测试弹窗内容</p>
-      </MyModal>
+    <div style={{ maxWidth: 560, padding: 24 }}>
+      <Space direction='vertical' size={16} style={{ width: '100%' }}>
+        <div>
+          <div style={{ marginBottom: 8, fontWeight: 500 }}>音频地址</div>
+          <TextArea
+            rows={4}
+            placeholder='粘贴 main_url / MainPlayUrl…'
+            value={audioUrl}
+            onChange={(e) => setAudioUrl(e.target.value)}
+          />
+        </div>
 
-      {/* 测试message */}
-      <Button type='primary' onClick={testMessage}>
-        打开Mesage
-      </Button>
+        <div>
+          <div style={{ marginBottom: 8, fontWeight: 500 }}>playAuth / spade_a</div>
+          <TextArea
+            rows={4}
+            placeholder='粘贴 playAuth 或 spade_a…'
+            value={playAuth}
+            onChange={(e) => setPlayAuth(e.target.value)}
+          />
+        </div>
 
-      {/* 测试confirm */}
-      <Button type='primary' onClick={testConfirm}>
-        打开确认框
-      </Button>
+        <Button type='primary' loading={loading} onClick={handleDecrypt} block>
+          解密并下载
+        </Button>
+      </Space>
     </div>
   );
 }

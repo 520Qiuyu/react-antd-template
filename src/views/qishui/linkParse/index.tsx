@@ -1,3 +1,4 @@
+import { useSearchParams } from '@/hooks';
 import {
   AppstoreOutlined,
   CustomerServiceOutlined,
@@ -12,63 +13,26 @@ import PlaylistParseView from './components/PlaylistParseView';
 import SongParseView from './components/SongParseView';
 import { QISHUI_HOME_URL, type LinkParseView } from './constants';
 import styles from './index.module.less';
-import type { TocSection } from './types';
+import { useLinkParseStore, type TocSection } from './store/useStore';
 
-/**
- * 链接解析
- */
+const defaultSearchParams: SearchParams = {
+  currentView: 'song',
+  sidebarOpen: false,
+};
 const LinkParse: React.FC = () => {
-  const [currentView, setCurrentView] = useState<LinkParseView>('song');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [songHasResult, setSongHasResult] = useState(false);
-
-  const handleViewChange = useCallback((view: LinkParseView) => {
-    setCurrentView(view);
-    window.location.hash = view;
-  }, []);
+  const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
+  const { tocSections } = useLinkParseStore();
 
   const handleGuideClick = useCallback(() => {
-    if (currentView !== 'song') {
-      setCurrentView('song');
-      window.location.hash = 'song';
+    if (searchParams.currentView !== 'song') {
+      setSearchParams({ ...searchParams, currentView: 'song' });
     }
     setTimeout(() => {
-      document.getElementById('guide-share')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document
+        .getElementById('guide-share')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 0);
-  }, [currentView]);
-
-  const handleCloseSidebar = useCallback(() => {
-    setSidebarOpen(false);
-  }, []);
-
-  useEffect(() => {
-    const hash = window.location.hash.replace('#', '');
-    if (hash === 'playlist' || hash === 'song') {
-      setCurrentView(hash);
-    }
-  }, []);
-
-  const tocSections = useMemo<TocSection[]>(() => {
-    if (currentView === 'song') {
-      const sections: TocSection[] = [
-        { id: 'song-input', label: '输入链接' },
-        { id: 'song-result', label: '解析结果' },
-      ];
-      if (songHasResult) {
-        sections.push({ id: 'song-quality', label: '音质列表' }, { id: 'song-lyric', label: '歌词' });
-      }
-      sections.push(
-        { id: 'guide-share', label: '如何获取分享链接' },
-        { id: 'guide-fields', label: '字段说明' },
-      );
-      return sections;
-    }
-
-    return [
-      { id: 'playlist-input', label: '输入链接' },
-      { id: 'playlist-result', label: '解析结果' },
-    ];
-  }, [currentView, songHasResult]);
+  }, [searchParams.currentView]);
 
   return (
     <div className={styles['page']}>
@@ -86,19 +50,19 @@ const LinkParse: React.FC = () => {
           <nav className={styles['navLinks']} aria-label='顶部导航'>
             <button
               className={classNames(styles['navLink'], {
-                [styles['isActive']]: currentView === 'song',
+                [styles['isActive']]: searchParams.currentView === 'song',
               })}
               type='button'
-              onClick={() => handleViewChange('song')}>
+              onClick={() => setSearchParams({ ...searchParams, currentView: 'song' })}>
               <CustomerServiceOutlined />
               歌曲解析
             </button>
             <button
               className={classNames(styles['navLink'], {
-                [styles['isActive']]: currentView === 'playlist',
+                [styles['isActive']]: searchParams.currentView === 'playlist',
               })}
               type='button'
-              onClick={() => handleViewChange('playlist')}>
+              onClick={() => setSearchParams({ ...searchParams, currentView: 'playlist' })}>
               <UnorderedListOutlined />
               歌单解析
             </button>
@@ -115,38 +79,30 @@ const LinkParse: React.FC = () => {
           <button
             className={styles['navToggle']}
             type='button'
-            aria-label={sidebarOpen ? '关闭侧边栏' : '打开侧边栏'}
-            aria-expanded={sidebarOpen}
+            aria-label={searchParams.sidebarOpen ? '关闭侧边栏' : '打开侧边栏'}
+            aria-expanded={searchParams.sidebarOpen}
             tabIndex={0}
-            onClick={() => setSidebarOpen((prev) => !prev)}>
+            onClick={() =>
+              setSearchParams({ ...searchParams, sidebarOpen: !searchParams.sidebarOpen })
+            }>
             <MenuOutlined />
           </button>
         </div>
       </header>
 
       <div
-        className={classNames(styles['overlay'], { [styles['isOpen']]: sidebarOpen })}
-        hidden={!sidebarOpen}
-        onClick={handleCloseSidebar}
-        aria-hidden={!sidebarOpen}
+        className={classNames(styles['overlay'], { [styles['isOpen']]: searchParams.sidebarOpen })}
+        hidden={!searchParams.sidebarOpen}
+        onClick={() => setSearchParams({ ...searchParams, sidebarOpen: false })}
+        aria-hidden={!searchParams.sidebarOpen}
       />
 
       <div className={styles['layout']}>
-        <LinkParseSidebar
-          currentView={currentView}
-          open={sidebarOpen}
-          onViewChange={handleViewChange}
-          onGuideClick={handleGuideClick}
-          onClose={handleCloseSidebar}
-        />
+        <LinkParseSidebar onGuideClick={handleGuideClick} />
 
         <div className={styles['content']}>
           <div className={styles['docArea']}>
-            {currentView === 'song' ? (
-              <SongParseView onResultChange={setSongHasResult} />
-            ) : (
-              <PlaylistParseView />
-            )}
+            {searchParams.currentView === 'song' ? <SongParseView /> : <PlaylistParseView />}
           </div>
           <PageAside sections={tocSections} />
         </div>
@@ -156,3 +112,8 @@ const LinkParse: React.FC = () => {
 };
 
 export default LinkParse;
+
+export interface SearchParams {
+  currentView: LinkParseView;
+  sidebarOpen: boolean;
+}

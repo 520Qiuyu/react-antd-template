@@ -97,7 +97,7 @@ isDev &&
           // 测试myModal
           {
             path: 'test-modal',
-            name: '测试myModal',
+            name: 'Soda解密测试',
             component: lazy(() => import('@/views/test/testModal')),
           },
         ],

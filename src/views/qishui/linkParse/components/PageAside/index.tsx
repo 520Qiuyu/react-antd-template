@@ -1,4 +1,4 @@
-import type { TocSection } from '../../types';
+import type { TocSection } from '../../store/useStore';
 import styles from './index.module.less';
 
 interface PageAsideProps {

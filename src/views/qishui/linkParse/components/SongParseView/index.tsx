@@ -1,50 +1,91 @@
+import { reqParseSongShareLink } from '@/apis';
+import { useSearchParams } from '@/hooks';
+import { msgError } from '@/utils/modal';
 import { CustomerServiceOutlined, StarOutlined } from '@ant-design/icons';
-import type { MusicInfo } from '@/types/qishui';
+import type { SearchParams } from '../..';
 import { DEFAULT_SONG_LINK } from '../../constants';
-import { MOCK_SONG } from '../../mock';
-import { mockParseDelay } from '../../utils';
+import { useLinkParseStore, type TocSection } from '../../store/useStore';
 import DocSectionTitle from '../DocSectionTitle';
 import ParseFormPanel from '../ParseFormPanel';
 import { ParseEmptyState, ParseErrorState } from '../ParseState';
 import SongResult, { SongLyricBox, SongQualityList } from '../SongResult';
 import styles from './index.module.less';
 
-interface SongParseViewProps {
-  onResultChange?: (hasResult: boolean) => void;
-}
+interface SongParseViewProps {}
 
 /**
  * 歌曲解析视图
  */
-const SongParseView: React.FC<SongParseViewProps> = ({ onResultChange }) => {
+const SongParseView: React.FC<SongParseViewProps> = () => {
+  const { searchParams } = useSearchParams<SearchParams>();
+  const setSongHasResult = useLinkParseStore((state) => state.setSongHasResult);
+  const songHasResult = useLinkParseStore((state) => state.songHasResult);
+  const setTocSections = useLinkParseStore((state) => state.setTocSections);
+
   const [link, setLink] = useState(DEFAULT_SONG_LINK);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<MusicInfo | null>(null);
-
-  useEffect(() => {
-    onResultChange?.(!!result);
-  }, [result, onResultChange]);
 
   const handleParse = async () => {
     if (!link.trim()) {
       setError('请先粘贴歌曲分享链接');
-      setResult(null);
+      setSongHasResult(null);
       return;
     }
 
     setLoading(true);
     setError('');
-    await mockParseDelay(720);
-    setResult({ ...MOCK_SONG });
-    setLoading(false);
+    try {
+      const res = await reqParseSongShareLink({ shareLink: link.trim() });
+      if (res.code !== 200) {
+        setSongHasResult(null);
+        setError(res.message || '解析失败');
+        msgError(res.message || '解析失败');
+        return;
+      }
+
+      const songInfo = res.data?.fullInfo || res.data?.musicInfo;
+      if (!songInfo?.trackId) {
+        setSongHasResult(null);
+        setError('未解析到有效歌曲信息');
+        return;
+      }
+
+      setSongHasResult(songInfo);
+    } catch (err) {
+      console.log('error', err);
+      setSongHasResult(null);
+      setError('解析失败，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClear = () => {
     setLink('');
-    setResult(null);
+    setSongHasResult(null);
     setError('');
   };
+
+  useEffect(() => {
+    if (searchParams.currentView === 'song') {
+      const sections: TocSection[] = [
+        { id: 'song-input', label: '输入链接' },
+        { id: 'song-result', label: '解析结果' },
+      ];
+      if (songHasResult) {
+        sections.push(
+          { id: 'song-quality', label: '音质列表' },
+          { id: 'song-lyric', label: '歌词' },
+        );
+      }
+      sections.push(
+        { id: 'guide-share', label: '如何获取分享链接' },
+        { id: 'guide-fields', label: '字段说明' },
+      );
+      setTocSections(sections);
+    }
+  }, [searchParams.currentView, songHasResult]);
 
   return (
     <main className={styles['doc']} data-page='song'>
@@ -81,17 +122,17 @@ const SongParseView: React.FC<SongParseViewProps> = ({ onResultChange }) => {
       />
 
       <DocSectionTitle id='song-result'>解析结果</DocSectionTitle>
-      {!result && !error ? (
+      {!songHasResult && !error ? (
         <ParseEmptyState icon={<CustomerServiceOutlined />}>解析结果将显示在这里</ParseEmptyState>
       ) : null}
       <ParseErrorState message={error} />
-      {result ? (
+      {songHasResult ? (
         <>
-          <SongResult data={result} />
+          <SongResult data={songHasResult} />
           <DocSectionTitle id='song-quality'>音质列表</DocSectionTitle>
-          <SongQualityList data={result} />
+          <SongQualityList data={songHasResult} />
           <DocSectionTitle id='song-lyric'>歌词</DocSectionTitle>
-          <SongLyricBox data={result} />
+          <SongLyricBox data={songHasResult} />
         </>
       ) : null}
 
