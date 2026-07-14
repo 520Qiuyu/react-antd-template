@@ -24,6 +24,7 @@ export const routes: IMenu[] = [
         path: 'link-parse',
         name: '链接解析',
         component: lazy(() => import('@/views/qishui/linkParse')),
+        hiddenLayout: true,
       },
       {
         path: 'logs',

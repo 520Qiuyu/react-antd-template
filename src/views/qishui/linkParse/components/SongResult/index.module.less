@@ -1,0 +1,307 @@
+.result {
+  margin-top: 20px;
+  animation: fadeUp 0.5s var(--lp-ease) both;
+}
+
+.songCard {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: 22px;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: calc(var(--lp-radius) + 4px);
+  background:
+    linear-gradient(135deg, rgba(var(--lp-soda-rgb), 0.06), rgba(var(--lp-bubble-rgb), 0.03)),
+    rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  box-shadow:
+    var(--lp-shadow-2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+}
+
+.coverWrap {
+  position: relative;
+}
+
+.cover {
+  width: 148px;
+  height: 148px;
+  object-fit: cover;
+  border-radius: calc(var(--lp-radius) + 2px);
+  background: var(--lp-bg-mute);
+  box-shadow: 0 16px 40px rgba(var(--lp-soda-rgb), 0.2);
+}
+
+.coverGlow {
+  position: absolute;
+  inset: 15% -15%;
+  z-index: -1;
+  filter: blur(36px);
+  opacity: 0.55;
+  background: linear-gradient(135deg, var(--lp-brand), var(--lp-brand-2));
+  border-radius: 50%;
+}
+
+.meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.album {
+  color: var(--lp-text-3);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+
+.artist {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--lp-text-2);
+  font-size: 14px;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--lp-bg-mute);
+}
+
+.trackId {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  width: fit-content;
+  border-radius: 6px;
+  background: rgba(var(--lp-soda-rgb), 0.08);
+  border: 1px solid rgba(var(--lp-soda-rgb), 0.15);
+  color: var(--lp-brand);
+  font-size: 12px;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+  transition:
+    transform 0.18s var(--lp-ease),
+    background 0.18s var(--lp-ease),
+    box-shadow 0.18s var(--lp-ease);
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.btnPrimary {
+  color: #fff;
+  background: var(--lp-gradient-btn);
+  box-shadow: 0 6px 24px rgba(var(--lp-soda-rgb), 0.38);
+
+  &:hover {
+    filter: brightness(1.06);
+    transform: translateY(-2px);
+  }
+}
+
+.btnGhost {
+  color: var(--lp-brand);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(var(--lp-soda-rgb), 0.25);
+
+  &:hover {
+    color: var(--lp-primary-hover);
+    border-color: rgba(var(--lp-soda-rgb), 0.4);
+    background: var(--lp-brand-softer);
+  }
+}
+
+.btnSm {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  border-radius: 8px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.infoChip {
+  padding: 12px 14px;
+  border-radius: var(--lp-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  &:nth-child(1) {
+    border-color: rgba(var(--lp-soda-rgb), 0.25);
+    background: linear-gradient(145deg, rgba(var(--lp-soda-rgb), 0.1), rgba(255, 255, 255, 0.5));
+  }
+
+  &:nth-child(2) {
+    border-color: rgba(var(--lp-bubble-rgb), 0.25);
+    background: linear-gradient(145deg, rgba(var(--lp-bubble-rgb), 0.08), rgba(255, 255, 255, 0.5));
+  }
+
+  &:nth-child(3) {
+    border-color: rgba(var(--lp-lemon-rgb), 0.3);
+    background: linear-gradient(145deg, rgba(var(--lp-lemon-rgb), 0.1), rgba(255, 255, 255, 0.5));
+  }
+}
+
+.infoLabel {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--lp-text-3);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.infoValue {
+  font-size: 13.5px;
+  font-weight: 560;
+  word-break: break-all;
+}
+
+.qualityList {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.qualityItem {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: var(--lp-radius-sm);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    border-color 0.2s var(--lp-ease),
+    background 0.2s var(--lp-ease),
+    transform 0.2s var(--lp-ease);
+
+  &:hover {
+    border-color: rgba(var(--lp-soda-rgb), 0.3);
+    background: rgba(255, 255, 255, 0.75);
+    transform: translateX(2px);
+  }
+}
+
+.qualityBadge {
+  padding: 4px 9px;
+  border-radius: 6px;
+  color: #fff;
+  background: var(--lp-gradient-btn);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.qualityMeta {
+  color: var(--lp-text-3);
+  font-size: 12.5px;
+}
+
+.lyricBox {
+  margin-top: 12px;
+  max-height: 240px;
+  overflow: auto;
+  padding: 16px 18px;
+  border: 1px solid rgba(var(--lp-soda-rgb), 0.15);
+  border-radius: var(--lp-radius);
+  background: linear-gradient(180deg, rgba(var(--lp-soda-rgb), 0.05), rgba(255, 255, 255, 0.6));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  white-space: pre-wrap;
+  color: var(--lp-text-2);
+  font-size: 13.5px;
+  line-height: 1.8;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(var(--lp-soda-rgb), 0.3);
+    border-radius: 999px;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .songCard {
+    grid-template-columns: 1fr;
+  }
+
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .qualityItem {
+    grid-template-columns: auto 1fr;
+    gap: 8px 12px;
+
+    .btn {
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+  }
+}

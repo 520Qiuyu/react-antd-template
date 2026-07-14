@@ -1,0 +1,41 @@
+.empty,
+.error {
+  margin-top: 20px;
+  padding: 28px 20px;
+  border-radius: var(--lp-radius);
+  text-align: center;
+  animation: fadeUp 0.4s var(--lp-ease) both;
+
+  :global(.anticon) {
+    display: block;
+    margin: 0 auto 10px;
+    font-size: 28px;
+    opacity: 0.55;
+  }
+}
+
+.empty {
+  border: 1px dashed rgba(var(--lp-soda-rgb), 0.25);
+  color: var(--lp-text-3);
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.error {
+  border: 1px dashed rgba(194, 59, 59, 0.25);
+  background: var(--lp-danger-soft);
+  color: var(--lp-danger);
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

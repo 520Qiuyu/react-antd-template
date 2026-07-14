@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="汽水音乐分享链接解析 · 歌曲与歌单" />
+  <title>汽水音乐解析 · Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" />
+  <style>
+    :root {
+      /* 汽水音乐主题：清爽绿 · 气泡青 · 柠檬黄 */
+      --soda-rgb: 0, 194, 122;
+      --bubble-rgb: 0, 184, 212;
+      --lemon-rgb: 255, 176, 32;
+      --vp-c-bg: #ecfbf5;
+      --vp-c-bg-alt: #dff7ef;
+      --vp-c-bg-soft: rgba(255, 255, 255, 0.78);
+      --vp-c-bg-glass: rgba(255, 255, 255, 0.52);
+      --vp-c-bg-mute: #ccefe2;
+      --vp-c-divider: rgba(var(--soda-rgb), 0.12);
+      --vp-c-border: rgba(var(--soda-rgb), 0.18);
+      --vp-c-gutter: #c8ebe0;
+      --vp-c-text-1: #0f1f18;
+      --vp-c-text-2: #3d5c50;
+      --vp-c-text-3: #6b8f82;
+      --vp-c-brand: #00c27a;
+      --vp-c-brand-2: #00b8d4;
+      --vp-c-brand-3: #ffb020;
+      --vp-c-brand-light: #34d399;
+      --vp-c-brand-soft: rgba(var(--soda-rgb), 0.14);
+      --vp-c-brand-softer: rgba(var(--soda-rgb), 0.08);
+      --vp-c-coral-soft: rgba(var(--bubble-rgb), 0.12);
+      --vp-c-cyan-soft: rgba(var(--bubble-rgb), 0.12);
+      --vp-c-primary: #00b87a;
+      --vp-c-primary-hover: #009e68;
+      --vp-c-primary-soft: rgba(var(--soda-rgb), 0.1);
+      --vp-c-gradient: linear-gradient(135deg, #00c27a 0%, #00c9a7 38%, #00b8d4 72%, #5ce1e6 100%);
+      --vp-c-gradient-btn: linear-gradient(135deg, #00b87a 0%, #00c9a7 48%, #00b4d8 100%);
+      --vp-c-gradient-mesh: linear-gradient(135deg, rgba(var(--soda-rgb), 0.14), rgba(var(--bubble-rgb), 0.1), rgba(var(--lemon-rgb), 0.08));
+      --vp-c-danger: #ef4444;
+      --vp-c-danger-soft: rgba(239, 68, 68, 0.1);
+      --vp-c-warning: #f59e0b;
+      --vp-shadow-1: 0 2px 8px rgba(var(--soda-rgb), 0.1);
+      --vp-shadow-2: 0 12px 40px rgba(var(--soda-rgb), 0.16);
+      --vp-shadow-3: 0 0 0 1px rgba(255, 255, 255, 0.7), 0 8px 32px rgba(var(--soda-rgb), 0.12);
+      --vp-shadow-glow: 0 0 48px rgba(var(--bubble-rgb), 0.2);
+      --glass-blur: blur(22px);
+      --nav-height: 64px;
+      --sidebar-width: 272px;
+      --aside-width: 224px;
+      --content-max: 820px;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --font-display: "Plus Jakarta Sans", "Noto Sans SC", system-ui, sans-serif;
+      --font-sans: "Plus Jakarta Sans", "Noto Sans SC", system-ui, sans-serif;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--vp-c-text-1);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.65;
+      background:
+        radial-gradient(ellipse 55% 42% at 92% 4%, rgba(var(--soda-rgb), 0.2), transparent 58%),
+        radial-gradient(ellipse 48% 38% at 6% 92%, rgba(var(--bubble-rgb), 0.18), transparent 55%),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(var(--lemon-rgb), 0.07), transparent 60%),
+        var(--vp-c-bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.45;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.9) 0%, transparent 8%),
+        radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.7) 0%, transparent 6%),
+        radial-gradient(circle at 65% 72%, rgba(255, 255, 255, 0.6) 0%, transparent 5%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .vp-nav,
+    .vp-layout {
+      position: relative;
+      z-index: 1;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      background: none;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* —— Top Nav —— */
+    .vp-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--nav-height);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: var(--glass-blur) saturate(1.6);
+      -webkit-backdrop-filter: var(--glass-blur) saturate(1.6);
+      box-shadow: 0 1px 0 rgba(var(--soda-rgb), 0.06);
+    }
+
+    .vp-nav__inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 0 24px;
+      gap: 16px;
+    }
+
+    .vp-nav__brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .vp-nav__logo {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      color: #fff;
+      background: var(--vp-c-gradient-btn);
+      box-shadow: 0 6px 20px rgba(var(--soda-rgb), 0.35);
+      font-size: 17px;
+    }
+
+    .vp-nav__title {
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+    }
+
+    .vp-nav__title span {
+      color: var(--vp-c-text-3);
+      font-weight: 500;
+      margin-left: 6px;
+      font-size: 13px;
+    }
+
+    .vp-nav__links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .vp-nav__link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      color: var(--vp-c-text-2);
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: background 0.2s var(--ease), color 0.2s var(--ease);
+    }
+
+    .vp-nav__link:hover,
+    .vp-nav__link:focus-visible {
+      color: var(--vp-c-brand);
+      background: var(--vp-c-brand-softer);
+      outline: none;
+    }
+
+    .vp-nav__toggle {
+      display: none;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      color: var(--vp-c-text-2);
+      background: var(--vp-c-bg-soft);
+      border: 1px solid var(--vp-c-border);
+    }
+
+    /* —— Layout —— */
+    .vp-layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+      max-width: 1480px;
+      margin: 0 auto;
+      min-height: calc(100vh - var(--nav-height));
+    }
+
+    /* —— Sidebar —— */
+    .vp-sidebar {
+      position: sticky;
+      top: var(--nav-height);
+      align-self: start;
+      height: calc(100vh - var(--nav-height));
+      overflow-y: auto;
+      padding: 28px 18px 40px 24px;
+      border-right: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.42);
+      backdrop-filter: var(--glass-blur) saturate(1.4);
+      -webkit-backdrop-filter: var(--glass-blur) saturate(1.4);
+    }
+
+    .vp-sidebar__group + .vp-sidebar__group {
+      margin-top: 28px;
+    }
+
+    .vp-sidebar__heading {
+      padding: 0 12px;
+      margin: 0 0 8px;
+      color: var(--vp-c-text-3);
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .vp-sidebar__item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 12px;
+      margin: 2px 0;
+      border-radius: 10px;
+      color: var(--vp-c-text-2);
+      font-size: 13.5px;
+      font-weight: 500;
+      text-align: left;
+      transition: background 0.2s var(--ease), color 0.2s var(--ease), transform 0.2s var(--ease);
+    }
+
+    .vp-sidebar__item i {
+      font-size: 16px;
+      opacity: 0.85;
+    }
+
+    .vp-sidebar__item:hover,
+    .vp-sidebar__item:focus-visible {
+      color: var(--vp-c-brand);
+      background: var(--vp-c-brand-softer);
+      outline: none;
+    }
+
+    .vp-sidebar__item.is-active {
+      color: var(--vp-c-brand);
+      background: linear-gradient(90deg, rgba(var(--soda-rgb), 0.1), rgba(var(--bubble-rgb), 0.05) 80%);
+      font-weight: 600;
+      box-shadow: inset 3px 0 0 var(--vp-c-brand);
+    }
+
+    .vp-sidebar__meta {
+      margin-top: 36px;
+      padding: 14px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: var(--vp-c-gradient-mesh);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .vp-sidebar__meta strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+
+    .vp-sidebar__meta p {
+      margin: 0;
+      color: var(--vp-c-text-3);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* —— Content —— */
+    .vp-content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) var(--aside-width);
+      gap: 0 40px;
+      padding: 36px 40px 80px 48px;
+    }
+
+    .vp-doc {
+      max-width: var(--content-max);
+      width: 100%;
+      animation: fade-up 0.55s var(--ease) both;
+      padding: 28px 32px 36px;
+      border-radius: calc(var(--radius) + 6px);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      background: var(--vp-c-bg-glass);
+      backdrop-filter: var(--glass-blur) saturate(1.5);
+      -webkit-backdrop-filter: var(--glass-blur) saturate(1.5);
+      box-shadow: var(--vp-shadow-3), var(--vp-shadow-glow);
+    }
+
+    @keyframes fade-up {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .vp-doc__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 14px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--vp-c-gradient-btn);
+      border: none;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 16px rgba(var(--soda-rgb), 0.3);
+    }
+
+    .vp-doc__title {
+      margin: 0 0 12px;
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 3vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.04em;
+    }
+
+    .vp-doc__title em {
+      font-style: normal;
+      background: var(--vp-c-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 800;
+    }
+
+    .vp-doc__lead {
+      margin: 0 0 28px;
+      max-width: 56ch;
+      color: var(--vp-c-text-2);
+      font-size: 15.5px;
+    }
+
+    .vp-doc__section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 36px 0 14px;
+      padding-top: 8px;
+      border-top: 1px solid var(--vp-c-divider);
+      font-size: 1.15rem;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+    }
+
+    .vp-doc__section-title:first-of-type {
+      margin-top: 8px;
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .vp-doc__section-title .hash {
+      color: var(--vp-c-brand);
+      font-weight: 600;
+      opacity: 0.7;
+    }
+
+    /* —— Glass surface utility —— */
+    .glass-surface {
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(16px) saturate(1.4);
+      -webkit-backdrop-filter: blur(16px) saturate(1.4);
+      box-shadow: var(--vp-shadow-3);
+    }
+
+    /* —— Parse Panel —— */
+    .parse-panel {
+      padding: 22px;
+      border-radius: calc(var(--radius) + 2px);
+      background:
+        linear-gradient(145deg, rgba(var(--soda-rgb), 0.08), rgba(var(--bubble-rgb), 0.04)),
+        rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(18px) saturate(1.5);
+      -webkit-backdrop-filter: blur(18px) saturate(1.5);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow: var(--vp-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .parse-panel__hint {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(var(--bubble-rgb), 0.08);
+      border: 1px solid rgba(var(--bubble-rgb), 0.2);
+      color: var(--vp-c-text-2);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    .parse-panel__hint i {
+      margin-top: 1px;
+      color: var(--vp-c-brand-3);
+      flex-shrink: 0;
+    }
+
+    .parse-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .parse-form__label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--vp-c-text-2);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .parse-form__field {
+      position: relative;
+    }
+
+    .parse-form__field i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--vp-c-text-3);
+      font-size: 17px;
+      pointer-events: none;
+    }
+
+    .parse-form__input {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 14px 12px 42px;
+      border: 1px solid rgba(var(--soda-rgb), 0.2);
+      border-radius: var(--radius);
+      color: var(--vp-c-text-1);
+      background: rgba(255, 255, 255, 0.7);
+      outline: none;
+      transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease), background 0.2s var(--ease);
+    }
+
+    .parse-form__input:hover {
+      border-color: rgba(var(--soda-rgb), 0.35);
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .parse-form__input:focus {
+      border-color: var(--vp-c-brand);
+      background: #fff;
+      box-shadow: 0 0 0 4px var(--vp-c-brand-soft), 0 4px 20px rgba(var(--soda-rgb), 0.15);
+    }
+
+    .parse-form__actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 42px;
+      padding: 0 18px;
+      border-radius: 11px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: transform 0.18s var(--ease), background 0.18s var(--ease), box-shadow 0.18s var(--ease), opacity 0.18s;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--vp-c-brand);
+      outline-offset: 2px;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn--primary {
+      color: #fff;
+      background: var(--vp-c-gradient-btn);
+      box-shadow: 0 6px 24px rgba(var(--soda-rgb), 0.38);
+    }
+
+    .btn--primary:hover {
+      filter: brightness(1.06);
+      box-shadow: 0 10px 32px rgba(var(--bubble-rgb), 0.35);
+      transform: translateY(-2px);
+    }
+
+    .btn--primary.is-loading {
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    .btn--ghost {
+      color: var(--vp-c-brand);
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(var(--soda-rgb), 0.25);
+    }
+
+    .btn--ghost:hover {
+      color: var(--vp-c-primary-hover);
+      border-color: rgba(var(--soda-rgb), 0.4);
+      background: var(--vp-c-brand-softer);
+    }
+
+    .btn--sm {
+      min-height: 34px;
+      padding: 0 12px;
+      font-size: 12.5px;
+      border-radius: 8px;
+    }
+
+    .spin {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* —— States —— */
+    .state-empty,
+    .state-error {
+      display: none;
+      margin-top: 20px;
+      padding: 28px 20px;
+      border: 1px dashed rgba(var(--soda-rgb), 0.25);
+      border-radius: var(--radius);
+      text-align: center;
+      color: var(--vp-c-text-3);
+      background: rgba(255, 255, 255, 0.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .state-empty.is-visible,
+    .state-error.is-visible {
+      display: block;
+      animation: fade-up 0.4s var(--ease) both;
+    }
+
+    .state-empty i,
+    .state-error i {
+      display: block;
+      margin: 0 auto 10px;
+      font-size: 28px;
+      opacity: 0.55;
+    }
+
+    .state-error {
+      border-color: rgba(194, 59, 59, 0.25);
+      background: var(--vp-c-danger-soft);
+      color: var(--vp-c-danger);
+    }
+
+    .result {
+      display: none;
+      margin-top: 20px;
+      animation: fade-up 0.5s var(--ease) both;
+    }
+
+    .result.is-visible {
+      display: block;
+    }
+
+    /* —— Song Result —— */
+    .song-card {
+      display: grid;
+      grid-template-columns: 148px minmax(0, 1fr);
+      gap: 22px;
+      padding: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: calc(var(--radius) + 4px);
+      background:
+        linear-gradient(135deg, rgba(var(--soda-rgb), 0.06), rgba(var(--bubble-rgb), 0.03)),
+        rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      box-shadow: var(--vp-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      overflow: hidden;
+    }
+
+    .song-card__cover-wrap {
+      position: relative;
+    }
+
+    .song-card__cover {
+      width: 148px;
+      height: 148px;
+      object-fit: cover;
+      border-radius: calc(var(--radius) + 2px);
+      background: var(--vp-c-bg-mute);
+      box-shadow: 0 16px 40px rgba(var(--soda-rgb), 0.2);
+    }
+
+    .song-card__cover-glow {
+      position: absolute;
+      inset: 15% -15%;
+      z-index: -1;
+      filter: blur(36px);
+      opacity: 0.55;
+      background: linear-gradient(135deg, var(--vp-c-brand), var(--vp-c-brand-2));
+      border-radius: 50%;
+    }
+
+    .song-card__meta {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .song-card__album {
+      color: var(--vp-c-text-3);
+      font-size: 12.5px;
+      font-weight: 500;
+    }
+
+    .song-card__title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.7rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.035em;
+    }
+
+    .song-card__artist {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--vp-c-text-2);
+      font-size: 14px;
+    }
+
+    .song-card__avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--vp-c-bg-mute);
+    }
+
+    .song-card__id {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+      padding: 4px 8px;
+      width: fit-content;
+      border-radius: 6px;
+      background: rgba(var(--soda-rgb), 0.08);
+      border: 1px solid rgba(var(--soda-rgb), 0.15);
+      color: var(--vp-c-brand);
+      font-size: 12px;
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    }
+
+    .song-card__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 12px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .info-chip {
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .info-chip:nth-child(1) {
+      border-color: rgba(var(--soda-rgb), 0.25);
+      background: linear-gradient(145deg, rgba(var(--soda-rgb), 0.1), rgba(255, 255, 255, 0.5));
+    }
+
+    .info-chip:nth-child(2) {
+      border-color: rgba(var(--bubble-rgb), 0.25);
+      background: linear-gradient(145deg, rgba(var(--bubble-rgb), 0.08), rgba(255, 255, 255, 0.5));
+    }
+
+    .info-chip:nth-child(3) {
+      border-color: rgba(var(--lemon-rgb), 0.3);
+      background: linear-gradient(145deg, rgba(var(--lemon-rgb), 0.1), rgba(255, 255, 255, 0.5));
+    }
+
+    .info-chip__label {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--vp-c-text-3);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .info-chip__value {
+      font-size: 13.5px;
+      font-weight: 560;
+      word-break: break-all;
+    }
+
+    .quality-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .quality-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: border-color 0.2s var(--ease), background 0.2s var(--ease), transform 0.2s var(--ease);
+    }
+
+    .quality-item:hover {
+      border-color: rgba(var(--soda-rgb), 0.3);
+      background: rgba(255, 255, 255, 0.75);
+      transform: translateX(2px);
+    }
+
+    .quality-item__badge {
+      padding: 4px 9px;
+      border-radius: 6px;
+      color: #fff;
+      background: var(--vp-c-gradient-btn);
+      border: none;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .quality-item__meta {
+      color: var(--vp-c-text-3);
+      font-size: 12.5px;
+    }
+
+    .lyric-box {
+      margin-top: 12px;
+      max-height: 240px;
+      overflow: auto;
+      padding: 16px 18px;
+      border: 1px solid rgba(var(--soda-rgb), 0.15);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(var(--soda-rgb), 0.05), rgba(255, 255, 255, 0.6));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      white-space: pre-wrap;
+      color: var(--vp-c-text-2);
+      font-size: 13.5px;
+      line-height: 1.8;
+    }
+
+    .lyric-box::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .lyric-box::-webkit-scrollbar-thumb {
+      background: rgba(var(--soda-rgb), 0.3);
+      border-radius: 999px;
+    }
+
+    /* —— Playlist Result —— */
+    .playlist-hero {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 18px;
+      align-items: center;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: calc(var(--radius) + 4px);
+      background:
+        linear-gradient(135deg, rgba(var(--bubble-rgb), 0.08), rgba(var(--bubble-rgb), 0.04)),
+        rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      box-shadow: var(--vp-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .playlist-hero__cover {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: calc(var(--radius) + 2px);
+      background: var(--vp-c-bg-mute);
+      box-shadow: 0 14px 36px rgba(var(--bubble-rgb), 0.25);
+    }
+
+    .playlist-hero__title {
+      margin: 0 0 6px;
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .playlist-hero__owner {
+      margin: 0 0 10px;
+      color: var(--vp-c-text-2);
+      font-size: 13.5px;
+    }
+
+    .playlist-hero__stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--soda-rgb), 0.2);
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--vp-c-text-2);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .stat-pill i {
+      color: var(--vp-c-brand);
+    }
+
+    .track-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 18px 0 10px;
+    }
+
+    .track-toolbar__count {
+      color: var(--vp-c-text-3);
+      font-size: 13px;
+    }
+
+    .track-search {
+      position: relative;
+      flex: 1;
+      max-width: 240px;
+    }
+
+    .track-search i {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--vp-c-text-3);
+      font-size: 14px;
+    }
+
+    .track-search input {
+      width: 100%;
+      min-height: 34px;
+      padding: 6px 10px 6px 32px;
+      border: 1px solid rgba(var(--soda-rgb), 0.2);
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.6);
+      outline: none;
+    }
+
+    .track-search input:focus {
+      border-color: var(--vp-c-brand);
+      box-shadow: 0 0 0 3px var(--vp-c-brand-soft);
+      background: #fff;
+    }
+
+    .track-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: calc(var(--radius) + 2px);
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: var(--vp-shadow-1);
+    }
+
+    .track-item {
+      display: grid;
+      grid-template-columns: 36px 44px minmax(0, 1fr) 72px auto;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(var(--soda-rgb), 0.08);
+      transition: background 0.18s var(--ease);
+    }
+
+    .track-item:last-child {
+      border-bottom: 0;
+    }
+
+    .track-item:hover {
+      background: linear-gradient(90deg, rgba(var(--soda-rgb), 0.08), rgba(var(--bubble-rgb), 0.04));
+    }
+
+    .track-item__index {
+      color: var(--vp-c-brand);
+      font-size: 12.5px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+
+    .track-item__cover {
+      width: 44px;
+      height: 44px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: var(--vp-c-bg-mute);
+    }
+
+    .track-item__info {
+      min-width: 0;
+    }
+
+    .track-item__title {
+      margin: 0;
+      font-size: 13.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .track-item__artist {
+      margin: 2px 0 0;
+      color: var(--vp-c-text-3);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .track-item__duration {
+      color: var(--vp-c-text-3);
+      font-size: 12.5px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .preview-tag {
+      padding: 3px 7px;
+      border-radius: 6px;
+      color: #c2410c;
+      background: rgba(249, 115, 22, 0.14);
+      border: 1px solid rgba(249, 115, 22, 0.25);
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    /* —— Right Aside —— */
+    .vp-aside {
+      position: sticky;
+      top: calc(var(--nav-height) + 28px);
+      align-self: start;
+      max-height: calc(100vh - var(--nav-height) - 56px);
+      overflow: auto;
+      padding-left: 4px;
+    }
+
+    .vp-aside__title {
+      margin: 0 0 10px;
+      color: var(--vp-c-text-3);
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .vp-aside__link {
+      display: block;
+      padding: 5px 0 5px 12px;
+      border-left: 1px solid var(--vp-c-divider);
+      color: var(--vp-c-text-3);
+      font-size: 12.5px;
+      transition: color 0.18s, border-color 0.18s;
+    }
+
+    .vp-aside__link:hover,
+    .vp-aside__link.is-active {
+      color: var(--vp-c-brand);
+      border-left-color: var(--vp-c-brand);
+    }
+
+    .vp-aside__card {
+      margin-top: 28px;
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: var(--vp-c-gradient-mesh);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: var(--vp-shadow-1);
+    }
+
+    .vp-aside__card h4 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      background: var(--vp-c-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 700;
+    }
+
+    .vp-aside__card p {
+      margin: 0;
+      color: var(--vp-c-text-3);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    /* —— Overlay (mobile sidebar) —— */
+    .vp-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(2px);
+    }
+
+    .vp-overlay.is-open {
+      display: block;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* —— Responsive —— */
+    @media (max-width: 1200px) {
+      .vp-content {
+        grid-template-columns: 1fr;
+        padding-right: 32px;
+      }
+
+      .vp-aside {
+        display: none;
+      }
+    }
+
+    @media (max-width: 960px) {
+      .vp-nav__links {
+        display: none;
+      }
+
+      .vp-nav__toggle {
+        display: grid;
+      }
+
+      .vp-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .vp-sidebar {
+        position: fixed;
+        top: var(--nav-height);
+        left: 0;
+        z-index: 95;
+        width: min(300px, 86vw);
+        transform: translateX(-105%);
+        transition: transform 0.28s var(--ease);
+        background: var(--vp-c-bg);
+        box-shadow: var(--vp-shadow-2);
+      }
+
+      .vp-sidebar.is-open {
+        transform: none;
+      }
+
+      .vp-content {
+        padding: 28px 20px 64px;
+      }
+
+      .vp-doc {
+        padding: 20px 18px 28px;
+        border-radius: var(--radius);
+      }
+
+      .song-card {
+        grid-template-columns: 1fr;
+        text-align: left;
+      }
+
+      .song-card__cover-wrap {
+        justify-self: start;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .track-item {
+        grid-template-columns: 28px 40px minmax(0, 1fr) auto;
+      }
+
+      .track-item__duration {
+        display: none;
+      }
+
+      .playlist-hero {
+        grid-template-columns: 96px 1fr;
+      }
+
+      .playlist-hero__cover {
+        width: 96px;
+        height: 96px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .vp-doc__title {
+        font-size: 1.85rem;
+      }
+
+      .parse-form__actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .track-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .track-search {
+        max-width: none;
+      }
+
+      .quality-item {
+        grid-template-columns: auto 1fr;
+        gap: 8px 12px;
+      }
+
+      .quality-item .btn {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="vp-nav" role="banner">
+    <div class="vp-nav__inner">
+      <a class="vp-nav__brand" href="#" aria-label="汽水音乐解析首页">
+        <span class="vp-nav__logo" aria-hidden="true"><i class="ri-bubble-chart-fill"></i></span>
+        <span class="vp-nav__title">汽水解析<span>Docs</span></span>
+      </a>
+
+      <nav class="vp-nav__links" aria-label="顶部导航">
+        <a class="vp-nav__link" href="#song" data-nav="song"><i class="ri-music-2-line"></i>歌曲解析</a>
+        <a class="vp-nav__link" href="#playlist" data-nav="playlist"><i class="ri-play-list-2-line"></i>歌单解析</a>
+        <a class="vp-nav__link" href="https://qishui.douyin.com/" target="_blank" rel="noopener noreferrer">
+          <i class="ri-external-link-line"></i>汽水音乐
+        </a>
+      </nav>
+
+      <button class="vp-nav__toggle" type="button" id="sidebarToggle" aria-label="打开侧边栏" aria-expanded="false"
+        tabindex="0">
+        <i class="ri-menu-line"></i>
+      </button>
+    </div>
+  </header>
+
+  <div class="vp-overlay" id="sidebarOverlay" hidden></div>
+
+  <div class="vp-layout">
+    <aside class="vp-sidebar" id="sidebar" aria-label="文档侧边栏">
+      <div class="vp-sidebar__group">
+        <p class="vp-sidebar__heading">解析工具</p>
+        <button class="vp-sidebar__item is-active" type="button" data-view="song" aria-current="page">
+          <i class="ri-music-2-line"></i>歌曲解析
+        </button>
+        <button class="vp-sidebar__item" type="button" data-view="playlist">
+          <i class="ri-play-list-2-line"></i>歌单解析
+        </button>
+      </div>
+
+      <div class="vp-sidebar__group">
+        <p class="vp-sidebar__heading">参考</p>
+        <a class="vp-sidebar__item" href="#guide-share">
+          <i class="ri-question-line"></i>如何获取分享链接
+        </a>
+        <a class="vp-sidebar__item" href="#guide-fields">
+          <i class="ri-list-check-2"></i>字段说明
+        </a>
+      </div>
+
+      <div class="vp-sidebar__meta">
+        <strong>原型说明</strong>
+        <p>本页为静态交互原型。点击「解析」会演示结果展示；接入后端后可改为真实接口。</p>
+      </div>
+    </aside>
+
+    <div class="vp-content">
+      <!-- ========== 歌曲解析 ========== -->
+      <main class="vp-doc" id="view-song" data-page="song">
+        <div class="vp-doc__badge"><i class="ri-sparkling-2-line"></i> Song Parse</div>
+        <h1 class="vp-doc__title">歌曲解析 <em>Song</em></h1>
+        <p class="vp-doc__lead">
+          粘贴汽水音乐分享链接，一键提取封面、艺人、专辑、音质地址与歌词，结构清晰、便于后续下载与二次处理。
+        </p>
+
+        <h2 class="vp-doc__section-title" id="song-input"><span class="hash">#</span> 输入链接</h2>
+        <section class="parse-panel" aria-label="歌曲链接解析">
+          <p class="parse-panel__hint">
+            <i class="ri-information-line"></i>
+            <span>支持完整分享文案或纯链接，例如：<code>《一点》@汽水音乐 https://qishui.douyin.com/s/…</code></span>
+          </p>
+          <form class="parse-form" id="songForm">
+            <div>
+              <label class="parse-form__label" for="songLink">分享链接</label>
+              <div class="parse-form__field">
+                <i class="ri-link" aria-hidden="true"></i>
+                <input class="parse-form__input" id="songLink" type="text" name="shareLink" autocomplete="off"
+                  placeholder="粘贴汽水音乐歌曲分享链接…"
+                  value="《一点》@汽水音乐 https://qishui.douyin.com/s/ia4MqU3p/"
+                  aria-label="歌曲分享链接" />
+              </div>
+            </div>
+            <div class="parse-form__actions">
+              <button class="btn btn--primary" type="submit" id="songParseBtn" aria-label="解析歌曲">
+                <i class="ri-search-eye-line"></i>
+                <span>解析歌曲</span>
+              </button>
+              <button class="btn btn--ghost" type="button" id="songClearBtn" aria-label="清空">
+                <i class="ri-refresh-line"></i>清空
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <h2 class="vp-doc__section-title" id="song-result"><span class="hash">#</span> 解析结果</h2>
+        <div class="state-empty is-visible" id="songEmpty" aria-live="polite">
+          <i class="ri-music-2-line"></i>
+          解析结果将显示在这里
+        </div>
+        <div class="state-error" id="songError" role="alert"></div>
+        <div class="result" id="songResult" aria-live="polite">
+          <article class="song-card">
+            <div class="song-card__cover-wrap">
+              <div class="song-card__cover-glow" aria-hidden="true"></div>
+              <img class="song-card__cover" id="songCover" alt="专辑封面" src="" />
+            </div>
+            <div class="song-card__meta">
+              <span class="song-card__album" id="songAlbum">—</span>
+              <h3 class="song-card__title" id="songTitle">—</h3>
+              <div class="song-card__artist">
+                <img class="song-card__avatar" id="songArtistAvatar" alt="" />
+                <span id="songArtist">—</span>
+              </div>
+              <code class="song-card__id" id="songTrackId">trackId</code>
+              <div class="song-card__actions">
+                <button class="btn btn--primary btn--sm" type="button" id="songCopyId" aria-label="复制歌曲 ID">
+                  <i class="ri-file-copy-line"></i>复制 ID
+                </button>
+                <button class="btn btn--ghost btn--sm" type="button" id="songCopyLrc" aria-label="复制歌词">
+                  <i class="ri-file-text-line"></i>复制歌词
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <div class="info-grid" id="songInfoGrid"></div>
+
+          <h2 class="vp-doc__section-title" id="song-quality"><span class="hash">#</span> 音质列表</h2>
+          <div class="quality-list" id="songQualityList"></div>
+
+          <h2 class="vp-doc__section-title" id="song-lyric"><span class="hash">#</span> 歌词</h2>
+          <pre class="lyric-box" id="songLyric"></pre>
+        </div>
+
+        <h2 class="vp-doc__section-title" id="guide-share"><span class="hash">#</span> 如何获取分享链接</h2>
+        <p style="color: var(--vp-c-text-2); margin: 0 0 10px;">
+          在汽水 App 打开歌曲 → 分享 → 复制链接。可将整段文案直接粘贴到输入框，原型会自动识别其中的 URL。
+        </p>
+
+        <h2 class="vp-doc__section-title" id="guide-fields"><span class="hash">#</span> 字段说明</h2>
+        <p style="color: var(--vp-c-text-2); margin: 0;">
+          返回结构对齐后端 <code>MusicInfo</code>：title / artist / album / cover / urls / lrc 等，便于前端直接消费。
+        </p>
+      </main>
+
+      <!-- ========== 歌单解析 ========== -->
+      <main class="vp-doc hidden" id="view-playlist" data-page="playlist">
+        <div class="vp-doc__badge"><i class="ri-play-list-add-line"></i> Playlist Parse</div>
+        <h1 class="vp-doc__title">歌单解析 <em>Playlist</em></h1>
+        <p class="vp-doc__lead">
+          解析汽水歌单分享链接，展示歌单封面、创建者、曲目数量与完整歌曲列表，支持关键字快速筛选。
+        </p>
+
+        <h2 class="vp-doc__section-title" id="playlist-input"><span class="hash">#</span> 输入链接</h2>
+        <section class="parse-panel" aria-label="歌单链接解析">
+          <p class="parse-panel__hint">
+            <i class="ri-information-line"></i>
+            <span>请使用歌单分享链接；歌曲链接请切换到「歌曲解析」栏目。</span>
+          </p>
+          <form class="parse-form" id="playlistForm">
+            <div>
+              <label class="parse-form__label" for="playlistLink">分享链接</label>
+              <div class="parse-form__field">
+                <i class="ri-link" aria-hidden="true"></i>
+                <input class="parse-form__input" id="playlistLink" type="text" name="shareLink" autocomplete="off"
+                  placeholder="粘贴汽水音乐歌单分享链接…"
+                  value="https://qishui.douyin.com/s/playlistDemo/"
+                  aria-label="歌单分享链接" />
+              </div>
+            </div>
+            <div class="parse-form__actions">
+              <button class="btn btn--primary" type="submit" id="playlistParseBtn" aria-label="解析歌单">
+                <i class="ri-search-eye-line"></i>
+                <span>解析歌单</span>
+              </button>
+              <button class="btn btn--ghost" type="button" id="playlistClearBtn" aria-label="清空">
+                <i class="ri-refresh-line"></i>清空
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <h2 class="vp-doc__section-title" id="playlist-result"><span class="hash">#</span> 解析结果</h2>
+        <div class="state-empty is-visible" id="playlistEmpty" aria-live="polite">
+          <i class="ri-play-list-2-line"></i>
+          歌单列表将显示在这里
+        </div>
+        <div class="state-error" id="playlistError" role="alert"></div>
+        <div class="result" id="playlistResult" aria-live="polite">
+          <header class="playlist-hero">
+            <img class="playlist-hero__cover" id="playlistCover" alt="歌单封面" src="" />
+            <div>
+              <h3 class="playlist-hero__title" id="playlistTitle">—</h3>
+              <p class="playlist-hero__owner" id="playlistOwner">—</p>
+              <div class="playlist-hero__stats">
+                <span class="stat-pill"><i class="ri-music-line"></i><span id="playlistCount">0</span> 首</span>
+                <span class="stat-pill"><i class="ri-hashtag"></i><span id="playlistId">—</span></span>
+              </div>
+            </div>
+          </header>
+
+          <div class="track-toolbar">
+            <span class="track-toolbar__count" id="trackVisibleCount">共 0 首</span>
+            <div class="track-search">
+              <i class="ri-search-line" aria-hidden="true"></i>
+              <input type="search" id="trackFilter" placeholder="筛选歌曲 / 艺人…" aria-label="筛选歌单曲目" />
+            </div>
+          </div>
+          <ul class="track-list" id="trackList"></ul>
+        </div>
+      </main>
+
+      <!-- Right TOC -->
+      <aside class="vp-aside" id="pageAside" aria-label="本页目录">
+        <p class="vp-aside__title">On this page</p>
+        <nav id="tocNav"></nav>
+        <div class="vp-aside__card">
+          <h4>汽水音乐 · Docs</h4>
+          <p>清爽绿 + 气泡青 + 柠檬黄，搭配毛玻璃材质，贴合汽水音乐品牌气质。</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const PLACEHOLDER_COVER =
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">
+            <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop stop-color="#00c27a"/><stop offset="0.5" stop-color="#00b8d4"/><stop offset="1" stop-color="#ffb020"/>
+            </linearGradient></defs>
+            <rect width="300" height="300" fill="url(#g)"/>
+            <circle cx="150" cy="150" r="54" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="8"/>
+            <circle cx="150" cy="150" r="16" fill="rgba(255,255,255,.75)"/>
+          </svg>`
+        );
+
+      /** 演示用歌曲数据（对齐 MusicInfo） */
+      const MOCK_SONG = {
+        trackId: "7647155900515649577",
+        title: "一点",
+        artist: "徐梦洁,Muyoi",
+        artists: [{ id: "1", name: "徐梦洁", avatar: PLACEHOLDER_COVER }],
+        album: "一点",
+        cover: PLACEHOLDER_COVER,
+        urls: [
+          { quality: "standard", format: "mp3", size: 3842910, url: "https://example.com/std.mp3", encryptionMethod: "none" },
+          { quality: "higher", format: "mp3", size: 7681024, url: "https://example.com/high.mp3", encryptionMethod: "none" },
+          { quality: "lossless", format: "flac", size: 28400128, url: "https://example.com/flac.flac", encryptionMethod: "none" },
+        ],
+        lrc: `[ti:一点]
+[ar:徐梦洁,Muyoi]
+[00:12.00]风吹过的夜里
+[00:16.40]你说想听一点
+[00:21.10]像汽水泡泡轻轻升起
+[00:26.80]又轻轻落进海里
+[00:32.00]我想把这瞬间
+[00:36.50]存成可分享的旋律
+[00:41.20]然后把链接
+[00:44.00]留给下一个路过的你`,
+        lrcText:
+          "风吹过的夜里\n你说想听一点\n像汽水泡泡轻轻升起\n又轻轻落进海里\n我想把这瞬间\n存成可分享的旋律\n然后把链接\n留给下一个路过的你",
+      };
+
+      /** 演示用歌单数据（对齐 PlaylistInfo） */
+      const MOCK_PLAYLIST = {
+        id: "pl_884021156",
+        title: "深夜汽水 · 轻声放一点",
+        cover: PLACEHOLDER_COVER,
+        owner: "汽水用户_小绿",
+        countTracks: 8,
+        tracks: [
+          { id: "t1", title: "一点", artist: "徐梦洁 / Muyoi", album: "一点", cover: PLACEHOLDER_COVER, duration: 218, isPreviewOnly: false },
+          { id: "t2", title: "蓝色气泡", artist: "匿名城", album: "夏日汽水", cover: PLACEHOLDER_COVER, duration: 196, isPreviewOnly: false },
+          { id: "t3", title: "窗边雨", artist: "林野", album: "静夜集", cover: PLACEHOLDER_COVER, duration: 243, isPreviewOnly: true, previewDuration: 30 },
+          { id: "t4", title: "慢走的街灯", artist: "北巷", album: "城市边角", cover: PLACEHOLDER_COVER, duration: 205, isPreviewOnly: false },
+          { id: "t5", title: "未发送的草稿", artist: "阿澄", album: "Inbox", cover: PLACEHOLDER_COVER, duration: 187, isPreviewOnly: false },
+          { id: "t6", title: "薄荷海风", artist: "Tide", album: "Coast", cover: PLACEHOLDER_COVER, duration: 231, isPreviewOnly: false },
+          { id: "t7", title: "直到清晨", artist: "徐梦洁", album: "一点", cover: PLACEHOLDER_COVER, duration: 262, isPreviewOnly: true, previewDuration: 30 },
+          { id: "t8", title: "回声房间", artist: "Room 404", album: "Echo", cover: PLACEHOLDER_COVER, duration: 174, isPreviewOnly: false },
+        ],
+      };
+
+      const $ = (sel, root = document) => root.querySelector(sel);
+      const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+      const formatSize = (bytes = 0) => {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      };
+
+      const formatDuration = (sec = 0) => {
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${String(s).padStart(2, "0")}`;
+      };
+
+      const qualityLabel = (q) =>
+        ({ standard: "标准", higher: "较高", lossless: "无损", hq: "HQ" }[q] || q);
+
+      const extractUrl = (text = "") => {
+        const match = String(text).match(/https?:\/\/[^\s]+/i);
+        return match ? match[0].replace(/[)，。；;]+$/, "") : text.trim();
+      };
+
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      const copyText = async (text) => {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      /* —— View switching —— */
+      let currentView = "song";
+
+      const setView = (view) => {
+        currentView = view;
+        $$(".vp-doc[data-page]").forEach((el) => {
+          el.classList.toggle("hidden", el.dataset.page !== view);
+        });
+        $$("[data-view]").forEach((el) => {
+          const active = el.dataset.view === view;
+          el.classList.toggle("is-active", active);
+          if (active) el.setAttribute("aria-current", "page");
+          else el.removeAttribute("aria-current");
+        });
+        buildToc();
+        closeSidebar();
+        history.replaceState(null, "", `#${view}`);
+      };
+
+      /* —— Sidebar mobile —— */
+      const sidebar = $("#sidebar");
+      const overlay = $("#sidebarOverlay");
+      const toggleBtn = $("#sidebarToggle");
+
+      const openSidebar = () => {
+        sidebar.classList.add("is-open");
+        overlay.hidden = false;
+        overlay.classList.add("is-open");
+        toggleBtn.setAttribute("aria-expanded", "true");
+        toggleBtn.setAttribute("aria-label", "关闭侧边栏");
+      };
+
+      const closeSidebar = () => {
+        sidebar.classList.remove("is-open");
+        overlay.classList.remove("is-open");
+        overlay.hidden = true;
+        toggleBtn.setAttribute("aria-expanded", "false");
+        toggleBtn.setAttribute("aria-label", "打开侧边栏");
+      };
+
+      toggleBtn.addEventListener("click", () => {
+        if (sidebar.classList.contains("is-open")) closeSidebar();
+        else openSidebar();
+      });
+      overlay.addEventListener("click", closeSidebar);
+
+      $$("[data-view]").forEach((btn) => {
+        btn.addEventListener("click", () => setView(btn.dataset.view));
+      });
+      $$("[data-nav]").forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          setView(link.dataset.nav);
+        });
+      });
+
+      /* —— TOC —— */
+      const buildToc = () => {
+        const nav = $("#tocNav");
+        const page = $(`#view-${currentView}`);
+        if (!nav || !page) return;
+        const headings = $$(".vp-doc__section-title[id]", page);
+        nav.innerHTML = headings
+          .map(
+            (h) =>
+              `<a class="vp-aside__link" href="#${h.id}">${h.textContent.replace("#", "").trim()}</a>`
+          )
+          .join("");
+      };
+
+      /* —— Song render —— */
+      const renderSong = (info) => {
+        $("#songCover").src = info.cover || PLACEHOLDER_COVER;
+        $("#songAlbum").textContent = info.album || "未知专辑";
+        $("#songTitle").textContent = info.title || "未知歌曲";
+        $("#songArtist").textContent = info.artist || "未知歌手";
+        $("#songTrackId").textContent = info.trackId || "—";
+
+        const avatar = info.artists?.[0]?.avatar;
+        const avatarEl = $("#songArtistAvatar");
+        if (avatar) {
+          avatarEl.src = avatar;
+          avatarEl.style.display = "";
+        } else {
+          avatarEl.style.display = "none";
+        }
+
+        $("#songInfoGrid").innerHTML = [
+          ["艺人", info.artist || "—"],
+          ["专辑", info.album || "—"],
+          ["音质数", `${info.urls?.length || 0} 档`],
+        ]
+          .map(
+            ([label, value]) => `
+          <div class="info-chip">
+            <span class="info-chip__label">${label}</span>
+            <span class="info-chip__value">${value}</span>
+          </div>`
+          )
+          .join("");
+
+        $("#songQualityList").innerHTML = (info.urls || [])
+          .map(
+            (u) => `
+          <div class="quality-item">
+            <span class="quality-item__badge">${qualityLabel(u.quality)}</span>
+            <span class="quality-item__meta">${(u.format || "").toUpperCase()} · ${formatSize(u.size)}</span>
+            <span class="quality-item__meta">${u.encryptionMethod || "none"}</span>
+            <button class="btn btn--ghost btn--sm" type="button" data-copy-url="${u.url}" aria-label="复制播放地址">
+              <i class="ri-link"></i>复制链接
+            </button>
+          </div>`
+          )
+          .join("");
+
+        $("#songLyric").textContent = info.lrcText || info.lrc || "暂无歌词";
+
+        $("#songEmpty").classList.remove("is-visible");
+        $("#songError").classList.remove("is-visible");
+        $("#songResult").classList.add("is-visible");
+      };
+
+      const setSongLoading = (loading) => {
+        const btn = $("#songParseBtn");
+        btn.classList.toggle("is-loading", loading);
+        btn.innerHTML = loading
+          ? `<span class="spin" aria-hidden="true"></span><span>解析中…</span>`
+          : `<i class="ri-search-eye-line"></i><span>解析歌曲</span>`;
+        btn.disabled = loading;
+      };
+
+      const handleSongParse = async (e) => {
+        e.preventDefault();
+        const raw = $("#songLink").value.trim();
+        if (!raw) {
+          $("#songError").textContent = "请先粘贴歌曲分享链接";
+          $("#songError").classList.add("is-visible");
+          $("#songEmpty").classList.remove("is-visible");
+          $("#songResult").classList.remove("is-visible");
+          return;
+        }
+
+        setSongLoading(true);
+        $("#songError").classList.remove("is-visible");
+        await sleep(720);
+        // 原型演示：任意有效文本即展示 mock；正式接入：
+        // GET /qishui/parse-song-share-link?shareLink=...
+        renderSong({ ...MOCK_SONG, cover: PLACEHOLDER_COVER });
+        setSongLoading(false);
+      };
+
+      const handleSongClear = () => {
+        $("#songLink").value = "";
+        $("#songResult").classList.remove("is-visible");
+        $("#songError").classList.remove("is-visible");
+        $("#songEmpty").classList.add("is-visible");
+        $("#songLink").focus();
+      };
+
+      $("#songForm").addEventListener("submit", handleSongParse);
+      $("#songClearBtn").addEventListener("click", handleSongClear);
+      $("#songCopyId").addEventListener("click", async () => {
+        const ok = await copyText($("#songTrackId").textContent);
+        $("#songCopyId").innerHTML = ok
+          ? `<i class="ri-check-line"></i>已复制`
+          : `<i class="ri-file-copy-line"></i>复制 ID`;
+        setTimeout(() => {
+          $("#songCopyId").innerHTML = `<i class="ri-file-copy-line"></i>复制 ID`;
+        }, 1400);
+      });
+      $("#songCopyLrc").addEventListener("click", async () => {
+        const ok = await copyText(MOCK_SONG.lrc || MOCK_SONG.lrcText || "");
+        $("#songCopyLrc").innerHTML = ok
+          ? `<i class="ri-check-line"></i>已复制`
+          : `<i class="ri-file-text-line"></i>复制歌词`;
+        setTimeout(() => {
+          $("#songCopyLrc").innerHTML = `<i class="ri-file-text-line"></i>复制歌词`;
+        }, 1400);
+      });
+      $("#songQualityList").addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-copy-url]");
+        if (!btn) return;
+        const ok = await copyText(btn.dataset.copyUrl);
+        btn.innerHTML = ok
+          ? `<i class="ri-check-line"></i>已复制`
+          : `<i class="ri-link"></i>复制链接`;
+        setTimeout(() => {
+          btn.innerHTML = `<i class="ri-link"></i>复制链接`;
+        }, 1400);
+      });
+
+      /* —— Playlist render —— */
+      let playlistTracks = [];
+
+      const renderTrackList = (tracks) => {
+        $("#trackVisibleCount").textContent = `共 ${tracks.length} 首`;
+        $("#trackList").innerHTML = tracks
+          .map(
+            (t, i) => `
+          <li class="track-item">
+            <span class="track-item__index">${String(i + 1).padStart(2, "0")}</span>
+            <img class="track-item__cover" src="${t.cover || PLACEHOLDER_COVER}" alt="" />
+            <div class="track-item__info">
+              <p class="track-item__title">${t.title || "未知歌曲"}</p>
+              <p class="track-item__artist">${t.artist || "未知艺人"}</p>
+            </div>
+            <span class="track-item__duration">${formatDuration(t.duration || 0)}</span>
+            ${
+              t.isPreviewOnly
+                ? `<span class="preview-tag">试听 ${t.previewDuration || 30}s</span>`
+                : `<button class="btn btn--ghost btn--sm" type="button" data-track-id="${t.id}" aria-label="查看歌曲 ${t.title}">
+                     <i class="ri-arrow-right-up-line"></i>
+                   </button>`
+            }
+          </li>`
+          )
+          .join("");
+      };
+
+      const renderPlaylist = (data) => {
+        playlistTracks = data.tracks || [];
+        $("#playlistCover").src = data.cover || PLACEHOLDER_COVER;
+        $("#playlistTitle").textContent = data.title || "未命名歌单";
+        $("#playlistOwner").textContent = `创建者 · ${data.owner || "未知"}`;
+        $("#playlistCount").textContent = String(data.countTracks ?? playlistTracks.length);
+        $("#playlistId").textContent = data.id || "—";
+        $("#trackFilter").value = "";
+        renderTrackList(playlistTracks);
+
+        $("#playlistEmpty").classList.remove("is-visible");
+        $("#playlistError").classList.remove("is-visible");
+        $("#playlistResult").classList.add("is-visible");
+      };
+
+      const setPlaylistLoading = (loading) => {
+        const btn = $("#playlistParseBtn");
+        btn.classList.toggle("is-loading", loading);
+        btn.innerHTML = loading
+          ? `<span class="spin" aria-hidden="true"></span><span>解析中…</span>`
+          : `<i class="ri-search-eye-line"></i><span>解析歌单</span>`;
+        btn.disabled = loading;
+      };
+
+      const handlePlaylistParse = async (e) => {
+        e.preventDefault();
+        const raw = $("#playlistLink").value.trim();
+        if (!raw) {
+          $("#playlistError").textContent = "请先粘贴歌单分享链接";
+          $("#playlistError").classList.add("is-visible");
+          $("#playlistEmpty").classList.remove("is-visible");
+          $("#playlistResult").classList.remove("is-visible");
+          return;
+        }
+
+        setPlaylistLoading(true);
+        $("#playlistError").classList.remove("is-visible");
+        await sleep(820);
+        // 正式接入：GET /qishui/parse-playlist-share-link?shareLink=...
+        renderPlaylist(MOCK_PLAYLIST);
+        setPlaylistLoading(false);
+      };
+
+      const handlePlaylistClear = () => {
+        $("#playlistLink").value = "";
+        $("#playlistResult").classList.remove("is-visible");
+        $("#playlistError").classList.remove("is-visible");
+        $("#playlistEmpty").classList.add("is-visible");
+        $("#playlistLink").focus();
+      };
+
+      $("#playlistForm").addEventListener("submit", handlePlaylistParse);
+      $("#playlistClearBtn").addEventListener("click", handlePlaylistClear);
+      $("#trackFilter").addEventListener("input", (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        if (!q) {
+          renderTrackList(playlistTracks);
+          return;
+        }
+        renderTrackList(
+          playlistTracks.filter(
+            (t) =>
+              (t.title || "").toLowerCase().includes(q) ||
+              (t.artist || "").toLowerCase().includes(q)
+          )
+        );
+      });
+
+      /* —— init —— */
+      const hash = location.hash.replace("#", "");
+      if (hash === "playlist" || hash === "song") setView(hash);
+      else {
+        buildToc();
+      }
+
+      // 侧边栏「参考」锚点：切回歌曲页
+      $$('a[href^="#guide"]').forEach((a) => {
+        a.addEventListener("click", () => {
+          if (currentView !== "song") setView("song");
+          closeSidebar();
+        });
+      });
+
+      // expose for console debugging in proto
+      window.__qishuiProto = { extractUrl, setView, MOCK_SONG, MOCK_PLAYLIST };
+    })();
+  </script>
+</body>
+
+</html>
