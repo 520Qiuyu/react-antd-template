@@ -1,7 +1,10 @@
-import { useEmbedAudioMetadata } from '@/hooks/useEmbedAudioMetadata';
+import {
+  useEmbedAudioMetadata,
+  type EmbedOutputFormat,
+} from '@/hooks/useEmbedAudioMetadata';
 import { downloadBlob } from '@/utils/download';
 import { msgError, msgSuccess } from '@/utils/modal';
-import { Button, Form, Input, Progress, Space, Upload } from 'antd';
+import { Button, Form, Input, Progress, Select, Space, Upload } from 'antd';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useMemo, useState } from 'react';
 
@@ -22,22 +25,25 @@ const getFileFromUploadList = (fileList: UploadFile[]) => {
   return (file.originFileObj as File | undefined) || null;
 };
 
-const buildOutputFilename = (audioFile: File | null, title?: string, artist?: string) => {
-  if (!audioFile) return 'output-with-metadata.mp3';
-  const ext = audioFile.name.includes('.') ? audioFile.name.split('.').pop() : 'mp3';
+const buildOutputFilename = (
+  outputFormat: EmbedOutputFormat,
+  title?: string,
+  artist?: string,
+) => {
   const safeTitle = (title || '未知歌曲').replace(/[\\/:*?"<>|]/g, '_').trim();
   const safeArtist = (artist || '未知歌手').replace(/[\\/:*?"<>|]/g, '_').trim();
-  return `${safeTitle}-${safeArtist}.${ext}`;
+  return `${safeTitle}-${safeArtist}.${outputFormat}`;
 };
 
 export default function TestFfmpeg() {
   const [form] = Form.useForm<MetadataFormValues>();
   const [audioFileList, setAudioFileList] = useState<UploadFile[]>([]);
   const [coverFileList, setCoverFileList] = useState<UploadFile[]>([]);
+  const [outputFormat, setOutputFormat] = useState<EmbedOutputFormat>('mp3');
   const [ffmpegLog, setFfmpegLog] = useState('');
   const { coreLoading, processing, loaded, loadStage, progress, loadFfmpeg, embedMetadata } =
     useEmbedAudioMetadata({
-      onLog: (message,type) => {
+      onLog: (message, type) => {
         console.log('message', message);
         console.log('type', type);
         setFfmpegLog((prev) => `${prev}\n${message}`.trim());
@@ -72,10 +78,13 @@ export default function TestFfmpeg() {
     try {
       const outputBlob = await embedMetadata({
         audio: audioFile,
+        audioName: audioFile.name,
         cover: coverFile,
+        coverName: coverFile?.name,
         metadata: values,
+        outputFormat,
       });
-      const filename = buildOutputFilename(audioFile, values.title, values.artist);
+      const filename = buildOutputFilename(outputFormat, values.title, values.artist);
       downloadBlob(outputBlob, filename);
       msgSuccess('元信息写入成功，已开始下载');
     } catch (error) {
@@ -100,7 +109,21 @@ export default function TestFfmpeg() {
         </div>
 
         <div>
-          <div style={{ marginBottom: 8, fontWeight: 500 }}>2. 填写元信息</div>
+          <div style={{ marginBottom: 8, fontWeight: 500 }}>2. 选择输出格式</div>
+          <Select
+            style={{ width: 200 }}
+            value={outputFormat}
+            onChange={setOutputFormat}
+            options={[
+              { label: 'MP3', value: 'mp3' },
+              { label: 'M4A', value: 'm4a' },
+              { label: 'FLAC', value: 'flac' },
+            ]}
+          />
+        </div>
+
+        <div>
+          <div style={{ marginBottom: 8, fontWeight: 500 }}>3. 填写元信息</div>
           <Form form={form} layout='vertical'>
             <Form.Item label='歌名' name='title'>
               <Input placeholder='例如：晴天' />
@@ -127,7 +150,7 @@ export default function TestFfmpeg() {
         </div>
 
         <div>
-          <div style={{ marginBottom: 8, fontWeight: 500 }}>3. 选择专辑封面（可选）</div>
+          <div style={{ marginBottom: 8, fontWeight: 500 }}>4. 选择专辑封面（可选）</div>
           <Upload
             accept='image/*,.jpg,.jpeg,.png,.webp'
             maxCount={1}

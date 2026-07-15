@@ -2,10 +2,11 @@ import { FFmpeg, type LogEventCallback, type ProgressEventCallback } from '@ffmp
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 const FFMPEG_CORE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
-const AUDIO_EXTENSIONS = ['mp3', 'm4a', 'aac', 'flac', 'ogg', 'wav'] as const;
-const COVER_EXTENSIONS = ['jpg', 'png'] as const;
 
 export type FFmpegStatus = 'idle' | 'loading' | 'ready' | 'processing' | 'error';
+
+/** 支持写入元信息后的输出容器格式 */
+export type EmbedOutputFormat = 'mp3' | 'm4a' | 'flac';
 
 /** 音频元信息字段 */
 export interface AudioMetadata {
@@ -22,10 +23,16 @@ export interface AudioMetadata {
 export interface EmbedAudioMetadataOptions {
   /** 音频文件或 Blob */
   audio: Blob | File;
+  /** 音频文件名 */
+  audioName: string;
   /** 专辑封面图片（可选） */
   cover?: Blob | File | null;
+  /** 专辑封面文件名 */
+  coverName?: string;
   /** 元信息 */
   metadata: AudioMetadata;
+  /** 输出格式，默认 mp3 */
+  outputFormat?: EmbedOutputFormat;
 }
 
 export interface UseEmbedAudioMetadataOptions {
@@ -34,53 +41,52 @@ export interface UseEmbedAudioMetadataOptions {
   /** 处理进度 0-100 */
   onProgress?: (progress: number) => void;
   /** ffmpeg 日志输出，便于调试加载失败原因 */
-  onLog?: (message: string,type: 'log' | 'progress') => void;
+  onLog?: (message: string, type: string) => void;
 }
 
-const AUDIO_EXT_MAP: Record<string, string> = {
-  'audio/mpeg': 'mp3',
-  'audio/mp3': 'mp3',
-  'audio/mp4': 'm4a',
-  'audio/x-m4a': 'm4a',
-  'audio/m4a': 'm4a',
-  'audio/aac': 'aac',
-  'audio/flac': 'flac',
-  'audio/ogg': 'ogg',
-  'audio/wav': 'wav',
+const OUTPUT_MIME: Record<EmbedOutputFormat, string> = {
+  mp3: 'audio/mpeg',
+  m4a: 'audio/mp4',
+  flac: 'audio/flac',
 };
 
-const IMAGE_EXT_MAP: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/jpg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-};
-
-const SUPPORTED_AUDIO_EXTENSIONS = new Set<string>(AUDIO_EXTENSIONS);
-
-/**
- * 从文件或 Blob 推断音频扩展名
- * @example getAudioExtension(new File([], 'song.m4a')) // 'm4a'
- */
-const getAudioExtension = (audio: Blob | File) => {
-  if (audio instanceof File) {
-    const ext = audio.name.split('.').pop()?.toLowerCase();
-    if (ext && SUPPORTED_AUDIO_EXTENSIONS.has(ext)) return ext;
+/** 按目标格式选择音频编码参数；同格式时可 copy */
+const buildAudioCodecArgs = (outputFormat: EmbedOutputFormat, inputExt: string) => {
+  if (outputFormat === 'mp3') {
+    return inputExt === 'mp3' ? ['-c:a', 'copy'] : ['-c:a', 'libmp3lame', '-q:a', '2'];
   }
-  return AUDIO_EXT_MAP[audio.type] || 'mp3';
+  if (outputFormat === 'm4a') {
+    return ['m4a', 'mp4', 'aac'].includes(inputExt)
+      ? ['-c:a', 'copy']
+      : ['-c:a', 'aac', '-b:a', '256k'];
+  }
+  return inputExt === 'flac' ? ['-c:a', 'copy'] : ['-c:a', 'flac'];
 };
 
-/**
- * 从图片文件或 Blob 推断扩展名
- * @example getImageExtension(coverFile) // 'jpg'
- */
-const getImageExtension = (image: Blob | File) => {
-  if (image instanceof File) {
-    const ext = image.name.split('.').pop()?.toLowerCase();
-    if (ext === 'jpeg') return 'jpg';
-    if (ext && COVER_EXTENSIONS.includes(ext as (typeof COVER_EXTENSIONS)[number])) return ext;
+/** 按目标格式追加封面 / 标签容器相关参数 */
+const buildContainerArgs = (outputFormat: EmbedOutputFormat, hasCover: boolean) => {
+  const args: string[] = [];
+
+  if (outputFormat === 'mp3') {
+    args.push('-id3v2_version', '3', '-write_id3v2', '1');
+    if (hasCover) {
+      args.push('-c:v', 'mjpeg', '-metadata:s:v', 'title=Album cover', '-metadata:s:v', 'comment=Cover (front)');
+    }
+    return args;
   }
-  return IMAGE_EXT_MAP[image.type] || 'jpg';
+
+  if (outputFormat === 'm4a') {
+    if (hasCover) {
+      args.push('-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic');
+    }
+    return args;
+  }
+
+  // flac
+  if (hasCover) {
+    args.push('-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic');
+  }
+  return args;
 };
 
 /** 将元信息对象转为 ffmpeg -metadata 参数 */
@@ -112,34 +118,31 @@ const buildMetadataArgs = (metadata: AudioMetadata) => {
 };
 
 /**
- * 根据音频格式与是否包含封面，构建 ffmpeg 写入元信息参数
+ * 按目标格式（mp3 / m4a / flac）构建 ffmpeg 参数，写入元信息与可选封面
  */
-const buildFfmpegArgs = (inputExt: string, coverExt: string | null, metadata: AudioMetadata) => {
+const buildFfmpegArgs = (
+  inputExt: string,
+  coverExt: string | null,
+  metadata: AudioMetadata,
+  outputFormat: EmbedOutputFormat,
+) => {
   const inputName = `input.${inputExt}`;
-  const outputName = `output.${inputExt}`;
+  const outputName = `output.${outputFormat}`;
   const hasCover = Boolean(coverExt);
   const args = ['-i', inputName];
 
   if (hasCover && coverExt) {
-    args.push('-i', `cover.${coverExt}`, '-map', '0:a:0', '-map', '1:v:0', '-c', 'copy');
+    args.push('-i', `cover.${coverExt}`, '-map', '0:a:0', '-map', '1:v:0');
   } else {
-    args.push('-map', '0', '-c', 'copy');
+    args.push('-map', '0:a:0');
   }
 
-  if (inputExt === 'mp3') {
-    args.push('-id3v2_version', '3');
-    args.push('-write_id3v2', '1');
-    if (hasCover) {
-      args.push('-metadata:s:v', 'title=Album cover');
-      args.push('-metadata:s:v', 'comment=Cover (front)');
-    }
-  } else if (['m4a', 'mp4', 'aac'].includes(inputExt) && hasCover) {
-    args.push('-disposition:v:0', 'attached_pic');
-  }
-
+  args.push(...buildAudioCodecArgs(outputFormat, inputExt));
+  args.push(...buildContainerArgs(outputFormat, hasCover));
   args.push(...buildMetadataArgs(metadata));
   args.push(outputName);
-  return { args, outputName };
+
+  return { args, inputName, outputName, mimeType: OUTPUT_MIME[outputFormat], outputFormat };
 };
 
 /** 将 FFmpeg 文件系统返回值转换为可下载 Blob。 */
@@ -156,13 +159,16 @@ const cleanupFiles = async (ffmpeg: FFmpeg, fileNames: string[]) => {
 };
 
 /**
- * 使用 ffmpeg-wasm 为音频 Blob 写入 ID3 / 容器元信息，并可选嵌入专辑封面
+ * 使用 ffmpeg-wasm 为音频 Blob 写入元信息 / 封面，并可选转为 mp3 | m4a | flac
  *
  * @example
- * const { embedMetadata, coreLoading } = useEmbedAudioMetadata();
+ * const { embedMetadata } = useEmbedAudioMetadata();
  * const output = await embedMetadata({
  *   audio: musicBlob,
+ *   audioName: 'song.m4a',
  *   cover: coverFile,
+ *   coverName: 'cover.jpg',
+ *   outputFormat: 'flac',
  *   metadata: { title: '歌名', artist: '歌手', album: '专辑' },
  * });
  */
@@ -180,7 +186,8 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
 
   useEffect(() => {
     const ffmpeg = ffmpegRef.current;
-    const handleLog: LogEventCallback = ({ message,type }) => callbacksRef.current.onLog?.(message,type);
+    const handleLog: LogEventCallback = ({ message, type }) =>
+      callbacksRef.current.onLog?.(message, type);
     const handleProgress: ProgressEventCallback = ({ progress: ratio }) => {
       const nextProgress = Math.round(Math.min(1, Math.max(0, ratio)) * 100);
       setProgress(nextProgress);
@@ -210,10 +217,6 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
     loadPromiseRef.current = ffmpeg.load({
       coreURL: await toBlobURL(`${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`, 'text/javascript'),
       wasmURL: await toBlobURL(`${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`, 'application/wasm'),
-      workerURL: await toBlobURL(
-        `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.worker.js`,
-        'text/javascript',
-      ),
     });
     await loadPromiseRef.current;
     setStatus('ready');
@@ -222,18 +225,38 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
   }, []);
 
   const embedMetadata = useCallback(
-    async ({ audio, cover, metadata }: EmbedAudioMetadataOptions) => {
+    async ({
+      audio,
+      audioName,
+      cover,
+      coverName,
+      metadata,
+      outputFormat = 'mp3',
+    }: EmbedAudioMetadataOptions) => {
       setProgress(0);
 
-      const inputExt = getAudioExtension(audio);
-      const coverExt = cover ? getImageExtension(cover) : null;
-      const inputName = `input.${inputExt}`;
-      const { args, outputName } = buildFfmpegArgs(inputExt, coverExt, metadata);
+      const inputExt = audioName.split('.').pop()?.toLowerCase();
+      const rawCoverExt = coverName?.split('.').pop()?.toLowerCase()?.replace(/\?.*$/, '') || null;
+      if (!inputExt) {
+        throw new Error('音频文件名无效');
+      }
+      // 仅当 cover Blob 真实存在时才映射封面；避免只有 coverName 导致找不到 cover.jpg
+      const coverExt = cover ? rawCoverExt : null;
+      if (cover && !coverExt) {
+        throw new Error('专辑封面文件名无效');
+      }
+      const { args, inputName, outputName, mimeType } = buildFfmpegArgs(
+        inputExt,
+        coverExt,
+        metadata,
+        outputFormat,
+      );
       const temporaryFiles = [inputName, outputName];
       if (coverExt) temporaryFiles.push(`cover.${coverExt}`);
 
       try {
-        const ffmpeg = await loadFfmpeg();
+        await loadFfmpeg();
+        const ffmpeg = ffmpegRef.current;
         setStatus('processing');
         await ffmpeg.writeFile(inputName, await fetchFile(audio));
 
@@ -247,13 +270,13 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
         }
 
         const outputData = await ffmpeg.readFile(outputName);
-        const mimeType = audio.type || `audio/${inputExt === 'mp3' ? 'mpeg' : inputExt}`;
         setProgress(100);
         callbacksRef.current.onProgress?.(100);
         const outputBlob = createOutputBlob(outputData, mimeType);
         setStatus('ready');
         return outputBlob;
       } catch (cause) {
+        console.log('cause', cause);
         const processingError = cause instanceof Error ? cause : new Error('音频元信息写入失败');
         setError(processingError);
         setStatus('error');

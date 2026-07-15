@@ -1,3 +1,6 @@
+import type { MusicInfo, PlaylistMusicInfo, QishuiUrl } from '@/types/qishui';
+import { DOWNLOAD_QUALITY_ORDER } from './constants';
+
 /**
  * 从分享文案中提取 URL
  * @example
@@ -27,7 +30,39 @@ export const formatDuration = (sec = 0) => {
 
 /** 音质标签文案 */
 export const qualityLabel = (quality: string) =>
-  ({ standard: '标准', higher: '较高', lossless: '无损', hq: 'HQ' })[quality] || quality;
+  (
+    {
+      spatial: '空间音频',
+      hi_res: 'Hi-Res',
+      highest: '极高',
+      higher: '较高',
+      medium: '标准',
+      lossless: '无损',
+      hq: 'HQ',
+      standard: '标准',
+    } as Record<string, string>
+  )[quality] || quality;
+
+/** 歌单曲目是否已完成单曲解析 */
+export const isTrackParsed = (track: PlaylistMusicInfo | null | undefined) =>
+  Boolean(track?.fullInfo?.trackId || track?.fullInfo?.urls?.length);
+
+/**
+ * 按下载音质阶梯选取地址；缺失则降一级，最终回退到任意可用 url
+ */
+export const pickDownloadUrl = (urls: QishuiUrl[] = []): QishuiUrl | undefined => {
+  for (const quality of DOWNLOAD_QUALITY_ORDER) {
+    const matched = urls.find((item) => item.quality === quality && item.url);
+    if (matched) return matched;
+  }
+  return urls.find((item) => item.url);
+};
+
+/** 从 fullInfo 取展示用标题 / 艺人 */
+export const getMusicDisplayMeta = (info: MusicInfo | null | undefined, fallback?: PlaylistMusicInfo) => ({
+  title: info?.title || fallback?.title || '未知歌曲',
+  artist: info?.artist || fallback?.artist || '未知艺人',
+});
 
 /** 模拟解析延迟 */
 export const mockParseDelay = (ms: number) =>

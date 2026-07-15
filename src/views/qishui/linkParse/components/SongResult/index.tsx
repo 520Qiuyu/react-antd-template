@@ -1,3 +1,4 @@
+import { useEmbedAudioMetadata } from '@/hooks';
 import type { MusicInfo, QishuiUrl } from '@/types/qishui';
 import copy from '@/utils/copy';
 import { msgError, msgSuccess } from '@/utils/modal';
@@ -5,36 +6,14 @@ import {
   CheckOutlined,
   CopyOutlined,
   DownloadOutlined,
-  LinkOutlined,
   LoadingOutlined,
   SaveOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames';
-import { SodaAudioDecryptor } from '../../sodaDecryptor';
+import { downloadSongAudio, downloadSongLyric } from '../../downloadSong';
 import { formatSize, qualityLabel } from '../../utils';
 import SongPlayer from '../SongPlayer';
 import styles from './index.module.less';
-import { downloadBlob, getDownloadProgress, getFileBlob } from '@/utils/download';
-import { useEmbedAudioMetadata } from '@/hooks';
-
-const sanitizeFilenamePart = (value: string) => value.replace(/[\\/:*?"<>|]/g, '_').trim();
-
-const buildFilename = (title: string | undefined, artist: string | undefined, item: QishuiUrl) => {
-  const name = sanitizeFilenamePart(title || '未知歌曲');
-  const singer = sanitizeFilenamePart(artist || '未知歌手');
-  const ext = (item.format || 'm4a').replace(/^\./, '') || 'm4a';
-  return `${name}-${singer}.${ext}`;
-};
-
-const buildLyricFilename = (
-  title: string | undefined,
-  artist: string | undefined,
-  ext: 'lrc' | 'txt',
-) => {
-  const name = sanitizeFilenamePart(title || '未知歌曲');
-  const singer = sanitizeFilenamePart(artist || '未知歌手');
-  return `${name}-${singer}.${ext}`;
-};
 
 interface SongCardProps {
   data: MusicInfo;
@@ -135,7 +114,7 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
   };
 
   const { embedMetadata } = useEmbedAudioMetadata({
-    onLog: (message,type) => {
+    onLog: (message, type) => {
       console.log('message', message);
       console.log('type', type);
     },
@@ -155,50 +134,20 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
     patchDownloadState(index, { progress: 0, status: 'downloading' });
 
     try {
-      const fileBlob = await getDownloadProgress(item.url, {
-        onProgress: (progress) => {
-          patchDownloadState(index, { progress: progress.receivedLength / progress.contentLength });
+      await downloadSongAudio({
+        data,
+        item,
+        embedMetadata,
+        onProgress: (phase, progress) => {
+          if (phase === 'downloading') {
+            patchDownloadState(index, { progress, status: 'downloading' });
+            return;
+          }
+          if (phase === 'decrypting') {
+            patchDownloadState(index, { progress: 100, status: 'decrypting' });
+          }
         },
       });
-      if (!fileBlob) {
-        throw new Error('下载失败：没有文件');
-      }
-      let resultBlob = fileBlob;
-      if (item.playAuth) {
-        patchDownloadState(index, { progress: 100, status: 'decrypting' });
-        const { blob, decrypted, reason } = await SodaAudioDecryptor.decryptBlob(
-          fileBlob,
-          item.playAuth,
-        );
-        if (!decrypted) {
-          throw new Error(reason || '解密失败');
-        }
-        resultBlob = blob;
-      }
-
-      // 尝试内嵌歌词封面
-      try {
-        let coverBlob: Blob | null = null;
-        try {
-          coverBlob = await getFileBlob(data.cover!);
-        } catch (error) {
-          console.log('error get cover blob', error);
-        }
-        const embeddedBlob = await embedMetadata({
-          audio: resultBlob,
-          cover: coverBlob,
-          metadata: {
-            title: data.title,
-            artist: data.artist,
-            lyrics: data.lrc,
-          },
-        });
-        resultBlob = embeddedBlob;
-      } catch (error) {
-        console.log('error', error);
-      }
-
-      downloadBlob(resultBlob, buildFilename(data.title, data.artist, item));
       patchDownloadState(index, { progress: 100, status: 'done' });
       msgSuccess(item.playAuth ? '解密下载成功' : '下载成功');
     } catch (error) {
@@ -232,7 +181,9 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
             <span className={styles['qualityBadge']}>{qualityLabel(item.quality)}</span>
             <span className={styles['qualityMeta']}>
               {(item.format || '').toUpperCase()} · {formatSize(item.size)}
-              {busy ? ` · ${status === 'decrypting' ? '解密中' : `${progress?.toFixed(2)}%`}` : null}
+              {busy
+                ? ` · ${status === 'decrypting' ? '解密中' : `${progress?.toFixed(2)}%`}`
+                : null}
               {status === 'done' ? ' · 已完成' : null}
             </span>
             <div className={styles['qualityActions']}>
@@ -273,15 +224,12 @@ export const SongLyricBox: React.FC<SongCardProps> = ({ data }) => {
 
   /** 保存歌词 */
   const handleSaveLyric = () => {
-    if (!lyricText) {
-      msgError('暂无歌词可保存');
-      return;
+    try {
+      downloadSongLyric(data, lyricMode);
+      msgSuccess('歌词已保存');
+    } catch (error) {
+      msgError(error instanceof Error ? error.message : '暂无歌词可保存');
     }
-    downloadBlob(
-      new Blob([lyricText], { type: 'text/plain;charset=utf-8' }),
-      buildLyricFilename(data.title, data.artist, lyricMode === 'lrc' ? 'lrc' : 'txt'),
-    );
-    msgSuccess('歌词已保存');
   };
 
   return (

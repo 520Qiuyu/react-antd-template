@@ -1,8 +1,10 @@
+import { reqParsePlaylistShareLink } from '@/apis';
+import { useSearchParams } from '@/hooks';
+import { msgError } from '@/utils/modal';
 import { PlusSquareOutlined, UnorderedListOutlined } from '@ant-design/icons';
-import type { PlaylistInfo } from '@/types/qishui';
+import type { SearchParams } from '../..';
 import { DEFAULT_PLAYLIST_LINK } from '../../constants';
-import { MOCK_PLAYLIST } from '../../mock';
-import { mockParseDelay } from '../../utils';
+import { useLinkParseStore, type TocSection } from '../../store/useStore';
 import DocSectionTitle from '../DocSectionTitle';
 import ParseFormPanel from '../ParseFormPanel';
 import PlaylistResult from '../PlaylistResult';
@@ -13,30 +15,66 @@ import styles from './index.module.less';
  * 歌单解析视图
  */
 const PlaylistParseView: React.FC = () => {
-  const [link, setLink] = useState(DEFAULT_PLAYLIST_LINK);
+  const { searchParams } = useSearchParams<SearchParams>();
+  const setPlaylistHasResult = useLinkParseStore((state) => state.setPlaylistHasResult);
+  const playlistHasResult = useLinkParseStore((state) => state.playlistHasResult);
+  const setTocSections = useLinkParseStore((state) => state.setTocSections);
+
+  const [link, setLink] = useLocalStorageState<string>('playlist-link', {
+    defaultValue: DEFAULT_PLAYLIST_LINK,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<PlaylistInfo | null>(null);
 
   const handleParse = async () => {
-    if (!link.trim()) {
+    if (!link?.trim()) {
       setError('请先粘贴歌单分享链接');
-      setResult(null);
+      setPlaylistHasResult(null);
       return;
     }
 
     setLoading(true);
     setError('');
-    await mockParseDelay(820);
-    setResult({ ...MOCK_PLAYLIST });
-    setLoading(false);
+    try {
+      const res = await reqParsePlaylistShareLink({ shareLink: link.trim() });
+      if (res.code !== 200) {
+        setPlaylistHasResult(null);
+        setError(res.message || '解析失败');
+        return;
+      }
+
+      const playlistInfo = res.data?.routerData;
+      if (!playlistInfo?.title) {
+        setPlaylistHasResult(null);
+        setError('未解析到有效歌单信息');
+        return;
+      }
+
+      setPlaylistHasResult(playlistInfo);
+    } catch (err) {
+      console.log('error', err);
+      setPlaylistHasResult(null);
+      setError('解析失败，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClear = () => {
     setLink('');
-    setResult(null);
+    setPlaylistHasResult(null);
     setError('');
   };
+
+  useEffect(() => {
+    if (searchParams.currentView === 'playlist') {
+      const sections: TocSection[] = [
+        { id: 'playlist-input', label: '输入链接' },
+        { id: 'playlist-result', label: '解析结果' },
+      ];
+      setTocSections(sections);
+    }
+  }, [searchParams.currentView, playlistHasResult]);
 
   return (
     <main className={styles['doc']} data-page='playlist'>
@@ -58,7 +96,7 @@ const PlaylistParseView: React.FC = () => {
         label='分享链接'
         inputId='playlistLink'
         placeholder='粘贴汽水音乐歌单分享链接…'
-        value={link}
+        value={link!}
         loading={loading}
         submitLabel='解析歌单'
         ariaLabel='歌单链接解析'
@@ -68,11 +106,11 @@ const PlaylistParseView: React.FC = () => {
       />
 
       <DocSectionTitle id='playlist-result'>解析结果</DocSectionTitle>
-      {!result && !error ? (
+      {!playlistHasResult && !error ? (
         <ParseEmptyState icon={<UnorderedListOutlined />}>歌单列表将显示在这里</ParseEmptyState>
       ) : null}
       <ParseErrorState message={error} />
-      {result ? <PlaylistResult data={result} /> : null}
+      {playlistHasResult ? <PlaylistResult data={playlistHasResult} /> : null}
     </main>
   );
 };
