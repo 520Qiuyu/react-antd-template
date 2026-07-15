@@ -1,28 +1,21 @@
+import type { MusicInfo, QishuiUrl } from '@/types/qishui';
+import copy from '@/utils/copy';
+import { msgError, msgSuccess } from '@/utils/modal';
 import {
   CheckOutlined,
   CopyOutlined,
   DownloadOutlined,
-  FileTextOutlined,
   LinkOutlined,
   LoadingOutlined,
   SaveOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames';
-import type { MusicInfo, QishuiUrl } from '@/types/qishui';
-import copy from '@/utils/copy';
-import { msgError, msgSuccess } from '@/utils/modal';
-import { formatSize, qualityLabel } from '../../utils';
 import { SodaAudioDecryptor } from '../../sodaDecryptor';
+import { formatSize, qualityLabel } from '../../utils';
+import SongPlayer from '../SongPlayer';
 import styles from './index.module.less';
-
-const downloadBlob = (blob: Blob, filename: string) => {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-};
+import { downloadBlob, getDownloadProgress, getFileBlob } from '@/utils/download';
+import { useEmbedAudioMetadata } from '@/hooks';
 
 const sanitizeFilenamePart = (value: string) => value.replace(/[\\/:*?"<>|]/g, '_').trim();
 
@@ -33,7 +26,11 @@ const buildFilename = (title: string | undefined, artist: string | undefined, it
   return `${name}-${singer}.${ext}`;
 };
 
-const buildLyricFilename = (title: string | undefined, artist: string | undefined, ext: 'lrc' | 'txt') => {
+const buildLyricFilename = (
+  title: string | undefined,
+  artist: string | undefined,
+  ext: 'lrc' | 'txt',
+) => {
   const name = sanitizeFilenamePart(title || '未知歌曲');
   const singer = sanitizeFilenamePart(artist || '未知歌手');
   return `${name}-${singer}.${ext}`;
@@ -46,7 +43,7 @@ interface SongCardProps {
 /** 歌曲信息卡片 */
 export const SongCard: React.FC<SongCardProps> = ({ data }) => {
   const [copyIdDone, setCopyIdDone] = useState(false);
-  const [copyLrcDone, setCopyLrcDone] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const avatar = data.artists?.[0]?.avatar;
 
   const handleCopyId = async () => {
@@ -61,20 +58,12 @@ export const SongCard: React.FC<SongCardProps> = ({ data }) => {
     }
   };
 
-  const handleCopyLrc = async () => {
-    try {
-      await copy(data.lrc || data.lrcText || '');
-      setCopyLrcDone(true);
-      msgSuccess('已复制歌词');
-      setTimeout(() => setCopyLrcDone(false), 1400);
-    } catch {
-      /* ignore */
-    }
-  };
-
   return (
     <article className={styles['songCard']}>
-      <div className={styles['coverWrap']}>
+      <div
+        className={classNames(styles['coverWrap'], {
+          [styles['coverWrapPlaying']]: isPlaying,
+        })}>
         <div className={styles['coverGlow']} aria-hidden='true' />
         <img className={styles['cover']} src={data.cover} alt='专辑封面' />
       </div>
@@ -85,24 +74,16 @@ export const SongCard: React.FC<SongCardProps> = ({ data }) => {
           {avatar ? <img className={styles['avatar']} src={avatar} alt='' /> : null}
           <span>{data.artist || '未知歌手'}</span>
         </div>
-        <code className={styles['trackId']}>{data.trackId || '—'}</code>
+        <code className={styles['trackId']}>
+          {data.trackId || '—'}{' '}
+          {copyIdDone ? (
+            <CheckOutlined onClick={handleCopyId} />
+          ) : (
+            <CopyOutlined onClick={handleCopyId} />
+          )}
+        </code>
         <div className={styles['actions']}>
-          <button
-            className={classNames(styles['btn'], styles['btnPrimary'], styles['btnSm'])}
-            type='button'
-            aria-label='复制歌曲 ID'
-            onClick={handleCopyId}>
-            {copyIdDone ? <CheckOutlined /> : <CopyOutlined />}
-            {copyIdDone ? '已复制' : '复制 ID'}
-          </button>
-          <button
-            className={classNames(styles['btn'], styles['btnGhost'], styles['btnSm'])}
-            type='button'
-            aria-label='复制歌词'
-            onClick={handleCopyLrc}>
-            {copyLrcDone ? <CheckOutlined /> : <FileTextOutlined />}
-            {copyLrcDone ? '已复制' : '复制歌词'}
-          </button>
+          <SongPlayer data={data} onPlayingChange={setIsPlaying} />
         </div>
       </div>
     </article>
@@ -129,14 +110,19 @@ export const SongInfoGrid: React.FC<SongCardProps> = ({ data }) => {
 
 /** 音质列表 */
 export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
-  const [copiedUrlIndex, setCopiedUrlIndex] = useState<number | null>(null);
   const [downloadStates, setDownloadStates] = useState<
-    Record<number, { progress: number; status: 'idle' | 'downloading' | 'decrypting' | 'done' | 'error' }>
+    Record<
+      number,
+      { progress: number; status: 'idle' | 'downloading' | 'decrypting' | 'done' | 'error' }
+    >
   >({});
 
   const patchDownloadState = (
     index: number,
-    patch: Partial<{ progress: number; status: 'idle' | 'downloading' | 'decrypting' | 'done' | 'error' }>,
+    patch: Partial<{
+      progress: number;
+      status: 'idle' | 'downloading' | 'decrypting' | 'done' | 'error';
+    }>,
   ) => {
     setDownloadStates((prev) => ({
       ...prev,
@@ -148,69 +134,35 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
     }));
   };
 
-  const handleCopyUrl = async (url: string, index: number) => {
-    try {
-      await copy(url);
-      setCopiedUrlIndex(index);
-      msgSuccess('已复制播放地址');
-      setTimeout(() => setCopiedUrlIndex(null), 1400);
-    } catch {
-      /* ignore */
-    }
-  };
-
+  const { embedMetadata } = useEmbedAudioMetadata({
+    onLog: (message,type) => {
+      console.log('message', message);
+      console.log('type', type);
+    },
+  });
   const handleDownload = async (item: QishuiUrl, index: number) => {
     if (!item.url) {
       msgError('缺少播放地址');
       return;
     }
-    if (downloadStates[index]?.status === 'downloading' || downloadStates[index]?.status === 'decrypting') {
+    if (
+      downloadStates[index]?.status === 'downloading' ||
+      downloadStates[index]?.status === 'decrypting'
+    ) {
       return;
     }
 
     patchDownloadState(index, { progress: 0, status: 'downloading' });
 
     try {
-      const res = await fetch(item.url, {
-        referrerPolicy: 'no-referrer',
-        mode: 'cors',
+      const fileBlob = await getDownloadProgress(item.url, {
+        onProgress: (progress) => {
+          patchDownloadState(index, { progress: progress.receivedLength / progress.contentLength });
+        },
       });
-      if (!res.ok) {
-        throw new Error(`下载失败：${res.status} ${res.statusText}`);
+      if (!fileBlob) {
+        throw new Error('下载失败：没有文件');
       }
-
-      const contentLength = Number(res.headers.get('content-length') || 0);
-      let fileBlob: Blob;
-
-      if (!res.body) {
-        fileBlob = await res.blob();
-        patchDownloadState(index, { progress: 100 });
-      } else {
-        const reader = res.body.getReader();
-        const chunks: BlobPart[] = [];
-        let receivedLength = 0;
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          if (!value) continue;
-
-          const chunk = new Uint8Array(value.byteLength);
-          chunk.set(value);
-          chunks.push(chunk.buffer);
-          receivedLength += value.length;
-
-          if (contentLength > 0) {
-            const progress = Math.min(99, Number(((receivedLength / contentLength) * 100).toFixed(2)));
-            patchDownloadState(index, { progress, status: 'downloading' });
-          }
-        }
-
-        const contentType = res.headers.get('content-type') || 'audio/mp4';
-        fileBlob = new Blob(chunks, { type: contentType });
-        patchDownloadState(index, { progress: 100, status: 'downloading' });
-      }
-
       let resultBlob = fileBlob;
       if (item.playAuth) {
         patchDownloadState(index, { progress: 100, status: 'decrypting' });
@@ -222,6 +174,28 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
           throw new Error(reason || '解密失败');
         }
         resultBlob = blob;
+      }
+
+      // 尝试内嵌歌词封面
+      try {
+        let coverBlob: Blob | null = null;
+        try {
+          coverBlob = await getFileBlob(data.cover!);
+        } catch (error) {
+          console.log('error get cover blob', error);
+        }
+        const embeddedBlob = await embedMetadata({
+          audio: resultBlob,
+          cover: coverBlob,
+          metadata: {
+            title: data.title,
+            artist: data.artist,
+            lyrics: data.lrc,
+          },
+        });
+        resultBlob = embeddedBlob;
+      } catch (error) {
+        console.log('error', error);
       }
 
       downloadBlob(resultBlob, buildFilename(data.title, data.artist, item));
@@ -258,27 +232,30 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
             <span className={styles['qualityBadge']}>{qualityLabel(item.quality)}</span>
             <span className={styles['qualityMeta']}>
               {(item.format || '').toUpperCase()} · {formatSize(item.size)}
-              {busy ? ` · ${status === 'decrypting' ? '解密中' : `${progress}%`}` : null}
+              {busy ? ` · ${status === 'decrypting' ? '解密中' : `${progress?.toFixed(2)}%`}` : null}
               {status === 'done' ? ' · 已完成' : null}
             </span>
-            <span className={styles['qualityMeta']}>{item.encryptionMethod || 'none'}</span>
             <div className={styles['qualityActions']}>
-              <button
-                className={classNames(styles['btn'], styles['btnGhost'], styles['btnSm'])}
-                type='button'
-                aria-label='复制播放地址'
-                onClick={() => handleCopyUrl(item.url, index)}>
-                {copiedUrlIndex === index ? <CheckOutlined /> : <LinkOutlined />}
-                {copiedUrlIndex === index ? '已复制' : '复制链接'}
-              </button>
               <button
                 className={classNames(styles['btn'], styles['btnPrimary'], styles['btnSm'])}
                 type='button'
                 aria-label='解密下载'
                 disabled={busy}
                 onClick={() => handleDownload(item, index)}>
-                {busy ? <LoadingOutlined /> : status === 'done' ? <CheckOutlined /> : <DownloadOutlined />}
-                {busy ? (status === 'decrypting' ? '解密中' : '下载中') : status === 'done' ? '已完成' : '下载'}
+                {busy ? (
+                  <LoadingOutlined />
+                ) : status === 'done' ? (
+                  <CheckOutlined />
+                ) : (
+                  <DownloadOutlined />
+                )}
+                {busy
+                  ? status === 'decrypting'
+                    ? '解密中'
+                    : '下载中'
+                  : status === 'done'
+                    ? '已完成'
+                    : '下载'}
               </button>
             </div>
           </div>
@@ -291,23 +268,17 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
 /** 歌词展示 */
 export const SongLyricBox: React.FC<SongCardProps> = ({ data }) => {
   const [lyricMode, setLyricMode] = useState<'lrc' | 'txt'>('lrc');
+  const { lrc, lrcText } = data;
+  const lyricText = lyricMode === 'lrc' ? lrc || '暂无歌词' : lrcText || '暂无歌词';
 
-  const lrcContent = data.lrc || '';
-  const txtContent = data.lrcText || '';
-  const lyricText =
-    lyricMode === 'lrc'
-      ? lrcContent || txtContent || '暂无歌词'
-      : txtContent || lrcContent || '暂无歌词';
-  const canSave = Boolean((lyricMode === 'lrc' ? lrcContent : txtContent) || lrcContent || txtContent);
-
+  /** 保存歌词 */
   const handleSaveLyric = () => {
-    const content = lyricMode === 'lrc' ? lrcContent || txtContent : txtContent || lrcContent;
-    if (!content) {
+    if (!lyricText) {
       msgError('暂无歌词可保存');
       return;
     }
     downloadBlob(
-      new Blob([content], { type: 'text/plain;charset=utf-8' }),
+      new Blob([lyricText], { type: 'text/plain;charset=utf-8' }),
       buildLyricFilename(data.title, data.artist, lyricMode === 'lrc' ? 'lrc' : 'txt'),
     );
     msgSuccess('歌词已保存');
@@ -342,7 +313,7 @@ export const SongLyricBox: React.FC<SongCardProps> = ({ data }) => {
           className={classNames(styles['btn'], styles['btnGhost'], styles['btnSm'])}
           type='button'
           aria-label='保存歌词'
-          disabled={!canSave}
+          disabled={!lyricText}
           onClick={handleSaveLyric}>
           <SaveOutlined />
           保存

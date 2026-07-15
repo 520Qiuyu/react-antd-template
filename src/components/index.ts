@@ -1,4 +1,4 @@
-// 由D:\Documents\react-antd-template\scripts\generate-exports.js自动生成，请勿修改
+// 由D:\Documents\qishui-card-secret-system\frontend\scripts\generate-exports.js自动生成，请勿修改
 export { default as AuthGuard} from './AuthGuard/index.tsx';
 export { default as CopyText} from './CopyText/index.tsx';
 export { default as Loading} from './Loading/index.tsx';

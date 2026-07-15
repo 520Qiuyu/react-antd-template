@@ -8,10 +8,8 @@ import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 export default defineConfig(({ mode }): UserConfig => {
   console.log('mode', mode);
   return {
-    define: {
-      global: 'window', // 将 `global` 替换为 `window`
-    },
     base: './',
+    assetsInclude: ['**/*.wasm'],
     plugins: [
       react(),
       // 自动导入 https://github.com/unplugin/unplugin-auto-import
@@ -65,10 +63,15 @@ export default defineConfig(({ mode }): UserConfig => {
     // 依赖预构建
     optimizeDeps: {
       include: ['react', 'react-dom', 'react-router-dom', 'ahooks', 'antd', 'axios'],
+      exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
     },
     server: {
       port: 2558,
       host: '0.0.0.0',
+      /* headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+      }, */
       proxy: {
         '/api': {
           target: 'http://localhost:3000', //
@@ -79,6 +82,10 @@ export default defineConfig(({ mode }): UserConfig => {
       },
     },
     preview: {
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+      },
       proxy: {
         '/api': {
           target: 'http://localhost:3000', //
@@ -91,7 +98,7 @@ export default defineConfig(({ mode }): UserConfig => {
     build: {
       outDir: 'dist',
       chunkSizeWarningLimit: 1000,
-      rollupOptions: {
+      rolldownOptions: {
         output: {
           advancedChunks: {
             groups: [

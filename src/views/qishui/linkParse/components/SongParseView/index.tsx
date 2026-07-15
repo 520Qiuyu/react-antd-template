@@ -22,12 +22,14 @@ const SongParseView: React.FC<SongParseViewProps> = () => {
   const songHasResult = useLinkParseStore((state) => state.songHasResult);
   const setTocSections = useLinkParseStore((state) => state.setTocSections);
 
-  const [link, setLink] = useState(DEFAULT_SONG_LINK);
+  const [link, setLink] = useLocalStorageState<string>('song-link', {
+    defaultValue: DEFAULT_SONG_LINK,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleParse = async () => {
-    if (!link.trim()) {
+    if (!link?.trim()) {
       setError('请先粘贴歌曲分享链接');
       setSongHasResult(null);
       return;
@@ -112,7 +114,7 @@ const SongParseView: React.FC<SongParseViewProps> = () => {
         label='分享链接'
         inputId='songLink'
         placeholder='粘贴汽水音乐歌曲分享链接…'
-        value={link}
+        value={link!}
         loading={loading}
         submitLabel='解析歌曲'
         ariaLabel='歌曲链接解析'

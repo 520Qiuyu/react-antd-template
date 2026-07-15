@@ -1,8 +1,9 @@
-// 由D:\Documents\react-antd-template\scripts\generate-exports.js自动生成，请勿修改
+// 由D:\Documents\qishui-card-secret-system\frontend\scripts\generate-exports.js自动生成，请勿修改
 export { useAutoScroll} from './useAutoScroll.ts';
 export { useClickOutside} from './useClickOutside.ts';
 export { useCompRef} from './useCompRef.ts';
 export { useCurrentRoute} from './useCurrentRoute.ts';
+export { useEmbedAudioMetadata} from './useEmbedAudioMetadata.ts';
 export { useGetDrop} from './useGetDrop.ts';
 export { useGetList} from './useGetList.ts';
 export { useInsertTextAtCursor} from './useInsertTextAtCursor.ts';

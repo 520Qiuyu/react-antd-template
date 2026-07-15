@@ -100,6 +100,11 @@ isDev &&
             name: 'Soda解密测试',
             component: lazy(() => import('@/views/test/testModal')),
           },
+          {
+            path: 'test-ffmpeg',
+            name: 'FFmpeg元信息测试',
+            component: lazy(() => import('@/views/test/testFfmpeg')),
+          },
         ],
       },
     ],
