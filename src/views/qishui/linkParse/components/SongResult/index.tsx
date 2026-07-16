@@ -32,8 +32,8 @@ export const SongCard: React.FC<SongCardProps> = ({ data }) => {
       setCopyIdDone(true);
       msgSuccess('已复制歌曲 ID');
       setTimeout(() => setCopyIdDone(false), 1400);
-    } catch {
-      /* ignore */
+    } catch (error) {
+      console.log('error', error);
     }
   };
 

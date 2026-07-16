@@ -1,4 +1,4 @@
-import type { TocSection } from '../../store/useStore';
+import type { TocSection } from '../../store';
 import styles from './index.module.less';
 
 interface PageAsideProps {
@@ -25,7 +25,8 @@ const PageAside: React.FC<PageAsideProps> = ({ sections }) => {
             onClick={(event) => {
               event.preventDefault();
               handleLinkClick(section.id);
-            }}>
+            }}
+          >
             {section.label}
           </a>
         ))}

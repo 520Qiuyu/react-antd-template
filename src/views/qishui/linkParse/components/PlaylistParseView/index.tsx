@@ -1,14 +1,13 @@
 import { reqParsePlaylistShareLink } from '@/apis';
 import { useSearchParams } from '@/hooks';
-import { msgError } from '@/utils/modal';
 import { PlusSquareOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import type { SearchParams } from '../..';
 import { DEFAULT_PLAYLIST_LINK } from '../../constants';
-import { useLinkParseStore, type TocSection } from '../../store/useStore';
+import { useParseStore, usePlaylistParseStore, type TocSection } from '../../store';
 import DocSectionTitle from '../DocSectionTitle';
 import ParseFormPanel from '../ParseFormPanel';
-import PlaylistResult from '../PlaylistResult';
 import { ParseEmptyState, ParseErrorState } from '../ParseState';
+import PlaylistResult from '../PlaylistResult';
 import styles from './index.module.less';
 
 /**
@@ -16,9 +15,12 @@ import styles from './index.module.less';
  */
 const PlaylistParseView: React.FC = () => {
   const { searchParams } = useSearchParams<SearchParams>();
-  const setPlaylistHasResult = useLinkParseStore((state) => state.setPlaylistHasResult);
-  const playlistHasResult = useLinkParseStore((state) => state.playlistHasResult);
-  const setTocSections = useLinkParseStore((state) => state.setTocSections);
+  /** 设置歌单解析结果 */
+  const setPlaylistHasResult = usePlaylistParseStore((state) => state.setPlaylistHasResult);
+  /** 歌单解析结果 */
+  const playlistHasResult = usePlaylistParseStore((state) => state.playlistHasResult);
+  /** 设置右侧目录 */
+  const setTocSections = useParseStore((state) => state.setTocSections);
 
   const [link, setLink] = useLocalStorageState<string>('playlist-link', {
     defaultValue: DEFAULT_PLAYLIST_LINK,
@@ -26,6 +28,7 @@ const PlaylistParseView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  /** 解析歌单 */
   const handleParse = async () => {
     if (!link?.trim()) {
       setError('请先粘贴歌单分享链接');
@@ -78,39 +81,42 @@ const PlaylistParseView: React.FC = () => {
 
   return (
     <main className={styles['doc']} data-page='playlist'>
-      <div className={styles['badge']}>
-        <PlusSquareOutlined /> Playlist Parse
-      </div>
-      <h1 className={styles['title']}>
-        歌单解析 <em>Playlist</em>
-      </h1>
-      <p className={styles['lead']}>
-        解析汽水歌单分享链接，展示歌单封面、创建者、曲目数量与完整歌曲列表，支持关键字快速筛选。
-      </p>
+      {/* 头部标题 */}
+      <header>
+        <div className={styles['badge']}>
+          <PlusSquareOutlined /> Playlist Parse
+        </div>
+        <h1 className={styles['title']}>
+          歌单解析 <em>Playlist</em>
+        </h1>
+        <p className={styles['lead']}>
+          解析汽水歌单分享链接，展示歌单封面、创建者、曲目数量与完整歌曲列表，支持关键字快速筛选。
+        </p>
+      </header>
 
-      <DocSectionTitle id='playlist-input' first>
-        输入链接
+      <DocSectionTitle title='输入链接' id='playlist-input' first>
+        <ParseFormPanel
+          hint='请使用歌单分享链接；歌曲链接请切换到「歌曲解析」栏目。'
+          label='分享链接'
+          inputId='playlistLink'
+          placeholder='粘贴汽水音乐歌单分享链接…'
+          value={link!}
+          loading={loading}
+          submitLabel='解析歌单'
+          ariaLabel='歌单链接解析'
+          onChange={setLink}
+          onSubmit={handleParse}
+          onClear={handleClear}
+        />
       </DocSectionTitle>
-      <ParseFormPanel
-        hint='请使用歌单分享链接；歌曲链接请切换到「歌曲解析」栏目。'
-        label='分享链接'
-        inputId='playlistLink'
-        placeholder='粘贴汽水音乐歌单分享链接…'
-        value={link!}
-        loading={loading}
-        submitLabel='解析歌单'
-        ariaLabel='歌单链接解析'
-        onChange={setLink}
-        onSubmit={handleParse}
-        onClear={handleClear}
-      />
 
-      <DocSectionTitle id='playlist-result'>解析结果</DocSectionTitle>
-      {!playlistHasResult && !error ? (
-        <ParseEmptyState icon={<UnorderedListOutlined />}>歌单列表将显示在这里</ParseEmptyState>
-      ) : null}
-      <ParseErrorState message={error} />
-      {playlistHasResult ? <PlaylistResult data={playlistHasResult} /> : null}
+      <DocSectionTitle title='解析结果' id='playlist-result'>
+        {!playlistHasResult && !error ? (
+          <ParseEmptyState icon={<UnorderedListOutlined />}>歌单列表将显示在这里</ParseEmptyState>
+        ) : null}
+        <ParseErrorState message={error} />
+        {playlistHasResult ? <PlaylistResult data={playlistHasResult} /> : null}
+      </DocSectionTitle>
     </main>
   );
 };

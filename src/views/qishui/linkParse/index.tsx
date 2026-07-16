@@ -13,7 +13,7 @@ import PlaylistParseView from './components/PlaylistParseView';
 import SongParseView from './components/SongParseView';
 import { QISHUI_HOME_URL, type LinkParseView } from './constants';
 import styles from './index.module.less';
-import { useLinkParseStore, type TocSection } from './store/useStore';
+import { useParseStore } from './store';
 
 const defaultSearchParams: SearchParams = {
   currentView: 'song',
@@ -21,7 +21,7 @@ const defaultSearchParams: SearchParams = {
 };
 const LinkParse: React.FC = () => {
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
-  const { tocSections } = useLinkParseStore();
+  const tocSections = useParseStore((state) => state.tocSections);
 
   const handleGuideClick = useCallback(() => {
     if (searchParams.currentView !== 'song') {
