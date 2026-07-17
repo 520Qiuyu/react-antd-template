@@ -90,12 +90,12 @@ const LinkParse: React.FC = () => {
         </div>
       </header>
 
-      <div
+{/*       <div
         className={classNames(styles['overlay'], { [styles['isOpen']]: searchParams.sidebarOpen })}
         hidden={!searchParams.sidebarOpen}
         onClick={() => setSearchParams({ ...searchParams, sidebarOpen: false })}
         aria-hidden={!searchParams.sidebarOpen}
-      />
+      /> */}
 
       <div className={styles['layout']}>
         <LinkParseSidebar onGuideClick={handleGuideClick} />

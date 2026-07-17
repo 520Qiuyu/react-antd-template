@@ -6,6 +6,7 @@ import { PLAYLIST_PARSE_CONCURRENCY } from '../../constants';
 import { downloadSongAudio, downloadSongLyric, runWithConcurrency } from '../../downloadSong';
 import { usePlaylistParseStore } from '../../store';
 import { isTrackParsed, mockParseDelay, pickDownloadUrl } from '../../utils';
+import EngineStatus from '../EngineStatus';
 import PlaylistHero from './components/PlaylistHero';
 import TrackList, { type BatchAction } from './components/TrackList';
 import styles from './index.module.less';
@@ -345,6 +346,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
 
   return (
     <div className={styles['result']} aria-live='polite'>
+      <EngineStatus />
       <PlaylistHero data={data} />
       <TrackList
         tracks={tracks}

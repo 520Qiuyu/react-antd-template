@@ -2,6 +2,184 @@ import { FFmpeg, type LogEventCallback, type ProgressEventCallback } from '@ffmp
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 const FFMPEG_CORE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+let loadPromiseRef: Promise<any> | null = null;
+
+/**
+ * 使用 ffmpeg-wasm 为音频 Blob 写入元信息 / 封面，并可选转为 mp3 | m4a | flac
+ *
+ * @example
+ * const { embedMetadata } = useEmbedAudioMetadata();
+ * const output = await embedMetadata({
+ *   audio: musicBlob,
+ *   audioName: 'song.m4a',
+ *   cover: coverFile,
+ *   coverName: 'cover.jpg',
+ *   outputFormat: 'flac',
+ *   metadata: { title: '歌名', artist: '歌手', album: '专辑' },
+ * });
+ */
+export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}) => {
+  const callbacksRef = useRef(options);
+  const ffmpegRef = useRef(new FFmpeg());
+  const [status, setStatus] = useState<FFmpegStatus>('idle');
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    callbacksRef.current = options;
+  }, [options]);
+
+  useEffect(() => {
+    const ffmpeg = ffmpegRef.current;
+    const handleLog: LogEventCallback = ({ message, type }) =>
+      callbacksRef.current.onLog?.(message, type);
+    const handleProgress: ProgressEventCallback = ({ progress: ratio }) => {
+      const nextProgress = Math.round(Math.min(1, Math.max(0, ratio)) * 100);
+      setProgress(nextProgress);
+      callbacksRef.current.onProgress?.(nextProgress);
+    };
+
+    ffmpeg.on('log', handleLog);
+    ffmpeg.on('progress', handleProgress);
+
+    return () => {
+      ffmpeg.off('log', handleLog);
+      ffmpeg.off('progress', handleProgress);
+    };
+  }, []);
+
+  const loadFfmpeg = useCallback(async () => {
+    const ffmpeg = ffmpegRef.current;
+    if (ffmpeg.loaded) {
+      setStatus('ready');
+      return ffmpeg;
+    }
+
+    console.log('loadPromiseRef', loadPromiseRef);
+    // 已有进行中的加载则直接复用，避免并发重复 load
+    if (loadPromiseRef) {
+      await loadPromiseRef;
+    } else {
+      setError(null);
+      setStatus('loading');
+      // 同步赋值：把整段异步流程包进 IIFE，先占位再 await，
+      // 否则 await toBlobURL 期间 loadPromiseRef 仍为 null，并发调用会各自重新加载
+      loadPromiseRef = (async () => {
+        const [coreURL, wasmURL] = await Promise.all([
+          toBlobURL(`${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`, 'text/javascript'),
+          toBlobURL(`${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`, 'application/wasm'),
+        ]);
+        await ffmpeg.load({ coreURL, wasmURL });
+      })();
+    }
+
+    try {
+      await loadPromiseRef;
+    } catch (loadError) {
+      // 加载失败清空缓存，允许后续重试
+      loadPromiseRef = null;
+      throw loadError;
+    }
+
+    setStatus('ready');
+    callbacksRef.current.onLoaded?.();
+    return ffmpeg;
+  }, []);
+
+  useEffect(() => {
+    loadFfmpeg();
+  }, []);
+
+  const embedMetadata = useCallback(
+    async ({
+      audio,
+      audioName,
+      cover,
+      coverName,
+      metadata,
+      outputFormat = 'mp3',
+    }: EmbedAudioMetadataOptions) => {
+      setProgress(0);
+
+      const inputExt = audioName.split('.').pop()?.toLowerCase();
+      const rawCoverExt = coverName?.split('.').pop()?.toLowerCase()?.replace(/\?.*$/, '') || null;
+      if (!inputExt) {
+        throw new Error('音频文件名无效');
+      }
+      // 仅当 cover Blob 真实存在时才映射封面；避免只有 coverName 导致找不到 cover.jpg
+      const coverExt = cover ? rawCoverExt : null;
+      if (cover && !coverExt) {
+        throw new Error('专辑封面文件名无效');
+      }
+      const { args, inputName, outputName, mimeType } = buildFfmpegArgs(
+        inputExt,
+        coverExt,
+        metadata,
+        outputFormat,
+      );
+      console.log('args', args);
+      const temporaryFiles = [inputName, outputName];
+      if (coverExt) temporaryFiles.push(`cover.${coverExt}`);
+
+      try {
+        await loadFfmpeg();
+        const ffmpeg = ffmpegRef.current;
+        setStatus('processing');
+        await ffmpeg.writeFile(inputName, await fetchFile(audio));
+
+        if (cover && coverExt) {
+          await ffmpeg.writeFile(`cover.${coverExt}`, await fetchFile(cover));
+        }
+
+        const exitCode = await ffmpeg.exec(args);
+        if (exitCode !== 0) {
+          throw new Error(`ffmpeg 处理失败，退出码：${exitCode}`);
+        }
+
+        const outputData = await ffmpeg.readFile(outputName);
+        setProgress(100);
+        callbacksRef.current.onProgress?.(100);
+        const outputBlob = createOutputBlob(outputData, mimeType);
+        setStatus('ready');
+        return outputBlob;
+      } catch (cause) {
+        console.log('cause', cause);
+        const processingError = cause instanceof Error ? cause : new Error('音频元信息写入失败');
+        setError(processingError);
+        setStatus('error');
+        throw processingError;
+      } finally {
+        await cleanupFiles(ffmpegRef.current, temporaryFiles);
+      }
+    },
+    [loadFfmpeg],
+  );
+
+  const coreLoading = status === 'loading';
+  const processing = status === 'processing';
+  const loaded = status === 'ready' || processing;
+
+  return {
+    coreLoading,
+    processing,
+    loading: coreLoading || processing,
+    loaded,
+    loadStage:
+      error?.message ||
+      {
+        idle: '未加载',
+        loading: '正在下载并初始化 FFmpeg Core...',
+        ready: '已就绪',
+        processing: '正在写入音频元信息...',
+        error: '加载失败',
+      }[status],
+    status,
+    error,
+    progress,
+    loadFfmpeg,
+    embedMetadata,
+  };
+};
 
 export type FFmpegStatus = 'idle' | 'loading' | 'ready' | 'processing' | 'error';
 
@@ -70,7 +248,14 @@ const buildContainerArgs = (outputFormat: EmbedOutputFormat, hasCover: boolean) 
   if (outputFormat === 'mp3') {
     args.push('-id3v2_version', '3', '-write_id3v2', '1');
     if (hasCover) {
-      args.push('-c:v', 'mjpeg', '-metadata:s:v', 'title=Album cover', '-metadata:s:v', 'comment=Cover (front)');
+      args.push(
+        '-c:v',
+        'mjpeg',
+        '-metadata:s:v',
+        'title=Album cover',
+        '-metadata:s:v',
+        'comment=Cover (front)',
+      );
     }
     return args;
   }
@@ -156,160 +341,4 @@ const createOutputBlob = (data: Awaited<ReturnType<FFmpeg['readFile']>>, mimeTyp
 /** 安全清理 FFmpeg 虚拟文件系统中的临时文件。 */
 const cleanupFiles = async (ffmpeg: FFmpeg, fileNames: string[]) => {
   await Promise.allSettled(fileNames.map((fileName) => ffmpeg.deleteFile(fileName)));
-};
-
-/**
- * 使用 ffmpeg-wasm 为音频 Blob 写入元信息 / 封面，并可选转为 mp3 | m4a | flac
- *
- * @example
- * const { embedMetadata } = useEmbedAudioMetadata();
- * const output = await embedMetadata({
- *   audio: musicBlob,
- *   audioName: 'song.m4a',
- *   cover: coverFile,
- *   coverName: 'cover.jpg',
- *   outputFormat: 'flac',
- *   metadata: { title: '歌名', artist: '歌手', album: '专辑' },
- * });
- */
-export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}) => {
-  const callbacksRef = useRef(options);
-  const ffmpegRef = useRef(new FFmpeg());
-  const loadPromiseRef = useRef<Promise<any>>(null);
-  const [status, setStatus] = useState<FFmpegStatus>('idle');
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    callbacksRef.current = options;
-  }, [options]);
-
-  useEffect(() => {
-    const ffmpeg = ffmpegRef.current;
-    const handleLog: LogEventCallback = ({ message, type }) =>
-      callbacksRef.current.onLog?.(message, type);
-    const handleProgress: ProgressEventCallback = ({ progress: ratio }) => {
-      const nextProgress = Math.round(Math.min(1, Math.max(0, ratio)) * 100);
-      setProgress(nextProgress);
-      callbacksRef.current.onProgress?.(nextProgress);
-    };
-
-    ffmpeg.on('log', handleLog);
-    ffmpeg.on('progress', handleProgress);
-
-    return () => {
-      ffmpeg.off('log', handleLog);
-      ffmpeg.off('progress', handleProgress);
-    };
-  }, []);
-
-  const loadFfmpeg = useCallback(async () => {
-    const ffmpeg = ffmpegRef.current;
-    if (ffmpeg.loaded) {
-      setStatus('ready');
-      return ffmpeg;
-    }
-
-    if (loadPromiseRef.current) return loadPromiseRef.current;
-
-    setError(null);
-    setStatus('loading');
-    loadPromiseRef.current = ffmpeg.load({
-      coreURL: await toBlobURL(`${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`, 'application/wasm'),
-    });
-    await loadPromiseRef.current;
-    setStatus('ready');
-    callbacksRef.current.onLoaded?.();
-    return ffmpeg;
-  }, []);
-
-  const embedMetadata = useCallback(
-    async ({
-      audio,
-      audioName,
-      cover,
-      coverName,
-      metadata,
-      outputFormat = 'mp3',
-    }: EmbedAudioMetadataOptions) => {
-      setProgress(0);
-
-      const inputExt = audioName.split('.').pop()?.toLowerCase();
-      const rawCoverExt = coverName?.split('.').pop()?.toLowerCase()?.replace(/\?.*$/, '') || null;
-      if (!inputExt) {
-        throw new Error('音频文件名无效');
-      }
-      // 仅当 cover Blob 真实存在时才映射封面；避免只有 coverName 导致找不到 cover.jpg
-      const coverExt = cover ? rawCoverExt : null;
-      if (cover && !coverExt) {
-        throw new Error('专辑封面文件名无效');
-      }
-      const { args, inputName, outputName, mimeType } = buildFfmpegArgs(
-        inputExt,
-        coverExt,
-        metadata,
-        outputFormat,
-      );
-      const temporaryFiles = [inputName, outputName];
-      if (coverExt) temporaryFiles.push(`cover.${coverExt}`);
-
-      try {
-        await loadFfmpeg();
-        const ffmpeg = ffmpegRef.current;
-        setStatus('processing');
-        await ffmpeg.writeFile(inputName, await fetchFile(audio));
-
-        if (cover && coverExt) {
-          await ffmpeg.writeFile(`cover.${coverExt}`, await fetchFile(cover));
-        }
-
-        const exitCode = await ffmpeg.exec(args);
-        if (exitCode !== 0) {
-          throw new Error(`ffmpeg 处理失败，退出码：${exitCode}`);
-        }
-
-        const outputData = await ffmpeg.readFile(outputName);
-        setProgress(100);
-        callbacksRef.current.onProgress?.(100);
-        const outputBlob = createOutputBlob(outputData, mimeType);
-        setStatus('ready');
-        return outputBlob;
-      } catch (cause) {
-        console.log('cause', cause);
-        const processingError = cause instanceof Error ? cause : new Error('音频元信息写入失败');
-        setError(processingError);
-        setStatus('error');
-        throw processingError;
-      } finally {
-        await cleanupFiles(ffmpegRef.current, temporaryFiles);
-      }
-    },
-    [loadFfmpeg],
-  );
-
-  const coreLoading = status === 'loading';
-  const processing = status === 'processing';
-  const loaded = status === 'ready' || processing;
-
-  return {
-    coreLoading,
-    processing,
-    loading: coreLoading || processing,
-    loaded,
-    loadStage:
-      error?.message ||
-      {
-        idle: '未加载',
-        loading: '正在下载并初始化 FFmpeg Core...',
-        ready: '已就绪',
-        processing: '正在写入音频元信息...',
-        error: '加载失败',
-      }[status],
-    status,
-    error,
-    progress,
-    loadFfmpeg,
-    embedMetadata,
-  };
 };

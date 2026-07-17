@@ -12,6 +12,7 @@ import {
 import classNames from 'classnames';
 import { downloadSongAudio, downloadSongLyric } from '../../downloadSong';
 import { formatSize, qualityLabel } from '../../utils';
+import EngineStatus from '../EngineStatus';
 import SongPlayer from '../SongPlayer';
 import styles from './index.module.less';
 
@@ -282,6 +283,7 @@ interface SongResultProps {
 const SongResult: React.FC<SongResultProps> = ({ data }) => {
   return (
     <div className={styles['result']} aria-live='polite'>
+      <EngineStatus />
       <SongCard data={data} />
       <SongInfoGrid data={data} />
     </div>
