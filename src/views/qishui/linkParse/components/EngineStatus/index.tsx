@@ -6,8 +6,8 @@ import styles from './index.module.less';
  * 音频处理引擎（ffmpeg-wasm）加载状态提示
  *
  * @description
- * 内部复用 useEmbedAudioMetadata。由于加载 promise 是模块级唯一的，
- * 多处使用会共享同一次加载，状态保持同步。
+ * 内部复用 useEmbedAudioMetadata。FFmpeg 实例与加载 promise 均为模块级单例，
+ * 多处使用会共享同一次加载与同一引擎状态。
  */
 const EngineStatus: React.FC = () => {
   const { status, loadStage, error, loadFfmpeg } = useEmbedAudioMetadata();

@@ -2,7 +2,36 @@ import { FFmpeg, type LogEventCallback, type ProgressEventCallback } from '@ffmp
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 const FFMPEG_CORE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
-let loadPromiseRef: Promise<any> | null = null;
+
+/** 模块级单例：多处 useEmbedAudioMetadata 必须共享同一 FFmpeg 实例与加载 promise */
+let sharedFfmpeg: FFmpeg | null = null;
+let loadPromise: Promise<FFmpeg> | null = null;
+let sharedStatus: FFmpegStatus = 'idle';
+let sharedError: Error | null = null;
+let sharedProgress = 0;
+
+type SharedListener = () => void;
+const sharedListeners = new Set<SharedListener>();
+
+const getSharedFfmpeg = () => {
+  if (!sharedFfmpeg) sharedFfmpeg = new FFmpeg();
+  return sharedFfmpeg;
+};
+
+const notifySharedListeners = () => {
+  sharedListeners.forEach((listener) => listener());
+};
+
+const setSharedStatus = (status: FFmpegStatus, error: Error | null = null) => {
+  sharedStatus = status;
+  sharedError = error;
+  notifySharedListeners();
+};
+
+const setSharedProgress = (progress: number) => {
+  sharedProgress = progress;
+  notifySharedListeners();
+};
 
 /**
  * 使用 ffmpeg-wasm 为音频 Blob 写入元信息 / 封面，并可选转为 mp3 | m4a | flac
@@ -20,22 +49,35 @@ let loadPromiseRef: Promise<any> | null = null;
  */
 export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}) => {
   const callbacksRef = useRef(options);
-  const ffmpegRef = useRef(new FFmpeg());
-  const [status, setStatus] = useState<FFmpegStatus>('idle');
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<Error | null>(null);
+  const [status, setStatus] = useState<FFmpegStatus>(sharedStatus);
+  const [progress, setProgress] = useState(sharedProgress);
+  const [error, setError] = useState<Error | null>(sharedError);
 
   useEffect(() => {
     callbacksRef.current = options;
   }, [options]);
 
+  // 订阅模块级状态，保证 EngineStatus / 下载侧状态一致
   useEffect(() => {
-    const ffmpeg = ffmpegRef.current;
+    const sync = () => {
+      setStatus(sharedStatus);
+      setProgress(sharedProgress);
+      setError(sharedError);
+    };
+    sync();
+    sharedListeners.add(sync);
+    return () => {
+      sharedListeners.delete(sync);
+    };
+  }, []);
+
+  useEffect(() => {
+    const ffmpeg = getSharedFfmpeg();
     const handleLog: LogEventCallback = ({ message, type }) =>
       callbacksRef.current.onLog?.(message, type);
     const handleProgress: ProgressEventCallback = ({ progress: ratio }) => {
       const nextProgress = Math.round(Math.min(1, Math.max(0, ratio)) * 100);
-      setProgress(nextProgress);
+      setSharedProgress(nextProgress);
       callbacksRef.current.onProgress?.(nextProgress);
     };
 
@@ -49,46 +91,47 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
   }, []);
 
   const loadFfmpeg = useCallback(async () => {
-    const ffmpeg = ffmpegRef.current;
+    const ffmpeg = getSharedFfmpeg();
     if (ffmpeg.loaded) {
-      setStatus('ready');
+      setSharedStatus('ready');
       return ffmpeg;
     }
 
-    console.log('loadPromiseRef', loadPromiseRef);
     // 已有进行中的加载则直接复用，避免并发重复 load
-    if (loadPromiseRef) {
-      await loadPromiseRef;
-    } else {
-      setError(null);
-      setStatus('loading');
+    if (!loadPromise) {
+      setSharedStatus('loading');
       // 同步赋值：把整段异步流程包进 IIFE，先占位再 await，
-      // 否则 await toBlobURL 期间 loadPromiseRef 仍为 null，并发调用会各自重新加载
-      loadPromiseRef = (async () => {
+      // 否则 await toBlobURL 期间 loadPromise 仍为 null，并发调用会各自重新加载
+      loadPromise = (async () => {
         const [coreURL, wasmURL] = await Promise.all([
           toBlobURL(`${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`, 'text/javascript'),
           toBlobURL(`${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`, 'application/wasm'),
         ]);
         await ffmpeg.load({ coreURL, wasmURL });
+        return ffmpeg;
       })();
     }
 
     try {
-      await loadPromiseRef;
+      await loadPromise;
     } catch (loadError) {
       // 加载失败清空缓存，允许后续重试
-      loadPromiseRef = null;
-      throw loadError;
+      loadPromise = null;
+      const nextError = loadError instanceof Error ? loadError : new Error('FFmpeg 加载失败');
+      setSharedStatus('error', nextError);
+      throw nextError;
     }
 
-    setStatus('ready');
+    setSharedStatus('ready');
     callbacksRef.current.onLoaded?.();
     return ffmpeg;
   }, []);
 
   useEffect(() => {
-    loadFfmpeg();
-  }, []);
+    loadFfmpeg().catch(() => {
+      /* 错误已写入 sharedError，由 UI 展示 */
+    });
+  }, [loadFfmpeg]);
 
   const embedMetadata = useCallback(
     async ({
@@ -99,7 +142,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
       metadata,
       outputFormat = 'mp3',
     }: EmbedAudioMetadataOptions) => {
-      setProgress(0);
+      setSharedProgress(0);
 
       const inputExt = audioName.split('.').pop()?.toLowerCase();
       const rawCoverExt = coverName?.split('.').pop()?.toLowerCase()?.replace(/\?.*$/, '') || null;
@@ -121,10 +164,10 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
       const temporaryFiles = [inputName, outputName];
       if (coverExt) temporaryFiles.push(`cover.${coverExt}`);
 
+      const ffmpeg = getSharedFfmpeg();
       try {
         await loadFfmpeg();
-        const ffmpeg = ffmpegRef.current;
-        setStatus('processing');
+        setSharedStatus('processing');
         await ffmpeg.writeFile(inputName, await fetchFile(audio));
 
         if (cover && coverExt) {
@@ -137,19 +180,18 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
         }
 
         const outputData = await ffmpeg.readFile(outputName);
-        setProgress(100);
+        setSharedProgress(100);
         callbacksRef.current.onProgress?.(100);
         const outputBlob = createOutputBlob(outputData, mimeType);
-        setStatus('ready');
+        setSharedStatus('ready');
         return outputBlob;
       } catch (cause) {
         console.log('cause', cause);
         const processingError = cause instanceof Error ? cause : new Error('音频元信息写入失败');
-        setError(processingError);
-        setStatus('error');
+        setSharedStatus('error', processingError);
         throw processingError;
       } finally {
-        await cleanupFiles(ffmpegRef.current, temporaryFiles);
+        await cleanupFiles(ffmpeg, temporaryFiles);
       }
     },
     [loadFfmpeg],
@@ -221,7 +263,6 @@ export interface UseEmbedAudioMetadataOptions {
   /** ffmpeg 日志输出，便于调试加载失败原因 */
   onLog?: (message: string, type: string) => void;
 }
-
 const OUTPUT_MIME: Record<EmbedOutputFormat, string> = {
   mp3: 'audio/mpeg',
   m4a: 'audio/mp4',
