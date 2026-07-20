@@ -8,7 +8,7 @@ import { usePlaylistParseStore } from '../../store';
 import { isTrackParsed, mockParseDelay, pickDownloadUrl } from '../../utils';
 import EngineStatus from '../EngineStatus';
 import PlaylistHero from './components/PlaylistHero';
-import TrackList, { type BatchAction } from './components/TrackList';
+import TrackList from './components/TrackList';
 import styles from './index.module.less';
 
 interface PlaylistResultProps {
@@ -19,30 +19,34 @@ interface PlaylistResultProps {
  * 歌单解析结果
  */
 const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
+  /** 更新歌曲完整信息 */
   const patchPlaylistTrackFullInfo = usePlaylistParseStore(
     (state) => state.patchPlaylistTrackFullInfo,
   );
+  /** 设置歌曲下载状态 */
   const setTrackDownloadStatus = usePlaylistParseStore((state) => state.setTrackDownloadStatus);
+  /** 清除歌曲下载状态 */
   const clearPlaylistDownloadStatus = usePlaylistParseStore(
     (state) => state.clearPlaylistDownloadStatus,
   );
+  /** 内嵌音频元数据 */
   const { embedMetadata } = useEmbedAudioMetadata();
 
   const [filter, setFilter] = useState('');
-  const [batchAction, setBatchAction] = useState<BatchAction>(null);
   const [batchProgress, setBatchProgress] = useState({ success: 0, failed: 0 });
   const [parsingIds, setParsingIds] = useState<Set<string>>(() => new Set());
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(() => new Set());
 
   const tracks = data.tracks || [];
 
+  /** 更新批量操作进度 */
   const bumpBatchProgress = (ok: boolean) => {
     setBatchProgress((prev) => ({
       success: prev.success + (ok ? 1 : 0),
       failed: prev.failed + (ok ? 0 : 1),
     }));
   };
-
+  /** 标记解析中 */
   const markParsing = (trackId: string, active: boolean) => {
     setParsingIds((prev) => {
       const next = new Set(prev);
@@ -51,7 +55,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
       return next;
     });
   };
-
+  /** 标记下载中 */
   const markDownloading = (trackId: string, active: boolean) => {
     setDownloadingIds((prev) => {
       const next = new Set(prev);
@@ -61,7 +65,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     });
   };
 
-  /** 解析单首；返回是否成功。force=true 时即使已解析也会重新请求 */
+  /** 解析单首；返回是否成功 silent=true 时只显示错误信息，不弹窗。force=true 时即使已解析也会重新请求 */
   const parseTrack = useCallback(
     async (track: PlaylistMusicInfo, silent = false, force = false) => {
       if (!track.id) {
@@ -136,24 +140,17 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     [parseTrack],
   );
 
-  const handleParse = async (track: PlaylistMusicInfo) => {
-    const ok = await parseTrack(track);
-    if (ok) msgSuccess('解析成功');
-  };
-
-  const handleParseAll = async () => {
-    if (batchAction) return;
+  const handleParseAll = async (targetTracks: PlaylistMusicInfo[]) => {
     setBatchProgress({ success: 0, failed: 0 });
-    setBatchAction('parse');
     try {
-      const { success, failed, total } = await parseAllTracks(tracks);
+      const { success, failed, total } = await parseAllTracks(targetTracks);
       if (total === 0) {
         msgError('没有可解析的曲目');
         return;
       }
       msgSuccess(`解析完成：成功 ${success}，失败 ${failed}`);
-    } finally {
-      setBatchAction(null);
+    } catch (error) {
+      console.log('error', error);
     }
   };
 
@@ -184,6 +181,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
       const urlItem = pickDownloadUrl(fullInfo.urls);
       if (!urlItem?.url) {
         msgError('没有可下载的音质地址');
+        debugger;
         return;
       }
 
@@ -254,95 +252,54 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     return { success, failed };
   };
 
-  const handleDownloadAll = async () => {
-    if (batchAction) return;
+  const handleDownloadAll = async (targetTracks: PlaylistMusicInfo[]) => {
     setBatchProgress({ success: 0, failed: 0 });
-    setBatchAction('download');
+
     clearPlaylistDownloadStatus();
     try {
-      await ensureTracksParsed(tracks);
-      const latestTracks = usePlaylistParseStore.getState().playlistHasResult?.tracks || tracks;
-      const { success, failed } = await downloadTrackList(latestTracks);
+      await ensureTracksParsed(targetTracks);
+      const { success, failed } = await downloadTrackList(targetTracks);
       msgSuccess(`下载完成：成功 ${success}，失败 ${failed}`);
-    } finally {
-      setBatchAction(null);
+    } catch (error) {
+      console.log('error', error);
     }
   };
 
-  const handleRetryFailedDownloads = async () => {
-    if (batchAction) return;
-    const retryTracks = tracks.filter((track) => track.downloadStatus === 'error');
+  const handleRetryFailedDownloads = async (retryTracks: PlaylistMusicInfo[]) => {
     if (retryTracks.length === 0) return;
-
     setBatchProgress({ success: 0, failed: 0 });
-    setBatchAction('retry');
     try {
-      await ensureTracksParsed(tracks);
-      const latestTracks = usePlaylistParseStore.getState().playlistHasResult?.tracks || tracks;
+      await ensureTracksParsed(retryTracks);
       const failedIds = new Set(retryTracks.map((track) => track.id).filter(Boolean));
-      const targets = latestTracks.filter((track) => track.id && failedIds.has(track.id));
+      const targets = retryTracks.filter((track) => track.id && failedIds.has(track.id));
       const { success, failed } = await downloadTrackList(targets);
       msgSuccess(`重试完成：成功 ${success}，失败 ${failed}`);
-    } finally {
-      setBatchAction(null);
+    } catch (error) {
+      console.log('error', error);
     }
   };
 
   const handleDownloadAllLyrics = async (mode: 'lrc' | 'txt') => {
-    if (batchAction) return;
-    setBatchAction(mode);
-    try {
-      await ensureTracksParsed(tracks);
-      const latestTracks = usePlaylistParseStore.getState().playlistHasResult?.tracks || tracks;
-      let success = 0;
-      let failed = 0;
-
-      for (const track of latestTracks) {
-        if (!isTrackParsed(track) || !track.fullInfo) {
-          failed += 1;
-          continue;
-        }
-        try {
-          downloadSongLyric(track.fullInfo, mode);
-          success += 1;
-        } catch {
-          failed += 1;
-        }
-      }
-
-      msgSuccess(`${mode === 'lrc' ? 'lrc' : 'txt'} 下载完成：成功 ${success}，失败 ${failed}`);
-    } finally {
-      setBatchAction(null);
-    }
-  };
-
-  const { downloadSuccessCount, downloadFailCount } = useMemo(() => {
+    await ensureTracksParsed(tracks);
+    const latestTracks = usePlaylistParseStore.getState().playlistHasResult?.tracks || tracks;
     let success = 0;
     let failed = 0;
-    for (const track of tracks) {
-      if (track.downloadStatus === 'success') success += 1;
-      else if (track.downloadStatus === 'error') failed += 1;
-    }
-    return { downloadSuccessCount: success, downloadFailCount: failed };
-  }, [tracks]);
 
-  const isParseBatch = batchAction === 'parse';
-  const isDownloadBatch = batchAction === 'download' || batchAction === 'retry';
-  const statKind: 'parse' | 'download' | null = isParseBatch
-    ? 'parse'
-    : isDownloadBatch || downloadSuccessCount > 0 || downloadFailCount > 0
-      ? 'download'
-      : null;
-  const statSuccessCount = isParseBatch
-    ? batchProgress.success
-    : isDownloadBatch
-      ? batchProgress.success
-      : downloadSuccessCount;
-  const statFailCount = isParseBatch
-    ? batchProgress.failed
-    : isDownloadBatch
-      ? batchProgress.failed
-      : downloadFailCount;
+    for (const track of latestTracks) {
+      if (!isTrackParsed(track) || !track.fullInfo) {
+        failed += 1;
+        continue;
+      }
+      try {
+        downloadSongLyric(track.fullInfo, mode);
+        success += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    msgSuccess(`${mode === 'lrc' ? 'lrc' : 'txt'} 下载完成：成功 ${success}，失败 ${failed}`);
+  };
 
   return (
     <div className={styles['result']} aria-live='polite'>
@@ -350,22 +307,15 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
       <PlaylistHero data={data} />
       <TrackList
         tracks={tracks}
-        filter={filter}
         parsingIds={parsingIds}
         downloadingIds={downloadingIds}
-        batchAction={batchAction}
-        failCount={downloadFailCount}
         liveSuccessCount={batchProgress.success}
         liveFailCount={batchProgress.failed}
-        statKind={statKind}
-        statSuccessCount={statSuccessCount}
-        statFailCount={statFailCount}
         onParseAll={handleParseAll}
         onDownloadAll={handleDownloadAll}
         onRetryFailedDownloads={handleRetryFailedDownloads}
         onDownloadAllLyrics={handleDownloadAllLyrics}
-        onFilterChange={setFilter}
-        onParse={handleParse}
+        onParse={parseTrack}
         onDownload={handleDownload}
         onDownloadLyric={handleDownloadLyric}
       />

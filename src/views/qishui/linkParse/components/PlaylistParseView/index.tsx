@@ -94,6 +94,7 @@ const PlaylistParseView: React.FC = () => {
         </p>
       </header>
 
+      {/* 链接输入表单 */}
       <DocSectionTitle title='输入链接' id='playlist-input' first>
         <ParseFormPanel
           hint='请使用歌单分享链接；歌曲链接请切换到「歌曲解析」栏目。'
@@ -110,6 +111,7 @@ const PlaylistParseView: React.FC = () => {
         />
       </DocSectionTitle>
 
+      {/* 解析结果 */}
       <DocSectionTitle title='解析结果' id='playlist-result'>
         {!playlistHasResult && !error ? (
           <ParseEmptyState icon={<UnorderedListOutlined />}>歌单列表将显示在这里</ParseEmptyState>
