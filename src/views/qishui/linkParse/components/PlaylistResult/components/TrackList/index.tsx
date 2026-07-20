@@ -17,25 +17,17 @@ export type BatchAction = 'parse' | 'download' | 'retry' | 'lrc' | 'txt' | null;
 
 interface TrackListProps {
   tracks: PlaylistMusicInfo[];
-  filter: string;
   parsingIds: Set<string>;
   downloadingIds: Set<string>;
-  batchAction: BatchAction;
-  failCount: number;
   /** 进行中实时成功数（解析 / 下载） */
   liveSuccessCount: number;
   /** 进行中实时失败数（解析 / 下载） */
   liveFailCount: number;
-  /** 统计类型：解析中 / 下载中或已有下载结果 */
-  statKind: 'parse' | 'download' | null;
-  statSuccessCount: number;
-  statFailCount: number;
-  onParseAll: () => void;
-  onDownloadAll: () => void;
-  onRetryFailedDownloads: () => void;
-  onDownloadAllLyrics: (mode: 'lrc' | 'txt') => void;
-  onFilterChange: (value: string) => void;
-  onParse: (track: PlaylistMusicInfo) => void;
+  onParseAll: (tracks: PlaylistMusicInfo[]) => Promise<void>;
+  onDownloadAll: (tracks: PlaylistMusicInfo[]) => Promise<void>;
+  onRetryFailedDownloads: (tracks: PlaylistMusicInfo[]) => Promise<void>;
+  onDownloadAllLyrics: (mode: 'lrc' | 'txt') => Promise<void>;
+  onParse: (track: PlaylistMusicInfo, silent?: boolean, force?: boolean) => void;
   onDownload: (track: PlaylistMusicInfo) => void;
   onDownloadLyric: (track: PlaylistMusicInfo, mode: 'lrc' | 'txt') => void;
 }
@@ -43,25 +35,20 @@ interface TrackListProps {
 /** 歌单曲目列表 */
 const TrackList: React.FC<TrackListProps> = ({
   tracks,
-  filter,
   parsingIds,
   downloadingIds,
-  batchAction,
-  failCount,
   liveSuccessCount,
   liveFailCount,
-  statKind,
-  statSuccessCount,
-  statFailCount,
   onParseAll,
   onDownloadAll,
   onRetryFailedDownloads,
   onDownloadAllLyrics,
-  onFilterChange,
   onParse,
   onDownload,
   onDownloadLyric,
 }) => {
+  // 过滤
+  const [filter, setFilter] = useState('');
   const filteredTracks = useMemo(() => {
     const keyword = filter.trim().toLowerCase();
     if (!keyword) return tracks;
@@ -72,6 +59,82 @@ const TrackList: React.FC<TrackListProps> = ({
     );
   }, [tracks, filter]);
 
+  /** 选中的歌曲 */
+  const [selectedTracks, setSelectedTracks] = useState<PlaylistMusicInfo[]>([]);
+  /** 添加选中的歌曲 */
+  const addSelectedTrack = (track: PlaylistMusicInfo) => {
+    setSelectedTracks((prev) => [...prev, track]);
+  };
+  /** 删除选中的歌曲 */
+  const removeSelectedTrack = (track: PlaylistMusicInfo) => {
+    setSelectedTracks((prev) => prev.filter((t) => t.id !== track.id));
+  };
+
+  const [batchAction, setBatchAction] = useState<BatchAction>(null);
+  const { downloadSuccessCount, downloadFailCount } = useMemo(() => {
+    let success = 0;
+    let failed = 0;
+    for (const track of tracks) {
+      if (track.downloadStatus === 'success') success += 1;
+      else if (track.downloadStatus === 'error') failed += 1;
+    }
+    return { downloadSuccessCount: success, downloadFailCount: failed };
+  }, [tracks]);
+
+  /** 全部解析 */
+  const handleParseAll = async () => {
+    if (batchAction) return;
+    setBatchAction('parse');
+    try {
+      await onParseAll(filteredTracks);
+    } finally {
+      setBatchAction(null);
+    }
+  };
+  /** 全部下载 */
+  const handleDownloadAll = async () => {
+    if (batchAction) return;
+    setBatchAction('download');
+    try {
+      await onDownloadAll(filteredTracks);
+    } finally {
+      setBatchAction(null);
+    }
+  };
+  /** 重试下载失败歌曲 */
+  const handleRetryFailedDownloads = async () => {
+    if (batchAction) return;
+    setBatchAction('retry');
+    try {
+      await onRetryFailedDownloads(
+        filteredTracks?.filter((track) => track.downloadStatus === 'error') || [],
+      );
+    } finally {
+      setBatchAction(null);
+    }
+  };
+  /** 下载全部歌词 */
+  const handleDownloadAllLyrics = async (mode: 'lrc' | 'txt') => {
+    if (batchAction) return;
+    setBatchAction(mode);
+    try {
+      await onDownloadAllLyrics(mode);
+    } finally {
+      setBatchAction(null);
+    }
+  };
+
+  // 状态
+  const isParseBatch = batchAction === 'parse';
+  const isDownloadBatch = batchAction === 'download' || batchAction === 'retry';
+  const statKind: 'parse' | 'download' | null = isParseBatch
+    ? 'parse'
+    : isDownloadBatch || downloadSuccessCount > 0 || downloadFailCount > 0
+      ? 'download'
+      : null;
+  const statSuccessCount =
+    isParseBatch || isDownloadBatch ? liveSuccessCount : downloadSuccessCount;
+  const statFailCount = isParseBatch || isDownloadBatch ? liveFailCount : downloadFailCount;
   const showStats = Boolean(statKind) || statSuccessCount > 0 || statFailCount > 0;
   const successLabel = statKind === 'parse' ? '解析成功' : '下载成功';
   const failLabel = statKind === 'parse' ? '解析失败' : '下载失败';
@@ -86,8 +149,7 @@ const TrackList: React.FC<TrackListProps> = ({
           className={classNames(sharedStyles['btn'], sharedStyles['btnPrimary'])}
           type='button'
           disabled={tracks.length === 0 || batchBusy}
-          onClick={onParseAll}
-        >
+          onClick={handleParseAll}>
           {batchAction === 'parse' ? <LoadingOutlined /> : <ThunderboltOutlined />}
           全部解析
           {showParseLive ? (
@@ -105,8 +167,7 @@ const TrackList: React.FC<TrackListProps> = ({
           className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
           type='button'
           disabled={tracks.length === 0 || batchBusy}
-          onClick={onDownloadAll}
-        >
+          onClick={handleDownloadAll}>
           {batchAction === 'download' ? <LoadingOutlined /> : <CloudDownloadOutlined />}
           全部下载
           {showDownloadLive ? (
@@ -122,7 +183,7 @@ const TrackList: React.FC<TrackListProps> = ({
             <span className={styles['btnCount']}>{tracks.length}</span>
           )}
         </button>
-        {failCount > 0 ? (
+        {downloadFailCount > 0 ? (
           <button
             className={classNames(
               sharedStyles['btn'],
@@ -131,12 +192,11 @@ const TrackList: React.FC<TrackListProps> = ({
             )}
             type='button'
             disabled={batchBusy}
-            onClick={onRetryFailedDownloads}
-          >
+            onClick={handleRetryFailedDownloads}>
             {batchAction === 'retry' ? <LoadingOutlined /> : <CloudDownloadOutlined />}
             重试下载失败歌曲
             <span className={classNames(styles['btnCount'], styles['btnCountFail'])}>
-              {batchAction === 'retry' ? liveFailCount : failCount}
+              {batchAction === 'retry' ? liveFailCount : downloadFailCount}
             </span>
           </button>
         ) : null}
@@ -144,8 +204,7 @@ const TrackList: React.FC<TrackListProps> = ({
           className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
           type='button'
           disabled={tracks.length === 0 || batchBusy}
-          onClick={() => onDownloadAllLyrics('lrc')}
-        >
+          onClick={() => handleDownloadAllLyrics('lrc')}>
           {batchAction === 'lrc' ? <LoadingOutlined /> : <FileTextOutlined />}
           下载全部 lrc 歌词
         </button>
@@ -153,8 +212,7 @@ const TrackList: React.FC<TrackListProps> = ({
           className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
           type='button'
           disabled={tracks.length === 0 || batchBusy}
-          onClick={() => onDownloadAllLyrics('txt')}
-        >
+          onClick={() => handleDownloadAllLyrics('txt')}>
           {batchAction === 'txt' ? <LoadingOutlined /> : <FileTextOutlined />}
           下载全部 txt 歌词
         </button>
@@ -183,7 +241,7 @@ const TrackList: React.FC<TrackListProps> = ({
             placeholder='筛选歌曲 / 艺人…'
             aria-label='筛选歌单曲目'
             value={filter}
-            onChange={(event) => onFilterChange(event.target.value)}
+            onChange={(event) => setFilter(event.target.value)}
           />
         </div>
       </div>
@@ -201,8 +259,7 @@ const TrackList: React.FC<TrackListProps> = ({
               className={classNames(styles['item'], {
                 [styles['itemParsed']]: parsed,
                 [styles['itemBusy']]: parsing || downloading,
-              })}
-            >
+              })}>
               <span className={styles['index']}>{String(index + 1).padStart(2, '0')}</span>
               <img className={styles['itemCover']} src={track.cover} alt='' />
               <div className={styles['info']}>
@@ -245,8 +302,7 @@ const TrackList: React.FC<TrackListProps> = ({
                     type='button'
                     disabled={!track.id || parsing}
                     aria-label={`解析歌曲 ${track.title}`}
-                    onClick={() => onParse(track)}
-                  >
+                    onClick={() => onParse(track)}>
                     {parsing ? <LoadingOutlined /> : <ThunderboltOutlined />}
                     解析
                   </button>
@@ -259,10 +315,22 @@ const TrackList: React.FC<TrackListProps> = ({
                         sharedStyles['btnSm'],
                       )}
                       type='button'
+                      disabled={!track.id || parsing}
+                      aria-label={`解析歌曲 ${track.title}`}
+                      onClick={() => onParse(track, true, true)}>
+                      {parsing ? <LoadingOutlined /> : <ThunderboltOutlined />}
+                      重新解析
+                    </button>
+                    <button
+                      className={classNames(
+                        sharedStyles['btn'],
+                        sharedStyles['btnGhost'],
+                        sharedStyles['btnSm'],
+                      )}
+                      type='button'
                       disabled={downloading}
                       aria-label={`下载歌曲 ${track.title}`}
-                      onClick={() => onDownload(track)}
-                    >
+                      onClick={() => onDownload(track)}>
                       {downloading ? <LoadingOutlined /> : <CloudDownloadOutlined />}
                       下载
                     </button>
@@ -275,8 +343,7 @@ const TrackList: React.FC<TrackListProps> = ({
                       type='button'
                       disabled={downloading}
                       aria-label={`下载歌词 lrc ${track.title}`}
-                      onClick={() => onDownloadLyric(track, 'lrc')}
-                    >
+                      onClick={() => onDownloadLyric(track, 'lrc')}>
                       <FileTextOutlined />
                       lrc
                     </button>
@@ -289,8 +356,7 @@ const TrackList: React.FC<TrackListProps> = ({
                       type='button'
                       disabled={downloading}
                       aria-label={`下载歌词 txt ${track.title}`}
-                      onClick={() => onDownloadLyric(track, 'txt')}
-                    >
+                      onClick={() => onDownloadLyric(track, 'txt')}>
                       <FileTextOutlined />
                       txt
                     </button>
