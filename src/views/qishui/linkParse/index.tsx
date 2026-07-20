@@ -3,10 +3,13 @@ import {
   AppstoreOutlined,
   CustomerServiceOutlined,
   ExportOutlined,
+  KeyOutlined,
   MenuOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames';
+import { useCallback, useEffect, useState } from 'react';
+import CardSecretModal, { maskCardSecret } from './components/CardSecretModal';
 import LinkParseSidebar from './components/LinkParseSidebar';
 import PageAside from './components/PageAside';
 import PlaylistParseView from './components/PlaylistParseView';
@@ -19,9 +22,23 @@ const defaultSearchParams: SearchParams = {
   currentView: 'song',
   sidebarOpen: false,
 };
+
 const LinkParse: React.FC = () => {
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
   const tocSections = useParseStore((state) => state.tocSections);
+  const cardSecret = searchParams.cardSecret?.trim() || '';
+  const hasCardSecret = Boolean(cardSecret);
+
+  const [cardSecretOpen, setCardSecretOpen] = useState(false);
+  /** 无卡密时首次强制提醒，不允许关闭 */
+  const [forceBind, setForceBind] = useState(false);
+
+  useEffect(() => {
+    if (!hasCardSecret) {
+      setForceBind(true);
+      setCardSecretOpen(true);
+    }
+  }, [hasCardSecret]);
 
   const handleGuideClick = useCallback(() => {
     if (searchParams.currentView !== 'song') {
@@ -33,6 +50,22 @@ const LinkParse: React.FC = () => {
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 0);
   }, [searchParams.currentView]);
+
+  const handleOpenCardSecret = () => {
+    setForceBind(!hasCardSecret);
+    setCardSecretOpen(true);
+  };
+
+  const handleConfirmCardSecret = (next: string) => {
+    setSearchParams((prev) => ({ ...prev, cardSecret: next }));
+    setForceBind(false);
+    setCardSecretOpen(false);
+  };
+
+  const handleCancelCardSecret = () => {
+    if (forceBind) return;
+    setCardSecretOpen(false);
+  };
 
   return (
     <div className={styles['page']}>
@@ -46,6 +79,17 @@ const LinkParse: React.FC = () => {
               汽水解析<span>Docs</span>
             </span>
           </a>
+
+          <button
+            className={classNames(styles['cardSecretChip'], {
+              [styles['isBound']]: hasCardSecret,
+            })}
+            type='button'
+            aria-label={hasCardSecret ? '更换卡密' : '绑定卡密'}
+            onClick={handleOpenCardSecret}>
+            <KeyOutlined />
+            <span>{hasCardSecret ? maskCardSecret(cardSecret) : '未绑定卡密'}</span>
+          </button>
 
           <nav className={styles['navLinks']} aria-label='顶部导航'>
             <button
@@ -90,13 +134,6 @@ const LinkParse: React.FC = () => {
         </div>
       </header>
 
-{/*       <div
-        className={classNames(styles['overlay'], { [styles['isOpen']]: searchParams.sidebarOpen })}
-        hidden={!searchParams.sidebarOpen}
-        onClick={() => setSearchParams({ ...searchParams, sidebarOpen: false })}
-        aria-hidden={!searchParams.sidebarOpen}
-      /> */}
-
       <div className={styles['layout']}>
         <LinkParseSidebar onGuideClick={handleGuideClick} />
 
@@ -107,6 +144,14 @@ const LinkParse: React.FC = () => {
           <PageAside sections={tocSections} />
         </div>
       </div>
+
+      <CardSecretModal
+        open={cardSecretOpen}
+        value={cardSecret}
+        closable={!forceBind}
+        onCancel={handleCancelCardSecret}
+        onConfirm={handleConfirmCardSecret}
+      />
     </div>
   );
 };
@@ -116,4 +161,5 @@ export default LinkParse;
 export interface SearchParams {
   currentView: LinkParseView;
   sidebarOpen: boolean;
+  cardSecret?: string;
 }

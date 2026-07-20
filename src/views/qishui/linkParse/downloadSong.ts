@@ -1,3 +1,4 @@
+import { DEFAULT_CONFIG } from '@/hooks/useConfig';
 import type { EmbedAudioMetadataOptions, EmbedOutputFormat } from '@/hooks/useEmbedAudioMetadata';
 import type { MusicInfo, QishuiUrl } from '@/types/qishui';
 import { downloadBlob, getCoverBlob, getDownloadProgress } from '@/utils/download';
@@ -75,7 +76,8 @@ export const downloadSongAudio = async ({
   }
 
   let embedded = false;
-  const outputFormat: EmbedOutputFormat = 'm4a';
+  const outputFormat: EmbedOutputFormat =
+    window.config.downloadFormat || DEFAULT_CONFIG.downloadFormat;
   if (embedMetadata) {
     try {
       onProgress?.('embedding', 1);

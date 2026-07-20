@@ -1,13 +1,16 @@
 import { useSearchParams } from '@/hooks';
+import { useConfig } from '@/hooks/useConfig';
 import {
   CustomerServiceOutlined,
   ProfileOutlined,
   QuestionCircleOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
+import { Select } from 'antd';
 import classNames from 'classnames';
 import type { SearchParams } from '../..';
-import type { LinkParseView } from '../../constants';
+import type { DOWNLOAD_QUALITY_ORDER, LinkParseView } from '../../constants';
+import { DOWNLOAD_FORMAT_OPTIONS, DOWNLOAD_QUALITY_OPTIONS, type DownloadFormat } from '../../utils';
 import styles from './index.module.less';
 
 interface LinkParseSidebarProps {
@@ -19,6 +22,10 @@ interface LinkParseSidebarProps {
  */
 const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => {
   const { setSearchParams, searchParams } = useSearchParams<SearchParams>();
+  // 假数据：后续可接入全局设置 / 持久化
+  const { config, setConfig } = useConfig();
+  const { preferredQuality, downloadFormat } = config!;
+
   const handleViewClick = (view: LinkParseView) => {
     setSearchParams((prev) => ({ ...prev, currentView: view, sidebarOpen: false }));
   };
@@ -68,9 +75,39 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
         </button>
       </div>
 
-      <div className={styles['meta']}>
-        <strong>原型说明</strong>
-        <p>本页为静态交互原型。点击「解析」会演示结果展示；接入后端后可改为真实接口。</p>
+      <div className={styles['settings']}>
+        <strong className={styles['settingsTitle']}>下载设置</strong>
+
+        <label className={styles['field']} htmlFor='download-format'>
+          <span className={styles['fieldLabel']}>下载格式</span>
+          <Select
+            id='download-format'
+            className={styles['fieldSelect']}
+            value={downloadFormat}
+            options={[...DOWNLOAD_FORMAT_OPTIONS]}
+            onChange={(value) => setConfig({ ...config!, downloadFormat: value as DownloadFormat })}
+            popupMatchSelectWidth
+            aria-label='下载格式'
+          />
+        </label>
+
+        <label className={styles['field']} htmlFor='preferred-quality'>
+          <span className={styles['fieldLabel']}>首选下载音质</span>
+          <Select
+            id='preferred-quality'
+            className={styles['fieldSelect']}
+            value={preferredQuality}
+            options={DOWNLOAD_QUALITY_OPTIONS}
+            onChange={(value) =>
+              setConfig({
+                ...config!,
+                preferredQuality: value as (typeof DOWNLOAD_QUALITY_ORDER)[number],
+              })
+            }
+            popupMatchSelectWidth
+            aria-label='首选下载音质'
+          />
+        </label>
       </div>
     </aside>
   );

@@ -1,4 +1,5 @@
 import type { MusicInfo, PlaylistMusicInfo, QishuiUrl } from '@/types/qishui';
+import { msgSuccess } from '@/utils/modal';
 import { DOWNLOAD_QUALITY_ORDER } from './constants';
 
 /**
@@ -29,19 +30,33 @@ export const formatDuration = (sec = 0) => {
 };
 
 /** 音质标签文案 */
-export const qualityLabel = (quality: string) =>
-  (
-    {
-      spatial: '空间音频',
-      hi_res: 'Hi-Res',
-      highest: '极高',
-      higher: '较高',
-      medium: '标准',
-      lossless: '无损',
-      hq: 'HQ',
-      standard: '标准',
-    } as Record<string, string>
-  )[quality] || quality;
+export const QUALITY_LABEL_MAP: Record<string, string> = {
+  spatial: '空间音频',
+  hi_res: 'Hi-Res',
+  highest: '极高',
+  higher: '较高',
+  medium: '标准',
+  lossless: '无损',
+  hq: 'HQ',
+  standard: '标准',
+};
+
+export const qualityLabel = (quality: string) => QUALITY_LABEL_MAP[quality] || quality;
+
+/** 下载音质下拉选项（顺序与 DOWNLOAD_QUALITY_ORDER 一致） */
+export const DOWNLOAD_QUALITY_OPTIONS = DOWNLOAD_QUALITY_ORDER.map((value) => ({
+  value,
+  label: qualityLabel(value),
+}));
+
+/** 下载格式下拉选项 */
+export const DOWNLOAD_FORMAT_OPTIONS = [
+  { value: 'mp3', label: 'MP3' },
+  { value: 'm4a', label: 'M4A' },
+  { value: 'flac', label: 'FLAC' },
+] as const;
+
+export type DownloadFormat = (typeof DOWNLOAD_FORMAT_OPTIONS)[number]['value'];
 
 /** 歌单曲目是否已完成单曲解析 */
 export const isTrackParsed = (track: PlaylistMusicInfo | null | undefined) =>
@@ -50,16 +65,30 @@ export const isTrackParsed = (track: PlaylistMusicInfo | null | undefined) =>
 /**
  * 按下载音质阶梯选取地址；缺失则降一级，最终回退到任意可用 url
  */
-export const pickDownloadUrl = (urls: QishuiUrl[] = []): QishuiUrl | undefined => {
-  for (const quality of DOWNLOAD_QUALITY_ORDER) {
-    const matched = urls.find((item) => item.quality === quality && item.url);
-    if (matched) return matched;
+export const pickDownloadUrl = (
+  urls: QishuiUrl[] = [],
+  preferredQuality: (typeof DOWNLOAD_QUALITY_ORDER)[number] = window.config.preferredQuality,
+): QishuiUrl | undefined => {
+  const index = DOWNLOAD_QUALITY_ORDER.indexOf(preferredQuality);
+  for (let i = index; i < DOWNLOAD_QUALITY_ORDER.length; i++) {
+    const matched = urls.find((item) => item.quality === DOWNLOAD_QUALITY_ORDER[i] && item.url);
+    if (matched) {
+      if (i !== index) {
+        msgSuccess(
+          `默认选择${qualityLabel(DOWNLOAD_QUALITY_ORDER[i])}音质下载，该歌曲没有当前音质，降级为${qualityLabel(DOWNLOAD_QUALITY_ORDER[i])}音质`,
+        );
+      }
+      return matched;
+    }
   }
-  return urls.find((item) => item.url);
+  return undefined;
 };
 
 /** 从 fullInfo 取展示用标题 / 艺人 */
-export const getMusicDisplayMeta = (info: MusicInfo | null | undefined, fallback?: PlaylistMusicInfo) => ({
+export const getMusicDisplayMeta = (
+  info: MusicInfo | null | undefined,
+  fallback?: PlaylistMusicInfo,
+) => ({
   title: info?.title || fallback?.title || '未知歌曲',
   artist: info?.artist || fallback?.artist || '未知艺人',
 });
