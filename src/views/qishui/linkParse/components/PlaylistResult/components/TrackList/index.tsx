@@ -287,11 +287,11 @@ const TrackList: React.FC<TrackListProps> = ({
                 {formatDuration((track.duration || 0) / 1000)}
               </span>
               <div className={styles['itemActions']}>
-                {track.isPreviewOnly ? (
+                {/* {track.isPreviewOnly ? (
                   <span className={styles['previewTag']}>
                     试听 {(track.previewDuration || 30) / 1000}s
                   </span>
-                ) : null}
+                ) : null} */}
                 {!parsed ? (
                   <button
                     className={classNames(

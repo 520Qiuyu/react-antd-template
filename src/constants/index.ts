@@ -5,7 +5,6 @@ export const NOOP = () => {};
 export const Status: Record<string, UserStatus> = {
   NORMAL: 'normal',
   DISABLED: 'disabled',
-  DELETED: 'deleted',
 };
 export const STATUS_OPTIONS = [
   { label: '正常', value: Status.NORMAL },

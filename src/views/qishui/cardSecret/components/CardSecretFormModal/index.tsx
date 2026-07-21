@@ -1,9 +1,10 @@
+import { reqCreateCardSecret, reqUpdateCardSecret } from '@/apis/qishui/cardSecret';
 import { MyModal } from '@/components';
 import SubTitle from '@/components/SubTitle';
 import { useVisible } from '@/hooks';
 import type { Ref } from '@/hooks/useVisible';
 import type { CardSecretFormValues, CardSecretListItem, CardSecretType } from '@/types/cardSecret';
-import { msgSuccess } from '@/utils/modal';
+import { msgError, msgSuccess } from '@/utils/modal';
 import { DatePicker, Form, Input, InputNumber, Radio, Slider } from 'antd';
 import dayjs from 'dayjs';
 import { forwardRef } from 'react';
@@ -16,7 +17,7 @@ const CREATE_COUNT_MARKS = { 1: '1', 25: '25', 50: '50', 75: '75', 100: '100' };
 
 const normalizeOptionalText = (value?: string) => {
   const text = value?.trim();
-  return text ?? undefined;
+  return text || undefined;
 };
 
 function CardSecretFormModal(
@@ -34,16 +35,16 @@ function CardSecretFormModal(
       onOpen: (record?: CardSecretListItem) => {
         setEditingRecord(record ?? null);
         if (record) {
-          const { type, expireTime, unparsedCount, authInfo } = record;
+          const { type, expireTime, parseLimit, authInfo } = record;
           const { deviceId, cookie, xHelios, xMedusa } = authInfo ?? {};
           formRef.setFieldsValue({
-            type: type,
+            type,
             expireTime: expireTime ? dayjs(expireTime) : undefined,
-            parseLimit: unparsedCount || DEFAULT_PARSE_LIMIT,
-            deviceId: deviceId,
-            cookie: cookie,
-            xHelios: xHelios,
-            xMedusa: xMedusa,
+            parseLimit: parseLimit || DEFAULT_PARSE_LIMIT,
+            deviceId,
+            cookie,
+            xHelios,
+            xMedusa,
           });
         } else {
           formRef.setFieldsValue({
@@ -62,32 +63,71 @@ function CardSecretFormModal(
   );
 
   const [submitting, setSubmitting] = useState(false);
+
+  /**
+   * 解析认证信息：齐全则返回对象，全空返回 null，部分填写返回 false（非法）
+   */
+  const resolveAuthInfo = (values: Record<string, any>) => {
+    const normalizedAuth = {
+      deviceId: normalizeOptionalText(values.deviceId),
+      cookie: normalizeOptionalText(values.cookie),
+      xHelios: normalizeOptionalText(values.xHelios),
+      xMedusa: normalizeOptionalText(values.xMedusa),
+    };
+    const filledCount = Object.values(normalizedAuth).filter(Boolean).length;
+    if (filledCount === 0) return null;
+    if (filledCount < 4) return false;
+    return {
+      deviceId: normalizedAuth.deviceId!,
+      cookie: normalizedAuth.cookie!,
+      xHelios: normalizedAuth.xHelios!,
+      xMedusa: normalizedAuth.xMedusa!,
+    };
+  };
+
   const handleSave = async () => {
     try {
       setSubmitting(true);
       const values = await formRef.validateFields();
-      const { deviceId, cookie, xHelios, xMedusa } = values;
-      // 认证信息是否齐全
-      const isCompleteAuthInfo = deviceId && cookie && xHelios && xMedusa;
+      const authInfo = resolveAuthInfo(values);
+      if (authInfo === false) {
+        msgError('认证信息需四项全部填写，或全部留空');
+        return;
+      }
+
       const payload: CardSecretFormValues = {
         createCount: isEdit ? 1 : values.createCount,
         type: values.type,
         expireTime: values.type === 'time' ? (values.expireTime?.toISOString() ?? null) : null,
         parseLimit:
           values.type === 'count' ? (values.parseLimit ?? DEFAULT_PARSE_LIMIT) : undefined,
-        authInfo: isCompleteAuthInfo
-          ? {
-              deviceId: normalizeOptionalText(values.deviceId),
-              cookie: normalizeOptionalText(values.cookie),
-              xHelios: normalizeOptionalText(xHelios),
-              xMedusa: normalizeOptionalText(xMedusa),
-            }
-          : undefined,
+        authInfo: authInfo ?? undefined,
       };
 
-      await onSuccess?.(payload, editingRecord ?? undefined);
-      msgSuccess(isEdit ? '更新成功' : '创建成功');
+      if (isEdit) {
+        const res = await reqUpdateCardSecret(editingRecord!.id, {
+          type: payload.type,
+          expireTime: payload.expireTime,
+          parseLimit: payload.parseLimit,
+          // null 表示清空认证信息；有对象则更新
+          authInfo: authInfo,
+        });
+        if (res.code !== 200) return msgError(res.message);
+        msgSuccess('更新成功');
+      } else {
+        const res = await reqCreateCardSecret({
+          createCount: payload.createCount,
+          type: payload.type,
+          expireTime: payload.expireTime,
+          parseLimit: payload.parseLimit,
+          authInfo: payload.authInfo,
+        });
+        if (res.code !== 200) return msgError(res.message);
+        msgSuccess(`创建成功（${res.data?.count ?? payload.createCount} 条）`);
+      }
+
       close();
+      await onSuccess?.();
     } catch (error) {
       console.log('error', error);
     } finally {
@@ -136,12 +176,37 @@ function CardSecretFormModal(
               <Form.Item
                 label='结束时间'
                 name='expireTime'
+                initialValue={dayjs().add(1, 'day')}
                 rules={[{ required: true, message: '请选择结束时间' }]}>
                 <DatePicker
-                  showTime
                   style={{ width: '100%' }}
                   placeholder='例如：2026-12-31 23:59:59'
                   disabledDate={(current) => current && current.isBefore(dayjs().startOf('day'))}
+                  format='YYYY-MM-DD HH:mm:ss'
+                  showTime={false}
+                  // 快捷方式，一天，七天，一个月，半年
+                  presets={[
+                    {
+                      label: '一天',
+                      value: dayjs().add(1, 'day'),
+                    },
+                    {
+                      label: '七天',
+                      value: dayjs().add(7, 'day'),
+                    },
+                    {
+                      label: '一个月',
+                      value: dayjs().add(1, 'month'),
+                    },
+                    {
+                      label: '半年',
+                      value: dayjs().add(6, 'month'),
+                    },
+                    {
+                      label: '一年',
+                      value: dayjs().add(1, 'year'),
+                    },
+                  ]}
                 />
               </Form.Item>
             ) : (
@@ -203,8 +268,5 @@ function CardSecretFormModal(
 export default forwardRef(CardSecretFormModal);
 
 interface Props {
-  onSuccess?: (
-    values: CardSecretFormValues,
-    record?: CardSecretListItem,
-  ) => unknown | Promise<unknown>;
+  onSuccess?: () => unknown | Promise<unknown>;
 }

@@ -1,93 +1,149 @@
+import { reqGetCardSecretBySecret } from '@/apis';
+import { useSearchParams, useVisible } from '@/hooks';
+import eventBus from '@/utils/eventBus';
 import { KeyOutlined } from '@ant-design/icons';
-import { Modal } from 'antd';
+import { Input, Modal } from 'antd';
 import { useEffect, useState } from 'react';
+import { useParseStore } from '../../store';
 import styles from './index.module.less';
 
-interface CardSecretModalProps {
-  open: boolean;
-  /** 当前已绑定的卡密（编辑时回填） */
-  value?: string;
-  /** 是否允许关闭（无卡密时首次提醒可设为 false） */
-  closable?: boolean;
-  onCancel?: () => void;
-  onConfirm: (cardSecret: string) => void;
-}
+interface CardSecretModalProps {}
 
 /**
- * 卡密输入弹窗（假校验：非空即可）
+ * 卡密输入弹窗
  */
-const CardSecretModal: React.FC<CardSecretModalProps> = ({
-  open,
-  value = '',
-  closable = true,
-  onCancel,
-  onConfirm,
-}) => {
-  const [input, setInput] = useState(value);
+const CardSecretModal: React.FC<CardSecretModalProps> = ({}) => {
+  const { searchParams, setSearchParams } = useSearchParams();
+  const [input, setInput] = useState(searchParams.cardSecret || '');
+  const { visible, open, close } = useVisible();
+  const { setCardSecret } = useParseStore();
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  /**
+   * 根据 URL 中的卡密拉取详情
+   * @example
+   * ```ts
+   * await getCardSecret('XXXX-XXXX');
+   * ```
+   */
+  const getCardSecret = async (secret: string) => {
+    setLoading(true);
+    try {
+      const res = await reqGetCardSecretBySecret(secret);
+      if (res.code !== 200 || !res.data) {
+        setCardSecret(undefined);
+        setError(res.message || '卡密无效');
+        open();
+        return;
+      }
+      setCardSecret(res.data);
+      setError('');
+    } catch (err) {
+      console.log('error', err);
+      setCardSecret(undefined);
+      setError('卡密校验失败');
+      open();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (open) {
-      setInput(value);
-      setError('');
+    const secret = searchParams.cardSecret?.trim();
+    if (!secret) {
+      setCardSecret(undefined);
+      open();
+      return;
     }
-  }, [open, value]);
+    setInput(secret);
+    getCardSecret(secret);
+  }, [searchParams.cardSecret]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     const next = input.trim();
     if (!next) {
       setError('请输入卡密');
       return;
     }
-    onConfirm(next);
+
+    setLoading(true);
+    setError('');
+    try {
+      const res = await reqGetCardSecretBySecret(next);
+      if (res.code !== 200 || !res.data) {
+        setError(res.message || '卡密无效');
+        return;
+      }
+      setCardSecret(res.data);
+      setSearchParams((prev) => ({ ...prev, cardSecret: next }));
+      close();
+    } catch (err) {
+      console.log('error', err);
+      setError('卡密校验失败');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // 绑定卡密修改事件监听
+  useEffect(() => {
+    const handleCardSecretChange = (type: 'edit' | 'bind') => {
+      open();
+    };
+    eventBus.on('cardSecretChange', handleCardSecretChange);
+    return () => {
+      eventBus.off('cardSecretChange', handleCardSecretChange);
+    };
+  }, []);
 
   return (
     <Modal
-      open={open}
+      open={visible}
       title={null}
       footer={null}
       centered
       width={420}
       destroyOnHidden
-      closable={closable}
-      maskClosable={closable}
-      keyboard={closable}
-      onCancel={onCancel}
+      mask={{
+        closable: false,
+      }}
+      closable={searchParams.cardSecret ? true : false}
+      keyboard={false}
+      onCancel={close}
       className={styles['modal']}
       styles={{
         body: { padding: 0 },
+        container: { padding: 0 },
       }}>
       <div className={styles['body']}>
         <div className={styles['icon']} aria-hidden='true'>
           <KeyOutlined />
         </div>
-        <h2 className={styles['title']}>{value ? '更换卡密' : '绑定卡密'}</h2>
+        <h2 className={styles['title']}>{searchParams.cardSecret ? '更换卡密' : '绑定卡密'}</h2>
         <p className={styles['desc']}>输入卡密后即可使用解析与下载功能。</p>
 
         <label className={styles['field']} htmlFor='card-secret-input'>
           <span className={styles['label']}>卡密</span>
-          <div className={styles['inputWrap']}>
-            <KeyOutlined aria-hidden='true' />
-            <input
-              id='card-secret-input'
-              className={styles['input']}
-              type='text'
-              autoComplete='off'
-              autoFocus
-              placeholder='请输入卡密'
-              value={input}
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? 'card-secret-error' : undefined}
-              onChange={(e) => {
-                setInput(e.target.value);
-                if (error) setError('');
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleConfirm();
-              }}
-            />
-          </div>
+          <Input
+            id='card-secret-input'
+            className={styles['input']}
+            allowClear
+            autoComplete='off'
+            autoFocus
+            placeholder='请输入卡密'
+            value={input}
+            disabled={loading}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? 'card-secret-error' : undefined}
+            onChange={(e) => {
+              setInput(e.target.value);
+              if (error) setError('');
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !loading) handleConfirm();
+            }}
+          />
           {error ? (
             <span id='card-secret-error' className={styles['error']} role='alert'>
               {error}
@@ -96,13 +152,12 @@ const CardSecretModal: React.FC<CardSecretModalProps> = ({
         </label>
 
         <div className={styles['actions']}>
-          {closable ? (
-            <button className={styles['btnGhost']} type='button' onClick={onCancel}>
-              稍后再说
-            </button>
-          ) : null}
-          <button className={styles['btnPrimary']} type='button' onClick={handleConfirm}>
-            确认绑定
+          <button
+            className={styles['btnPrimary']}
+            type='button'
+            disabled={loading}
+            onClick={handleConfirm}>
+            {loading ? '校验中...' : '确认绑定'}
           </button>
         </div>
       </div>

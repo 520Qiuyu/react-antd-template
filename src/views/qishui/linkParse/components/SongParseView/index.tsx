@@ -38,7 +38,10 @@ const SongParseView: React.FC<SongParseViewProps> = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await reqParseSongShareLink({ shareLink: link.trim() });
+      const res = await reqParseSongShareLink({
+        shareLink: link.trim(),
+        cardSecret: searchParams.cardSecret!,
+      });
       if (res.code !== 200) {
         setSongHasResult(null);
         setError(res.message || '解析失败');

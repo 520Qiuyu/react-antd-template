@@ -1,4 +1,4 @@
-import { SodaAudioDecryptor } from '@/views/qishui/linkParse/sodaDecryptor';
+import { SodaAudioDecryptor } from '@/utils/sodaDecryptor';
 import { msgError, msgSuccess } from '@/utils/modal';
 import { Button, Input, Space } from 'antd';
 import { useState } from 'react';

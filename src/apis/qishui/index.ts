@@ -7,6 +7,8 @@ import type {
 } from '@/types/qishui';
 import { get } from 'utils/request';
 
+export { reqGetCardSecretBySecret } from './cardSecret';
+
 /**
  * 歌曲分享链接解析
  * @example

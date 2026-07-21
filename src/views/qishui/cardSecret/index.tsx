@@ -1,13 +1,15 @@
+import {
+  reqDeleteCardSecret,
+  reqListCardSecrets,
+  reqUpdateCardSecretStatus,
+} from '@/apis/qishui/cardSecret';
 import { CopyText, MyButton, MyPagination, SearchForm } from '@/components';
-import { useCompRef, useSearchParams } from '@/hooks';
-import type {
-  CardSecretFormValues,
-  CardSecretListItem,
-  CardSecretType,
-} from '@/types/cardSecret';
-import { confirm, msgSuccess } from '@/utils/modal';
+import { Status, STATUS_OPTIONS } from '@/constants';
+import { useCompRef, useGetList, useSearchParams } from '@/hooks';
+import type { CardSecretListItem, CardSecretListStats, CardSecretType } from '@/types/cardSecret';
+import { confirm, msgError, msgSuccess } from '@/utils/modal';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
-import { Card, Space, Table, Tag } from 'antd';
+import { Card, Space, Switch, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import CardSecretFormModal from './components/CardSecretFormModal';
@@ -18,108 +20,59 @@ import {
   CARD_SECRET_TYPE_TEXT_MAP,
 } from './constants';
 import styles from './index.module.less';
-import { createMockCardSecrets } from './mock';
 
 const defaultSearchParams: SearchParams = {
   pageNum: 1,
   pageSize: 10,
 };
-
-/**
- * 卡密管理
- */
 const CardSecret: React.FC = () => {
   const formModalRef = useCompRef(CardSecretFormModal);
-  const [dataSource, setDataSource] = useState<CardSecretListItem[]>(() => createMockCardSecrets());
-  const [loading, setLoading] = useState(false);
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
+  const { list, loading, total, otherInfo } = useGetList(reqListCardSecrets, searchParams);
+  const stats = otherInfo as Partial<CardSecretListStats>;
 
-  const filteredList = useMemo(() => {
-    const keyword = searchParams.keyword?.trim().toLowerCase();
-    return dataSource.filter((item) => {
-      if (searchParams.type && item.type !== searchParams.type) return false;
-      if (!keyword) return true;
-      return (
-        item.cardNo.toLowerCase().includes(keyword) ||
-        item.id.toLowerCase().includes(keyword) ||
-        (item.deviceId || '').toLowerCase().includes(keyword) ||
-        (item.cookie || '').toLowerCase().includes(keyword)
-      );
-    });
-  }, [dataSource, searchParams.keyword, searchParams.type]);
-
-  const pagedList = useMemo(() => {
-    const start = (searchParams.pageNum - 1) * searchParams.pageSize;
-    return filteredList.slice(start, start + searchParams.pageSize);
-  }, [filteredList, searchParams.pageNum, searchParams.pageSize]);
-
+  /** 搜索 */
   const handleSearch = (values: SearchParams) => {
     setSearchParams({ ...searchParams, ...values, pageNum: 1 });
   };
 
+  /** 删除 */
   const handleDelete = async (record: CardSecretListItem) => {
     try {
-      await confirm(`确定要删除卡密「${record.cardNo}」吗？`, '提示');
-      setLoading(true);
-      setDataSource((prev) => prev.filter((item) => item.id !== record.id));
+      await confirm(`确定要删除卡密「${record.secret}」吗？`, '提示');
+      const res = await reqDeleteCardSecret(record.id);
+      if (res.code !== 200) return msgError(res.message);
       msgSuccess('删除成功');
+      setSearchParams({ ...searchParams });
     } catch (error) {
       console.log('error', error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleFormSuccess = async (
-    values: CardSecretFormValues,
-    record?: CardSecretListItem,
-  ) => {
-    const now = new Date().toISOString();
-    const authFields = {
-      deviceId: values.deviceId,
-      cookie: values.cookie,
-      xHelios: values.xHelios,
-      xMedusa: values.xMedusa,
-    };
-
-    if (record) {
-      setDataSource((prev) =>
-        prev.map((item) =>
-          item.id === record.id
-            ? {
-                ...item,
-                type: values.type,
-                expireTime: values.type === 'time' ? values.expireTime : null,
-                parsedCount: values.type === 'count' ? item.parsedCount : 0,
-                unparsedCount: values.type === 'count' ? values.parseLimit ?? 100 : 0,
-                ...authFields,
-                utime: now,
-              }
-            : item,
-        ),
-      );
-      return;
+  /** 启用/禁用卡密 */
+  const handleStatusChange = async (record: CardSecretListItem, checked: boolean) => {
+    const nextStatus = checked ? Status.NORMAL : Status.DISABLED;
+    const actionText = checked ? '启用' : '禁用';
+    try {
+      await confirm(`确定要${actionText}卡密「${record.secret}」吗？`, '提示');
+      const res = await reqUpdateCardSecretStatus(record.id, { status: nextStatus });
+      if (res.code === 200) {
+        msgSuccess(`${actionText}成功`);
+        setSearchParams({ ...searchParams });
+      }
+    } catch (error) {
+      console.log('error', error);
     }
-
-    const createCount = values.createCount ?? 1;
-    const newItems: CardSecretListItem[] = Array.from({ length: createCount }, (_, index) => ({
-      id: `cs-${Date.now()}-${index}`,
-      cardNo: `QS-${dayjs().format('YYYYMMDD')}-${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
-      type: values.type,
-      expireTime: values.type === 'time' ? values.expireTime : null,
-      parsedCount: 0,
-      unparsedCount: values.type === 'count' ? values.parseLimit ?? 100 : 0,
-      ...authFields,
-      ctime: now,
-      utime: now,
-    }));
-    setDataSource((prev) => [...newItems, ...prev]);
-    setSearchParams({ ...searchParams, pageNum: 1 });
   };
 
+  /** 渲染解析数量 */
   const renderParseCount = (record: CardSecretListItem) => {
-    const total = record.parsedCount + record.unparsedCount;
-    const percent = total > 0 ? (record.parsedCount / total) * 100 : 0;
+    if (record.type !== 'count') {
+      return <span className={styles['cookieEmpty']}>-</span>;
+    }
+
+    const totalCount = record.parseLimit || record.parsedCount + record.unparsedCount;
+    const percent = totalCount > 0 ? (record.parsedCount / totalCount) * 100 : 0;
 
     return (
       <div className={styles['parseCount']}>
@@ -135,6 +88,7 @@ const CardSecret: React.FC = () => {
     );
   };
 
+  /** 列配置 */
   const columns: ColumnsType<CardSecretListItem> = [
     {
       title: 'ID',
@@ -145,7 +99,7 @@ const CardSecret: React.FC = () => {
     },
     {
       title: '卡号',
-      dataIndex: 'cardNo',
+      dataIndex: 'secret',
       width: 200,
       fixed: 'left',
       render: (val: string) => <CopyText text={val} />,
@@ -165,7 +119,7 @@ const CardSecret: React.FC = () => {
       render: (val?: string | null) => (val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'),
     },
     {
-      title: '解析数量（已解析/未解析）',
+      title: '解析数量（已解析/剩余）',
       key: 'parseCount',
       width: 180,
       render: (_, record) => renderParseCount(record),
@@ -176,10 +130,23 @@ const CardSecret: React.FC = () => {
       width: 180,
       ellipsis: true,
       render: (_, record) => {
-        const hasAuth = !!(record.deviceId || record.cookie || record.xHelios || record.xMedusa);
-        if (!hasAuth) return <span className={styles['cookieEmpty']}>未配置</span>;
-        return <CopyText text={record.deviceId || record.cookie || '已配置'} />;
+        const auth = record.authInfo;
+        if (!auth?.deviceId && !auth?.cookie) {
+          return <span className={styles['cookieEmpty']}>未配置</span>;
+        }
+        return <CopyText text={auth.deviceId || auth.cookie || '已配置'} />;
       },
+    },
+    {
+      title: '是否启用',
+      key: 'status',
+      width: 120,
+      render: (_, record) => (
+        <Switch
+          checked={record.status === Status.NORMAL}
+          onChange={(checked) => handleStatusChange(record, checked)}
+        />
+      ),
     },
     {
       title: '创建时间',
@@ -224,7 +191,7 @@ const CardSecret: React.FC = () => {
 
   return (
     <div className={styles['page']}>
-      <CardSecretStat list={dataSource} />
+      <CardSecretStat total={total} stats={stats} />
 
       <Card
         className={styles['listCard']}
@@ -246,7 +213,7 @@ const CardSecret: React.FC = () => {
               {
                 name: 'keyword',
                 label: '关键词',
-                inputProps: { placeholder: '卡号 / ID / Device ID' },
+                inputProps: { placeholder: '卡号 / ID / 备注' },
               },
               {
                 name: 'type',
@@ -258,13 +225,23 @@ const CardSecret: React.FC = () => {
                   placeholder: '请选择类型',
                 },
               },
+              {
+                name: 'status',
+                label: '状态',
+                type: 'select',
+                options: STATUS_OPTIONS,
+                inputProps: {
+                  mode: undefined,
+                  placeholder: '请选择状态',
+                },
+              },
             ]}
           />
         </div>
         <Table
           rowKey='id'
           columns={columns}
-          dataSource={pagedList}
+          dataSource={list}
           loading={loading}
           pagination={false}
           scroll={{ x: 1460 }}
@@ -272,12 +249,15 @@ const CardSecret: React.FC = () => {
         <MyPagination
           current={searchParams.pageNum}
           pageSize={searchParams.pageSize}
-          total={filteredList.length}
+          total={total}
           onChange={(pageNum, pageSize) => setSearchParams({ ...searchParams, pageNum, pageSize })}
         />
       </Card>
 
-      <CardSecretFormModal ref={formModalRef} onSuccess={handleFormSuccess} />
+      <CardSecretFormModal
+        ref={formModalRef}
+        onSuccess={() => setSearchParams({ ...searchParams })}
+      />
     </div>
   );
 };
@@ -287,4 +267,5 @@ export default CardSecret;
 interface SearchParams extends PaginationParams {
   keyword?: string;
   type?: CardSecretType;
+  status?: string;
 }

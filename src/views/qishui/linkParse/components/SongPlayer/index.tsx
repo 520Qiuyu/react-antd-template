@@ -7,7 +7,7 @@ import {
   PauseOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames';
-import { SodaAudioDecryptor } from '../../sodaDecryptor';
+import { SodaAudioDecryptor } from '../../../../../utils/sodaDecryptor';
 import { formatDuration, qualityLabel } from '../../utils';
 import styles from './index.module.less';
 

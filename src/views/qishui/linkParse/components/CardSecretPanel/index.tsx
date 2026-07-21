@@ -1,0 +1,182 @@
+import eventBus from '@/utils/eventBus';
+import { EditOutlined, KeyOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+import { useParseStore } from '../../store';
+import { maskCardSecret } from '../CardSecretModal';
+import styles from './index.module.less';
+
+/**
+ * 侧栏卡密信息卡片（直接读取 parseStore）
+ * @example
+ * ```tsx
+ * <CardSecretPanel />
+ * ```
+ */
+const CardSecretPanel: React.FC = () => {
+  const cardSecret = useParseStore((state) => state.cardSecret);
+  const handleEdit = () => {
+    eventBus.emit('cardSecretChange', 'edit');
+  };
+  if (!cardSecret) {
+    return (
+      <div className={`${styles['secretCard']} ${styles['isEmpty']}`} aria-label='卡密信息'>
+        <div className={styles['secretIcon']} aria-hidden='true'>
+          <KeyOutlined />
+        </div>
+        <h4 className={styles['secretTitle']}>未绑定卡密</h4>
+        <p className={styles['secretDesc']}>绑定后可查看额度与到期信息，解锁解析能力。</p>
+      </div>
+    );
+  }
+
+  const isTime = cardSecret.type === 'time';
+  const isNormal = cardSecret.status === 'normal';
+  const masked = maskCardSecret(cardSecret.secret);
+
+  if (isTime) {
+    const expire = cardSecret.expireTime ? dayjs(cardSecret.expireTime) : null;
+    const now = dayjs();
+    const isExpired = expire ? expire.isBefore(now) : false;
+    const remainDays = expire ? Math.max(0, expire.diff(now, 'day')) : null;
+    const remainHours = expire && remainDays === 0 ? Math.max(0, expire.diff(now, 'hour')) : null;
+    const stateLabel = !isNormal ? '已禁用' : isExpired ? '已过期' : '有效中';
+    const stateTone = !isNormal || isExpired ? 'bad' : 'ok';
+
+    return (
+      <div
+        className={`${styles['secretCard']} ${styles['isTime']} ${stateTone === 'bad' ? styles['isWarn'] : ''}`}
+        aria-label='卡密信息'>
+        <div className={styles['secretHead']}>
+          <span className={`${styles['typeBadge']} ${styles['typeTime']}`}>按时长</span>
+          <span className={`${styles['stateBadge']} ${styles[stateTone]}`}>{stateLabel}</span>
+        </div>
+
+        <div className={styles['secretCode']}>
+          <KeyOutlined aria-hidden='true' />
+          <code>{masked}</code>
+          {/* edit icon */}
+          <EditOutlined className={styles['editIcon']} onClick={handleEdit} />
+        </div>
+
+        <div className={`${styles['stateBanner']} ${styles[stateTone]}`} role='status'>
+          <span className={styles['stateBannerDot']} aria-hidden />
+          <span>
+            {isExpired
+              ? '卡密已过期，无法继续解析'
+              : !isNormal
+                ? '卡密已禁用，请更换后使用'
+                : remainDays !== null && remainDays > 0
+                  ? `有效期内，剩余 ${remainDays} 天`
+                  : remainHours !== null
+                    ? `即将到期，剩余约 ${remainHours} 小时`
+                    : '卡密有效，可正常解析'}
+          </span>
+        </div>
+
+        <div className={styles['metricBlock']}>
+          <div className={styles['metricLabel']}>到期时间</div>
+          <div className={styles['metricValue']}>
+            {expire ? expire.format('YYYY-MM-DD HH:mm') : '未设置'}
+          </div>
+        </div>
+
+        {expire && (
+          <div className={styles['timeBar']} aria-hidden>
+            <div
+              className={`${styles['timeBarFill']} ${isExpired ? styles['isFull'] : ''}`}
+              style={{ width: `${isExpired ? 100 : calcTimeProgress(expire)}%` }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const limit = Math.max(cardSecret.parseLimit || 0, 0);
+  const used = Math.max(cardSecret.parsedCount || 0, 0);
+  const remain = Math.max(limit - used, 0);
+  const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 1000) / 10) : 0;
+  const depleted = limit > 0 && remain <= 0;
+  const stateLabel = !isNormal ? '已禁用' : depleted ? '已解析完毕' : '可解析';
+  const stateTone = !isNormal || depleted ? 'bad' : 'ok';
+
+  return (
+    <div
+      className={`${styles['secretCard']} ${styles['isCount']} ${stateTone === 'bad' ? styles['isWarn'] : ''}`}
+      aria-label='卡密信息'>
+      <div className={styles['secretHead']}>
+        <span className={`${styles['typeBadge']} ${styles['typeCount']}`}>按次数</span>
+        <span className={`${styles['stateBadge']} ${styles[stateTone]}`}>{stateLabel}</span>
+      </div>
+
+      <div className={styles['secretCode']}>
+        <KeyOutlined aria-hidden='true' />
+        <code>{masked}</code>
+        {/* edit icon */}
+        <EditOutlined className={styles['editIcon']} onClick={handleEdit} />
+      </div>
+
+      <div className={`${styles['stateBanner']} ${styles[stateTone]}`} role='status'>
+        <span className={styles['stateBannerDot']} aria-hidden />
+        <span>
+          {depleted
+            ? '解析次数已用尽，无法继续解析'
+            : !isNormal
+              ? '卡密已禁用，请更换后使用'
+              : `还可解析 ${remain} 次`}
+        </span>
+      </div>
+
+      <div className={styles['countRow']}>
+        <div className={styles['countItem']}>
+          <span className={styles['countNum']}>{used}</span>
+          <span className={styles['countLabel']}>已用</span>
+        </div>
+        <div className={styles['countDivider']} aria-hidden />
+        <div className={styles['countItem']}>
+          <span className={styles['countNum']}>{remain}</span>
+          <span className={styles['countLabel']}>剩余</span>
+        </div>
+        <div className={styles['countDivider']} aria-hidden />
+        <div className={styles['countItem']}>
+          <span className={styles['countNum']}>{limit}</span>
+          <span className={styles['countLabel']}>总额</span>
+        </div>
+      </div>
+
+      <div className={styles['progressWrap']}>
+        <div className={styles['progressMeta']}>
+          <span>使用进度</span>
+          <span>{percent}%</span>
+        </div>
+        <div
+          className={styles['progressBar']}
+          role='progressbar'
+          aria-valuenow={percent}
+          aria-valuemin={0}
+          aria-valuemax={100}>
+          <div
+            className={`${styles['progressFill']} ${depleted ? styles['isFull'] : ''}`}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CardSecretPanel;
+
+/**
+ * 估算时长卡密进度（假设有效期最长 90 天向前看，仅作视觉参考）
+ * @example
+ * ```ts
+ * calcTimeProgress(dayjs().add(30, 'day')) // ~67
+ * ```
+ */
+const calcTimeProgress = (expire: dayjs.Dayjs) => {
+  const totalDays = 90;
+  const remain = Math.max(0, expire.diff(dayjs(), 'day', true));
+  const usedRatio = 1 - Math.min(remain / totalDays, 1);
+  return Math.round(usedRatio * 1000) / 10;
+};

@@ -1,4 +1,5 @@
 import { useSearchParams } from '@/hooks';
+import eventBus from '@/utils/eventBus';
 import {
   AppstoreOutlined,
   CustomerServiceOutlined,
@@ -8,7 +9,7 @@ import {
   UnorderedListOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import CardSecretModal, { maskCardSecret } from './components/CardSecretModal';
 import LinkParseSidebar from './components/LinkParseSidebar';
 import PageAside from './components/PageAside';
@@ -29,17 +30,6 @@ const LinkParse: React.FC = () => {
   const cardSecret = searchParams.cardSecret?.trim() || '';
   const hasCardSecret = Boolean(cardSecret);
 
-  const [cardSecretOpen, setCardSecretOpen] = useState(false);
-  /** 无卡密时首次强制提醒，不允许关闭 */
-  const [forceBind, setForceBind] = useState(false);
-
-  useEffect(() => {
-    if (!hasCardSecret) {
-      setForceBind(true);
-      setCardSecretOpen(true);
-    }
-  }, [hasCardSecret]);
-
   const handleGuideClick = useCallback(() => {
     if (searchParams.currentView !== 'song') {
       setSearchParams({ ...searchParams, currentView: 'song' });
@@ -51,21 +41,9 @@ const LinkParse: React.FC = () => {
     }, 0);
   }, [searchParams.currentView]);
 
-  const handleOpenCardSecret = () => {
-    setForceBind(!hasCardSecret);
-    setCardSecretOpen(true);
-  };
-
-  const handleConfirmCardSecret = (next: string) => {
-    setSearchParams((prev) => ({ ...prev, cardSecret: next }));
-    setForceBind(false);
-    setCardSecretOpen(false);
-  };
-
-  const handleCancelCardSecret = () => {
-    if (forceBind) return;
-    setCardSecretOpen(false);
-  };
+  const handleOpenCardSecret = useCallback(() => {
+    eventBus.emit('cardSecretChange', 'bind');
+  }, []);
 
   return (
     <div className={styles['page']}>
@@ -145,13 +123,7 @@ const LinkParse: React.FC = () => {
         </div>
       </div>
 
-      <CardSecretModal
-        open={cardSecretOpen}
-        value={cardSecret}
-        closable={!forceBind}
-        onCancel={handleCancelCardSecret}
-        onConfirm={handleConfirmCardSecret}
-      />
+      <CardSecretModal />
     </div>
   );
 };

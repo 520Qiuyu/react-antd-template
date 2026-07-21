@@ -31,7 +31,7 @@ interface Config {
   login: string;
 }
 
-type UserStatus = 'normal' | 'disabled' | 'deleted';
+type UserStatus = 'normal' | 'disabled';
 type UserGender = 'male' | 'female' | 'unknown';
 
 interface UserInfoBase {

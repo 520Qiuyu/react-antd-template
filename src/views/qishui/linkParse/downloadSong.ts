@@ -2,7 +2,7 @@ import { DEFAULT_CONFIG } from '@/hooks/useConfig';
 import type { EmbedAudioMetadataOptions, EmbedOutputFormat } from '@/hooks/useEmbedAudioMetadata';
 import type { MusicInfo, QishuiUrl } from '@/types/qishui';
 import { downloadBlob, getCoverBlob, getDownloadProgress } from '@/utils/download';
-import { SodaAudioDecryptor } from './sodaDecryptor';
+import { SodaAudioDecryptor } from '../../../utils/sodaDecryptor';
 
 export type DownloadProgressPhase = 'downloading' | 'decrypting' | 'embedding';
 

@@ -61,6 +61,7 @@ export interface PlaylistInfo {
 /** 分享链接解析查询参数 */
 export interface ParseShareLinkParams {
   shareLink: string;
+  cardSecret: string;
 }
 
 /** 歌曲分享链接解析响应 */
@@ -80,6 +81,7 @@ export interface ParsePlaylistShareLinkResponseData {
 /** 根据歌曲 id 查询参数 */
 export interface GetSongInfoParams {
   songId: string;
+  cardSecret: string;
 }
 
 /** 根据歌曲 id 获取歌曲信息响应 */

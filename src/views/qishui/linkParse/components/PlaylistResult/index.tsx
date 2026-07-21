@@ -1,11 +1,11 @@
 import { reqGetSongInfo } from '@/apis';
-import { useEmbedAudioMetadata } from '@/hooks';
+import { useEmbedAudioMetadata, useSearchParams } from '@/hooks';
 import type { PlaylistInfo, PlaylistMusicInfo } from '@/types/qishui';
 import { msgError, msgSuccess } from '@/utils/modal';
 import { PLAYLIST_PARSE_CONCURRENCY } from '../../constants';
 import { downloadSongAudio, downloadSongLyric, runWithConcurrency } from '../../downloadSong';
 import { usePlaylistParseStore } from '../../store';
-import { isTrackParsed, mockParseDelay, pickDownloadUrl } from '../../utils';
+import { isTrackParsed, pickDownloadUrl } from '../../utils';
 import EngineStatus from '../EngineStatus';
 import PlaylistHero from './components/PlaylistHero';
 import TrackList from './components/TrackList';
@@ -19,6 +19,7 @@ interface PlaylistResultProps {
  * 歌单解析结果
  */
 const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
+  const { searchParams } = useSearchParams();
   /** 更新歌曲完整信息 */
   const patchPlaylistTrackFullInfo = usePlaylistParseStore(
     (state) => state.patchPlaylistTrackFullInfo,
@@ -76,9 +77,9 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
 
       markParsing(track.id, true);
       try {
-        const res = await reqGetSongInfo({ songId: track.id });
+        const res = await reqGetSongInfo({ songId: track.id, cardSecret: searchParams.cardSecret });
         if (res.code !== 200) {
-          if (!silent) msgError(res.message || '解析失败');
+          // if (!silent) msgError(res.message || '解析失败');
           return false;
         }
         const fullInfo = res.data?.fullInfo;
@@ -96,7 +97,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
         markParsing(track.id, false);
       }
     },
-    [patchPlaylistTrackFullInfo],
+    [patchPlaylistTrackFullInfo, searchParams.cardSecret],
   );
 
   /** 读取最新 track（含刚写入的 fullInfo） */

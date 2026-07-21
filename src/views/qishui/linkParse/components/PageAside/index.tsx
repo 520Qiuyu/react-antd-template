@@ -1,4 +1,5 @@
-import type { TocSection } from '../../store';
+import { type TocSection } from '../../store';
+import CardSecretPanel from '../CardSecretPanel';
 import styles from './index.module.less';
 
 interface PageAsideProps {
@@ -6,7 +7,7 @@ interface PageAsideProps {
 }
 
 /**
- * 页面右侧目录
+ * 页面右侧目录 + 卡密信息
  */
 const PageAside: React.FC<PageAsideProps> = ({ sections }) => {
   const handleLinkClick = (id: string) => {
@@ -25,16 +26,13 @@ const PageAside: React.FC<PageAsideProps> = ({ sections }) => {
             onClick={(event) => {
               event.preventDefault();
               handleLinkClick(section.id);
-            }}
-          >
+            }}>
             {section.label}
           </a>
         ))}
       </nav>
-      <div className={styles['card']}>
-        <h4>汽水音乐 · Docs</h4>
-        <p>清爽绿 + 气泡青 + 柠檬黄，搭配毛玻璃材质，贴合汽水音乐品牌气质。</p>
-      </div>
+
+      <CardSecretPanel />
     </aside>
   );
 };

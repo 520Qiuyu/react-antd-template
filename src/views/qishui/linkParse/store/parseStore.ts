@@ -1,3 +1,4 @@
+import type { CardSecretDetail } from '@/types/cardSecret';
 import { create } from 'zustand';
 
 export interface TocSection {
@@ -5,19 +6,28 @@ export interface TocSection {
   label: string;
 }
 
+/** 卡密信息（链接解析侧） */
+export type CardSecret = CardSecretDetail;
+
 interface ParseStoreState {
   /** 目录 */
   tocSections: TocSection[];
+  /** 卡密信息 */
+  cardSecret?: CardSecret;
 }
 
 interface ParseStoreAction {
   /** 设置目录 */
   setTocSections: (tocSections: TocSection[]) => void;
+  /** 设置卡密信息 */
+  setCardSecret: (cardSecret?: CardSecret) => void;
 }
 
 type ParseStore = ParseStoreState & ParseStoreAction;
 
 export const useParseStore = create<ParseStore>()((set) => ({
   tocSections: [],
+  cardSecret: undefined,
   setTocSections: (tocSections) => set({ tocSections }),
+  setCardSecret: (cardSecret) => set({ cardSecret }),
 }));
