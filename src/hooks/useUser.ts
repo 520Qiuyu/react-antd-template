@@ -9,11 +9,11 @@ export const useUser = () => {
   /** 清除用户信息 */
   const clearUser = useUserStore((state) => state.clearUser);
   /** 是否是超级管理员 */
-  const isSuperAdmin = userInfo?.roles.some((role) => role.code === Role.SUPER_ADMIN);
+  const isSuperAdmin = userInfo?.roles?.some((role) => role.code === Role.SUPER_ADMIN);
   /** 是否是管理员 */
-  const isAdmin = userInfo?.roles.some((role) => role.code === Role.ADMIN);
+  const isAdmin = userInfo?.roles?.some((role) => role.code === Role.ADMIN);
   /** 是否是代理 */
-  const isProxy = userInfo?.roles.some((role) => role.code === Role.PROXY);
+  const isProxy = userInfo?.roles?.some((role) => role.code === Role.PROXY);
 
   // 挂载的时候获取用户信息
   useEffect(() => {

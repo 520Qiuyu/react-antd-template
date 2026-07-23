@@ -12,7 +12,7 @@ import { msgError } from './modal';
 import { getLocalToken } from './userInfo';
 
 const instance = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_BASE_URL,
   timeout: 1000 * 300,
   withCredentials: true,
   // 更改axios序列化方式 params参数时 传入 [1,2,3] => 1,2,3 // https://github.com/ljharb/qs

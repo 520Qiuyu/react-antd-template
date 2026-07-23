@@ -93,9 +93,9 @@ interface UserInfoBase {
   /** 账号状态 */
   status: UserStatus;
   /** 用户角色列表 */
-  roles: UserInfoRole[];
+  roles?: UserInfoRole[];
   /** 用户权限资源列表 */
-  permissions: UserInfoPermission[];
+  permissions?: UserInfoPermission[];
 }
 
 type UserInfo = InterfaceToUndefinedNull<UserInfoBase>;
