@@ -33,6 +33,41 @@ interface Config {
 
 type UserStatus = 'normal' | 'disabled';
 type UserGender = 'male' | 'female' | 'unknown';
+type UserPermissionResourceType = 'menu' | 'button' | 'api' | 'module';
+type UserPermissionResourceMethod =
+  | 'GET'
+  | 'POST'
+  | 'PUT'
+  | 'DELETE'
+  | 'PATCH'
+  | 'OPTIONS'
+  | 'HEAD';
+
+/** 用户角色信息（登录用户 info 中的 roles 项） */
+interface UserInfoRole {
+  id: string;
+  name: string;
+  code: string;
+  description?: string | null;
+  status: UserStatus;
+  remark?: string | null;
+  ctime: string;
+  utime: string;
+}
+
+/** 用户权限资源（登录用户 info 中的 permissions 项） */
+interface UserInfoPermission {
+  id: string;
+  name: string;
+  code: string;
+  type: UserPermissionResourceType;
+  parentId?: string | null;
+  url?: string | null;
+  method?: UserPermissionResourceMethod | null;
+  remark?: string | null;
+  ctime: string;
+  utime: string;
+}
 
 interface UserInfoBase {
   /** 用户唯一标识，用于登录态判断、接口请求头等场景 */
@@ -57,6 +92,10 @@ interface UserInfoBase {
   birthday?: string | Date;
   /** 账号状态 */
   status: UserStatus;
+  /** 用户角色列表 */
+  roles: UserInfoRole[];
+  /** 用户权限资源列表 */
+  permissions: UserInfoPermission[];
 }
 
 type UserInfo = InterfaceToUndefinedNull<UserInfoBase>;

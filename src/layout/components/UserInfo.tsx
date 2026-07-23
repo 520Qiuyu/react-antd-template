@@ -1,21 +1,18 @@
-import { reqGetSelfUserInfo } from '@/apis';
 import { CopyText } from '@/components';
 import { useCompRef } from '@/hooks';
-import { useAppStore, useUserStore } from '@/store';
-import { msgError } from '@/utils/modal';
+import { useUser } from '@/hooks/useUser';
+import { useAppStore } from '@/store';
+import eventBus from '@/utils/eventBus';
 import { EditOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { Avatar, Button, Descriptions, Divider, Tag } from 'antd';
+import dayjs from 'dayjs';
 import EditUserInfoModal from './EditUserInfoModal';
 import styles from './index.module.less';
-import dayjs from 'dayjs';
-import eventBus from '@/utils/eventBus';
 
 export default function UserInfo() {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
-  const userInfo = useUserStore((state) => state.userInfo);
-  const setUserInfo = useUserStore((state) => state.setUserInfo);
-  const clearUser = useUserStore((state) => state.clearUser);
+  const { userInfo, clearUser, getUserInfo } = useUser();
   const clearTabs = useAppStore((state) => state.clearTabs);
   const isLogin = userInfo?.id;
 
@@ -32,20 +29,6 @@ export default function UserInfo() {
       console.log('error', error);
     }
   };
-
-  const getUserInfo = async () => {
-    try {
-      const res = await reqGetSelfUserInfo();
-      if (res.code !== 200) return msgError(res.message);
-      if (!res.data) return msgError('获取用户信息失败');
-      setUserInfo(res.data);
-    } catch (error) {
-      console.log('error', error);
-    }
-  };
-  useEffect(() => {
-    getUserInfo();
-  }, []);
 
   const editUserInfoModalRef = useCompRef(EditUserInfoModal);
   const handleEditInfo = () => {
@@ -147,11 +130,11 @@ const GENDER_TEXT_MAP: Record<NonNullable<UserInfo['gender']>, string> = {
 const STATUS_TEXT_MAP: Record<NonNullable<UserInfo['status']>, string> = {
   normal: '正常',
   disabled: '禁用',
-  deleted: '已删除',
+  // deleted: '已删除',
 };
 
 const STATUS_COLOR_MAP: Record<NonNullable<UserInfo['status']>, string> = {
   normal: 'success',
   disabled: 'warning',
-  deleted: 'error',
+  // deleted: 'error',
 };

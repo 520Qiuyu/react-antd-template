@@ -29,7 +29,7 @@ export const routes: IMenu[] = [
       {
         path: 'logs',
         name: '日志管理',
-        component: lazy(() => import('@/views/qishui/logs')),
+        component: lazy(() => import('@/views/qishui/parseLogs')),
       },
     ],
   },

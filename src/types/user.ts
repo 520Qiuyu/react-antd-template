@@ -1,5 +1,5 @@
 /** 用户状态 */
-export type UserStatus = 'normal' | 'disabled' | 'deleted';
+export type UserStatus = 'normal' | 'disabled' ;
 
 /** 用户性别 */
 export type UserGender = 'male' | 'female' | 'unknown';
@@ -56,6 +56,10 @@ export interface UserInfoResponseData {
   birthday?: string | Date | null;
   /** 用户状态 */
   status: UserStatus;
+  /** 用户角色列表 */
+  roles: UserInfoRole[];
+  /** 用户权限资源列表 */
+  permissions: UserInfoPermission[];
 }
 
 /** 用户列表项 */

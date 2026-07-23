@@ -8,6 +8,11 @@ import type {
 import { get } from 'utils/request';
 
 export { reqGetCardSecretBySecret } from './cardSecret';
+export {
+  reqDeleteParseLog,
+  reqGetParseLogById,
+  reqListParseLogs,
+} from './parseLog';
 
 /**
  * 歌曲分享链接解析

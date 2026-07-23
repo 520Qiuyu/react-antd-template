@@ -1,21 +1,45 @@
+# 依赖目录
 node_modules
 .pnpm-store
 .pnpm
+
+# 构建产物
 dist
 build
 .cache
+
+# 开发相关
 .vscode
 .idea
 *.log
+*.swp
+*.swo
+*~
+
+# 版本控制
 .git
 .gitignore
+.gitattributes
+
+# 文档
+README.md
 *.md
+
+# 环境变量文件
 .env
 .env.local
 .env.*.local
+
+# 测试相关
 coverage
+.nyc_output
+
+# 临时文件
 tmp
 temp
+*.tmp
+
+# 其他
 .DS_Store
 Thumbs.db
 docs

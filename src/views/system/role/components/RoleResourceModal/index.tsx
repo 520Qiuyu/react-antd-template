@@ -238,7 +238,6 @@ function RoleResourceModal(
           ) : (
             <Tree
               checkable
-              checkStrictly
               blockNode
               selectable={false}
               treeData={treeData}
@@ -246,8 +245,7 @@ function RoleResourceModal(
               expandedKeys={expandedKeys}
               onExpand={(keys) => setExpandedKeys(keys as string[])}
               onCheck={(checked) => {
-                const keys = Array.isArray(checked) ? checked : checked.checked;
-                setCheckedKeys(keys as string[]);
+                setCheckedKeys(checked as string[]);
               }}
             />
           )}

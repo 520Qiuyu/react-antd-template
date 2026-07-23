@@ -1,9 +1,13 @@
 import eventBus from '@/utils/eventBus';
-import { EditOutlined, KeyOutlined } from '@ant-design/icons';
+import { msgError } from '@/utils/modal';
+import { EditOutlined, KeyOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Spin } from 'antd';
 import dayjs from 'dayjs';
+import { useState } from 'react';
 import { useParseStore } from '../../store';
 import { maskCardSecret } from '../CardSecretModal';
 import styles from './index.module.less';
+import { useSearchParams } from '@/hooks/useSearchParams';
 
 /**
  * 侧栏卡密信息卡片（直接读取 parseStore）
@@ -13,10 +17,46 @@ import styles from './index.module.less';
  * ```
  */
 const CardSecretPanel: React.FC = () => {
+  const { searchParams } = useSearchParams<{ cardSecret?: string }>();
   const cardSecret = useParseStore((state) => state.cardSecret);
+  const getCardSecret = useParseStore((state) => state.getCardSecret);
+  const [refreshing, setRefreshing] = useState(false);
+
   const handleEdit = () => {
     eventBus.emit('cardSecretChange', 'edit');
   };
+
+  /**
+   * 重新拉取当前卡密详情并更新面板
+   * @example
+   * ```ts
+   * await handleRefresh();
+   * ```
+   */
+  const handleRefresh = async () => {
+    if (!searchParams.cardSecret || refreshing) return;
+    try {
+      setRefreshing(true);
+      const data = await getCardSecret(searchParams.cardSecret);
+      if (!data) {
+        msgError('刷新卡密信息失败');
+      }
+    } catch (error) {
+      console.log('error', error);
+      msgError(error instanceof Error ? error.message : '刷新卡密信息失败');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log('刷新卡密信息');
+    eventBus.on('cardSecretRefresh', handleRefresh);
+    return () => {
+      eventBus.off('cardSecretRefresh', handleRefresh);
+    };
+  }, []);
+
   if (!cardSecret) {
     return (
       <div className={`${styles['secretCard']} ${styles['isEmpty']}`} aria-label='卡密信息'>
@@ -33,6 +73,19 @@ const CardSecretPanel: React.FC = () => {
   const isNormal = cardSecret.status === 'normal';
   const masked = maskCardSecret(cardSecret.secret);
 
+  const refreshBtn = (
+    <button
+      type='button'
+      className={styles['refreshBtn']}
+      aria-label='刷新卡密信息'
+      disabled={refreshing}
+      onClick={handleRefresh}>
+      <ReloadOutlined spin={refreshing} aria-hidden='true' />
+    </button>
+  );
+
+  let cardBody: React.ReactNode;
+
   if (isTime) {
     const expire = cardSecret.expireTime ? dayjs(cardSecret.expireTime) : null;
     const now = dayjs();
@@ -42,13 +95,16 @@ const CardSecretPanel: React.FC = () => {
     const stateLabel = !isNormal ? '已禁用' : isExpired ? '已过期' : '有效中';
     const stateTone = !isNormal || isExpired ? 'bad' : 'ok';
 
-    return (
+    cardBody = (
       <div
         className={`${styles['secretCard']} ${styles['isTime']} ${stateTone === 'bad' ? styles['isWarn'] : ''}`}
         aria-label='卡密信息'>
         <div className={styles['secretHead']}>
           <span className={`${styles['typeBadge']} ${styles['typeTime']}`}>按时长</span>
-          <span className={`${styles['stateBadge']} ${styles[stateTone]}`}>{stateLabel}</span>
+          <div className={styles['secretHeadRight']}>
+            <span className={`${styles['stateBadge']} ${styles[stateTone]}`}>{stateLabel}</span>
+            {refreshBtn}
+          </div>
         </div>
 
         <div className={styles['secretCode']}>
@@ -90,78 +146,87 @@ const CardSecretPanel: React.FC = () => {
         )}
       </div>
     );
+  } else {
+    const limit = Math.max(cardSecret.parseLimit || 0, 0);
+    const used = Math.max(cardSecret.parsedCount || 0, 0);
+    const remain = Math.max(limit - used, 0);
+    const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 1000) / 10) : 0;
+    const depleted = limit > 0 && remain <= 0;
+    const stateLabel = !isNormal ? '已禁用' : depleted ? '已解析完毕' : '可解析';
+    const stateTone = !isNormal || depleted ? 'bad' : 'ok';
+
+    cardBody = (
+      <div
+        className={`${styles['secretCard']} ${styles['isCount']} ${stateTone === 'bad' ? styles['isWarn'] : ''}`}
+        aria-label='卡密信息'>
+        <div className={styles['secretHead']}>
+          <span className={`${styles['typeBadge']} ${styles['typeCount']}`}>按次数</span>
+          <div className={styles['secretHeadRight']}>
+            <span className={`${styles['stateBadge']} ${styles[stateTone]}`}>{stateLabel}</span>
+            {refreshBtn}
+          </div>
+        </div>
+
+        <div className={styles['secretCode']}>
+          <KeyOutlined aria-hidden='true' />
+          <code>{masked}</code>
+          {/* edit icon */}
+          <EditOutlined className={styles['editIcon']} onClick={handleEdit} />
+        </div>
+
+        <div className={`${styles['stateBanner']} ${styles[stateTone]}`} role='status'>
+          <span className={styles['stateBannerDot']} aria-hidden />
+          <span>
+            {depleted
+              ? '解析次数已用尽，无法继续解析'
+              : !isNormal
+                ? '卡密已禁用，请更换后使用'
+                : `还可解析 ${remain} 次`}
+          </span>
+        </div>
+
+        <div className={styles['countRow']}>
+          <div className={styles['countItem']}>
+            <span className={styles['countNum']}>{used}</span>
+            <span className={styles['countLabel']}>已用</span>
+          </div>
+          <div className={styles['countDivider']} aria-hidden />
+          <div className={styles['countItem']}>
+            <span className={styles['countNum']}>{remain}</span>
+            <span className={styles['countLabel']}>剩余</span>
+          </div>
+          <div className={styles['countDivider']} aria-hidden />
+          <div className={styles['countItem']}>
+            <span className={styles['countNum']}>{limit}</span>
+            <span className={styles['countLabel']}>总额</span>
+          </div>
+        </div>
+
+        <div className={styles['progressWrap']}>
+          <div className={styles['progressMeta']}>
+            <span>使用进度</span>
+            <span>{percent}%</span>
+          </div>
+          <div
+            className={styles['progressBar']}
+            role='progressbar'
+            aria-valuenow={percent}
+            aria-valuemin={0}
+            aria-valuemax={100}>
+            <div
+              className={`${styles['progressFill']} ${depleted ? styles['isFull'] : ''}`}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  const limit = Math.max(cardSecret.parseLimit || 0, 0);
-  const used = Math.max(cardSecret.parsedCount || 0, 0);
-  const remain = Math.max(limit - used, 0);
-  const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 1000) / 10) : 0;
-  const depleted = limit > 0 && remain <= 0;
-  const stateLabel = !isNormal ? '已禁用' : depleted ? '已解析完毕' : '可解析';
-  const stateTone = !isNormal || depleted ? 'bad' : 'ok';
-
   return (
-    <div
-      className={`${styles['secretCard']} ${styles['isCount']} ${stateTone === 'bad' ? styles['isWarn'] : ''}`}
-      aria-label='卡密信息'>
-      <div className={styles['secretHead']}>
-        <span className={`${styles['typeBadge']} ${styles['typeCount']}`}>按次数</span>
-        <span className={`${styles['stateBadge']} ${styles[stateTone]}`}>{stateLabel}</span>
-      </div>
-
-      <div className={styles['secretCode']}>
-        <KeyOutlined aria-hidden='true' />
-        <code>{masked}</code>
-        {/* edit icon */}
-        <EditOutlined className={styles['editIcon']} onClick={handleEdit} />
-      </div>
-
-      <div className={`${styles['stateBanner']} ${styles[stateTone]}`} role='status'>
-        <span className={styles['stateBannerDot']} aria-hidden />
-        <span>
-          {depleted
-            ? '解析次数已用尽，无法继续解析'
-            : !isNormal
-              ? '卡密已禁用，请更换后使用'
-              : `还可解析 ${remain} 次`}
-        </span>
-      </div>
-
-      <div className={styles['countRow']}>
-        <div className={styles['countItem']}>
-          <span className={styles['countNum']}>{used}</span>
-          <span className={styles['countLabel']}>已用</span>
-        </div>
-        <div className={styles['countDivider']} aria-hidden />
-        <div className={styles['countItem']}>
-          <span className={styles['countNum']}>{remain}</span>
-          <span className={styles['countLabel']}>剩余</span>
-        </div>
-        <div className={styles['countDivider']} aria-hidden />
-        <div className={styles['countItem']}>
-          <span className={styles['countNum']}>{limit}</span>
-          <span className={styles['countLabel']}>总额</span>
-        </div>
-      </div>
-
-      <div className={styles['progressWrap']}>
-        <div className={styles['progressMeta']}>
-          <span>使用进度</span>
-          <span>{percent}%</span>
-        </div>
-        <div
-          className={styles['progressBar']}
-          role='progressbar'
-          aria-valuenow={percent}
-          aria-valuemin={0}
-          aria-valuemax={100}>
-          <div
-            className={`${styles['progressFill']} ${depleted ? styles['isFull'] : ''}`}
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-      </div>
-    </div>
+    <Spin spinning={refreshing} wrapperClassName={styles['secretSpin']}>
+      {cardBody}
+    </Spin>
   );
 };
 

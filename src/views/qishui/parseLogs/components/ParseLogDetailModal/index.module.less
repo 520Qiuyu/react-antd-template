@@ -1,0 +1,246 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 4px 4px 8px;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 20px 18px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+}
+
+.heroSuccess {
+  background:
+    linear-gradient(135deg, rgba(82, 196, 26, 0.12) 0%, rgba(82, 196, 26, 0.02) 48%, #fff 100%),
+    #fafafa;
+  border-color: rgba(82, 196, 26, 0.18);
+}
+
+.heroFail {
+  background:
+    linear-gradient(135deg, rgba(255, 77, 79, 0.12) 0%, rgba(255, 77, 79, 0.02) 48%, #fff 100%),
+    #fafafa;
+  border-color: rgba(255, 77, 79, 0.18);
+}
+
+.heroStatus {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.heroIcon {
+  font-size: 28px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.heroSuccess .heroIcon {
+  color: #52c41a;
+}
+
+.heroFail .heroIcon {
+  color: #ff4d4f;
+}
+
+.heroText {
+  flex: 1;
+  min-width: 0;
+}
+
+.heroTitleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heroTitle {
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+  color: rgba(0, 0, 0, 0.88);
+  letter-spacing: -0.01em;
+}
+
+.heroSub {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.metaChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 12px;
+  line-height: 20px;
+  color: rgba(0, 0, 0, 0.65);
+  font-variant-numeric: tabular-nums;
+}
+
+.section {
+  & + & {
+    padding-top: 4px;
+  }
+}
+
+.sectionTitle {
+  margin-bottom: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  padding: 16px;
+  background: #fafafa;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+}
+
+.item {
+  min-width: 0;
+}
+
+.itemFull {
+  grid-column: 1 / -1;
+}
+
+.itemLabel {
+  margin-bottom: 4px;
+  font-size: 12px;
+  line-height: 20px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.itemValue {
+  font-size: 13px;
+  line-height: 22px;
+  color: rgba(0, 0, 0, 0.88);
+  word-break: break-all;
+}
+
+.muted {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+.resultOk,
+.resultFail {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.resultOk {
+  background: rgba(82, 196, 26, 0.06);
+  border-color: rgba(82, 196, 26, 0.16);
+  color: #389e0d;
+}
+
+.resultFail {
+  background: rgba(255, 77, 79, 0.06);
+  border-color: rgba(255, 77, 79, 0.16);
+  color: #cf1322;
+}
+
+.resultTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  color: inherit;
+}
+
+.resultDesc {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 20px;
+  color: rgba(0, 0, 0, 0.65);
+  word-break: break-all;
+}
+
+.paramsEmpty {
+  padding: 16px;
+  border-radius: 10px;
+  background: #fafafa;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  font-size: 13px;
+  line-height: 22px;
+  color: rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.paramsRaw {
+  padding: 12px 16px 14px;
+  border-radius: 10px;
+  background: #fafafa;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.paramsRawHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  line-height: 20px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.paramsPre {
+  margin: 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  font-size: 12px;
+  line-height: 20px;
+  color: rgba(0, 0, 0, 0.88);
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -155,6 +155,18 @@ export interface CreatePermissionRoleResourceParams {
   remark?: string;
 }
 
+/** 同步角色资源授权参数 */
+export interface SyncPermissionRoleResourcesParams {
+  roleId: string;
+  resourceIds: string[];
+}
+
+/** 同步角色资源授权结果 */
+export interface SyncPermissionRoleResourcesResult {
+  created: number;
+  deleted: number;
+}
+
 /** 更新角色资源关联参数 */
 export type UpdatePermissionRoleResourceParams = Partial<CreatePermissionRoleResourceParams>;
 

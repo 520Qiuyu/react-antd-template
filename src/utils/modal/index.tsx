@@ -59,7 +59,7 @@ export const msgLoading = (
 };
 
 /** 确认弹窗 */
-export const confirm = (content: string, title: string, otherOptions: ModalFuncProps = {}) => {
+export const confirm = (content: React.ReactNode, title: string, otherOptions: ModalFuncProps = {}) => {
   return new Promise((resolve, reject) => {
     const instance = modal.confirm({
       centered: true,

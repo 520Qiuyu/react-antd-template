@@ -1,3 +1,4 @@
+import type { Drop } from '@/hooks/useGetDrop';
 import type {
   CardSecretDetail,
   CardSecretListItem,
@@ -18,9 +19,17 @@ import { del, get, post, put } from 'utils/request';
  * ```
  */
 export const reqGetCardSecretBySecret = (secret: string) =>
-  get<CardSecretDetail>(
-    `/qishui/card-secret/secret/${encodeURIComponent(secret.trim())}`,
-  );
+  get<CardSecretDetail>(`/qishui/card-secret/secret/${encodeURIComponent(secret.trim())}`);
+
+/**
+ * 获取卡密列表 创建者下拉
+ * @example
+ * ```ts
+ * const res = await reqGetCreateUserOptions();
+ * ```
+ */
+export const reqGetCreateUserOptions = () =>
+  get<(Drop & { nickname: string | null })[]>(`/qishui/card-secret/create-user-options`);
 
 /**
  * 获取卡密列表
@@ -30,10 +39,7 @@ export const reqGetCardSecretBySecret = (secret: string) =>
  * ```
  */
 export const reqListCardSecrets = (params?: ListCardSecretParams) =>
-  get<IPageData<CardSecretListItem> & CardSecretListStats>(
-    '/qishui/card-secret',
-    params,
-  );
+  get<IPageData<CardSecretListItem> & CardSecretListStats>('/qishui/card-secret', params);
 
 /**
  * 获取卡密详情
@@ -72,10 +78,8 @@ export const reqUpdateCardSecret = (id: string, data: UpdateCardSecretParams) =>
  * const res = await reqUpdateCardSecretStatus(id, { status: 'disabled' });
  * ```
  */
-export const reqUpdateCardSecretStatus = (
-  id: string,
-  data: UpdateCardSecretStatusParams,
-) => put<CardSecretListItem>(`/qishui/card-secret/${id}/status`, data);
+export const reqUpdateCardSecretStatus = (id: string, data: UpdateCardSecretStatusParams) =>
+  put<CardSecretListItem>(`/qishui/card-secret/${id}/status`, data);
 
 /**
  * 删除卡密
@@ -84,5 +88,4 @@ export const reqUpdateCardSecretStatus = (
  * const res = await reqDeleteCardSecret(id);
  * ```
  */
-export const reqDeleteCardSecret = (id: string) =>
-  del<{ id: string }>(`/qishui/card-secret/${id}`);
+export const reqDeleteCardSecret = (id: string) => del<{ id: string }>(`/qishui/card-secret/${id}`);

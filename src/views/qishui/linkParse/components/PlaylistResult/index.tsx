@@ -10,6 +10,7 @@ import EngineStatus from '../EngineStatus';
 import PlaylistHero from './components/PlaylistHero';
 import TrackList from './components/TrackList';
 import styles from './index.module.less';
+import eventBus from '@/utils/eventBus';
 
 interface PlaylistResultProps {
   data: PlaylistInfo;
@@ -88,6 +89,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
           return false;
         }
         patchPlaylistTrackFullInfo(track.id, fullInfo);
+        eventBus.emit('cardSecretRefresh');
         return true;
       } catch (error) {
         console.log('parseTrack error', error);

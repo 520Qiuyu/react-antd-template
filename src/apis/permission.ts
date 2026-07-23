@@ -19,6 +19,8 @@ import type {
   PermissionRoleResourceListData,
   PermissionUserRoleItem,
   PermissionUserRoleListData,
+  SyncPermissionRoleResourcesParams,
+  SyncPermissionRoleResourcesResult,
   UpdatePermissionResourceParams,
   UpdatePermissionRoleParams,
   UpdatePermissionRoleResourceParams,
@@ -226,34 +228,15 @@ export const reqListAllPermissionRoleResources = async (roleId: string) => {
   return all;
 };
 
-/** 同步角色资源授权（对比 diff 后批量创建/删除） */
-export const reqSyncPermissionRoleResources = async (
+/** 同步角色资源授权（一次请求完成增删） */
+export const reqSyncPermissionRoleResources = (
   roleId: string,
   resourceIds: string[],
-): Promise<IApiResponse> => {
-  const existing = await reqListAllPermissionRoleResources(roleId);
-  const existingResourceIdSet = new Set(existing.map((item) => item.resourceId));
-  const targetResourceIdSet = new Set(resourceIds);
-
-  const toCreate = resourceIds.filter((resourceId) => !existingResourceIdSet.has(resourceId));
-  const toDelete = existing.filter((item) => !targetResourceIdSet.has(item.resourceId));
-
-  const results = await Promise.all([
-    ...toCreate.map((resourceId) => reqCreatePermissionRoleResource({ roleId, resourceId })),
-    ...toDelete.map((item) => reqDeletePermissionRoleResource(item.id)),
-  ]);
-
-  const failed = results.find((res) => res.code !== 200);
-  if (failed) {
-    return failed;
-  }
-
-  return {
-    code: 200,
-    data: null,
-    message: 'success',
-  };
-};
+) =>
+  post<SyncPermissionRoleResourcesResult, SyncPermissionRoleResourcesParams>(
+    '/permission/role-resource/sync',
+    { roleId, resourceIds },
+  );
 
 /** 获取角色全部成员关联（自动翻页） */
 export const reqListAllPermissionUserRolesByRole = async (roleId: string) => {

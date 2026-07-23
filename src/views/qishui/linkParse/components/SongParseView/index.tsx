@@ -10,6 +10,7 @@ import ParseFormPanel from '../ParseFormPanel';
 import { ParseEmptyState, ParseErrorState } from '../ParseState';
 import SongResult, { SongLyricBox, SongQualityList } from '../SongResult';
 import styles from './index.module.less';
+import eventBus from '@/utils/eventBus';
 
 interface SongParseViewProps {}
 
@@ -57,6 +58,7 @@ const SongParseView: React.FC<SongParseViewProps> = () => {
       }
 
       setSongHasResult(songInfo);
+      eventBus.emit('cardSecretRefresh');
     } catch (err) {
       console.log('error', err);
       setSongHasResult(null);

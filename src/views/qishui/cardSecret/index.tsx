@@ -1,16 +1,21 @@
 import {
   reqDeleteCardSecret,
+  reqGetCreateUserOptions,
   reqListCardSecrets,
   reqUpdateCardSecretStatus,
 } from '@/apis/qishui/cardSecret';
 import { CopyText, MyButton, MyPagination, SearchForm } from '@/components';
+import type { Option as SearchFormOption } from '@/components/SearchForm';
 import { Status, STATUS_OPTIONS } from '@/constants';
 import { useCompRef, useGetList, useSearchParams } from '@/hooks';
+import { useUser } from '@/hooks/useUser';
 import type { CardSecretListItem, CardSecretListStats, CardSecretType } from '@/types/cardSecret';
+import copy from '@/utils/copy';
 import { confirm, msgError, msgSuccess } from '@/utils/modal';
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import { Card, Space, Switch, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import CardSecretFormModal from './components/CardSecretFormModal';
 import CardSecretStat from './components/CardSecretStat';
@@ -28,8 +33,47 @@ const defaultSearchParams: SearchParams = {
 const CardSecret: React.FC = () => {
   const formModalRef = useCompRef(CardSecretFormModal);
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
-  const { list, loading, total, otherInfo } = useGetList(reqListCardSecrets, searchParams);
-  const stats = otherInfo as Partial<CardSecretListStats>;
+  const { isAdmin, isSuperAdmin } = useUser();
+  const usedSearchParams = useMemo(() => {
+    const { sortOrder, ...rest } = searchParams;
+    return {
+      ...rest,
+      sortOrder: sortOrder === 'ascend' ? 'asc' : 'desc',
+    };
+  }, [searchParams]);
+
+  const searchFormOptions: SearchFormOption[] = [
+    {
+      name: 'keyword',
+      label: '关键词',
+      inputProps: { placeholder: '卡号 / ID / 备注' },
+    },
+    {
+      name: 'type',
+      label: '类型',
+      type: 'select',
+      options: CARD_SECRET_TYPE_OPTIONS,
+      inputProps: {
+        mode: undefined,
+        placeholder: '请选择类型',
+      },
+    },
+    // 创建者
+    isAdmin || isSuperAdmin
+      ? {
+          name: 'createUserId',
+          label: '创建者',
+          type: 'select',
+          getOptionsApi: reqGetCreateUserOptions,
+        }
+      : undefined,
+    {
+      name: 'status',
+      label: '状态',
+      type: 'select',
+      options: STATUS_OPTIONS,
+    },
+  ].filter(Boolean) as SearchFormOption[];
 
   /** 搜索 */
   const handleSearch = (values: SearchParams) => {
@@ -47,6 +91,26 @@ const CardSecret: React.FC = () => {
     } catch (error) {
       console.log('error', error);
     }
+  };
+
+  /** 复制卡密发货文本 */
+  const handleCopyCardSecretText = (record: CardSecretListItem) => {
+    const { origin, pathname } = window.location;
+    const { secret, type, expireTime, parseLimit } = record;
+    // 是否是按次付费
+    const isCount = type === 'count';
+    const expireTimeText = expireTime ? dayjs(expireTime).format('YYYY-MM-DD HH:mm:ss') : '-';
+    const parseLimitText = parseLimit ? `${parseLimit}次` : '-';
+    const url = `${origin}${pathname}#/qishui/link-parse?cardSecret=${secret}`;
+    const text = `欢迎使用汽水音乐下载系统
+    您的卡密：${secret}
+    卡密类型为：${CARD_SECRET_TYPE_TEXT_MAP[type]}
+    ${isCount ? `按次付费，每次解析消耗${parseLimitText}` : `过期时间：${expireTimeText}`}
+    请使用以下链接前往浏览器访问：
+      ${url}
+    `;
+    confirm(<div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>, '提示');
+    copy(text);
   };
 
   /** 启用/禁用卡密 */
@@ -67,9 +131,9 @@ const CardSecret: React.FC = () => {
 
   /** 渲染解析数量 */
   const renderParseCount = (record: CardSecretListItem) => {
-    if (record.type !== 'count') {
+    /* if (record.type !== 'count') {
       return <span className={styles['cookieEmpty']}>-</span>;
-    }
+    } */
 
     const totalCount = record.parseLimit || record.parsedCount + record.unparsedCount;
     const percent = totalCount > 0 ? (record.parsedCount / totalCount) * 100 : 0;
@@ -95,6 +159,8 @@ const CardSecret: React.FC = () => {
       dataIndex: 'id',
       width: 140,
       ellipsis: true,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'id' ? searchParams.sortOrder : undefined,
       render: (val: string) => <span className={styles['idCell']}>{val}</span>,
     },
     {
@@ -102,12 +168,22 @@ const CardSecret: React.FC = () => {
       dataIndex: 'secret',
       width: 200,
       fixed: 'left',
+      sorter: true,
+      sortOrder: searchParams.sortField === 'secret' ? searchParams.sortOrder : undefined,
       render: (val: string) => <CopyText text={val} />,
+    },
+    {
+      title: '创建者',
+      dataIndex: 'createUser',
+      width: 120,
+      render: (val: { account: string }) => <span>{val?.account}</span>,
     },
     {
       title: '类型',
       dataIndex: 'type',
       width: 120,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'type' ? searchParams.sortOrder : undefined,
       render: (type: CardSecretType) => (
         <Tag color={CARD_SECRET_TYPE_COLOR_MAP[type]}>{CARD_SECRET_TYPE_TEXT_MAP[type]}</Tag>
       ),
@@ -116,12 +192,17 @@ const CardSecret: React.FC = () => {
       title: '过期时间',
       dataIndex: 'expireTime',
       width: 180,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'expireTime' ? searchParams.sortOrder : undefined,
       render: (val?: string | null) => (val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'),
     },
     {
       title: '解析数量（已解析/剩余）',
       key: 'parseCount',
+      dataIndex: 'parsedCount',
       width: 180,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'parsedCount' ? searchParams.sortOrder : undefined,
       render: (_, record) => renderParseCount(record),
     },
     {
@@ -139,8 +220,10 @@ const CardSecret: React.FC = () => {
     },
     {
       title: '是否启用',
-      key: 'status',
+      dataIndex: 'status',
       width: 120,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'status' ? searchParams.sortOrder : undefined,
       render: (_, record) => (
         <Switch
           checked={record.status === Status.NORMAL}
@@ -152,12 +235,16 @@ const CardSecret: React.FC = () => {
       title: '创建时间',
       dataIndex: 'ctime',
       width: 180,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'ctime' ? searchParams.sortOrder : undefined,
       render: (val: string) => (val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'),
     },
     {
       title: '更新时间',
       dataIndex: 'utime',
       width: 180,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'utime' ? searchParams.sortOrder : undefined,
       render: (val: string) => (val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'),
     },
     {
@@ -168,6 +255,15 @@ const CardSecret: React.FC = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space align='center' size={4}>
+          {/* 复制卡密发货文本 */}
+          <MyButton
+            size='small'
+            variant='text'
+            color='primary'
+            icon={<CopyOutlined />}
+            toolTip='复制卡密发货文本'
+            onClick={() => handleCopyCardSecretText(record)}
+          />
           <MyButton
             size='small'
             variant='text'
@@ -189,6 +285,9 @@ const CardSecret: React.FC = () => {
     },
   ];
 
+  const { list, loading, total, otherInfo } = useGetList(reqListCardSecrets, usedSearchParams);
+  const stats = otherInfo as Partial<CardSecretListStats>;
+
   return (
     <div className={styles['page']}>
       <CardSecretStat total={total} stats={stats} />
@@ -209,33 +308,7 @@ const CardSecret: React.FC = () => {
             searchParams={searchParams}
             loading={loading}
             onSearch={handleSearch}
-            options={[
-              {
-                name: 'keyword',
-                label: '关键词',
-                inputProps: { placeholder: '卡号 / ID / 备注' },
-              },
-              {
-                name: 'type',
-                label: '类型',
-                type: 'select',
-                options: CARD_SECRET_TYPE_OPTIONS,
-                inputProps: {
-                  mode: undefined,
-                  placeholder: '请选择类型',
-                },
-              },
-              {
-                name: 'status',
-                label: '状态',
-                type: 'select',
-                options: STATUS_OPTIONS,
-                inputProps: {
-                  mode: undefined,
-                  placeholder: '请选择状态',
-                },
-              },
-            ]}
+            options={searchFormOptions}
           />
         </div>
         <Table
@@ -245,6 +318,14 @@ const CardSecret: React.FC = () => {
           loading={loading}
           pagination={false}
           scroll={{ x: 1460 }}
+          onChange={(_, __, sorter) => {
+            const { field, order } = sorter as SorterResult<CardSecretListItem>;
+            setSearchParams({
+              ...searchParams,
+              sortField: field as string,
+              sortOrder: order as SortOrder,
+            });
+          }}
         />
         <MyPagination
           current={searchParams.pageNum}
@@ -266,6 +347,7 @@ export default CardSecret;
 
 interface SearchParams extends PaginationParams {
   keyword?: string;
-  type?: CardSecretType;
+  type?: CardSecretType | string;
   status?: string;
+  createUserId?: string;
 }

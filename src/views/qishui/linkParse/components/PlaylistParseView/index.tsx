@@ -39,7 +39,10 @@ const PlaylistParseView: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await reqParsePlaylistShareLink({ shareLink: link.trim() });
+      const res = await reqParsePlaylistShareLink({
+        shareLink: link.trim(),
+        cardSecret: searchParams.cardSecret!,
+      });
       if (res.code !== 200) {
         setPlaylistHasResult(null);
         setError(res.message || '解析失败');

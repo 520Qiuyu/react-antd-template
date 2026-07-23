@@ -1,3 +1,4 @@
+import { reqGetSelfUserInfo } from '@/apis';
 import {
   clearAllLocalUserInfo,
   clearLocalUserInfo,
@@ -32,6 +33,10 @@ interface UserStoreAction {
    * 获取当前用户权限码，并写入 store 与本地缓存。
    */
   getAuth: () => Promise<void>;
+  /**
+   * 获取用户信息
+   */
+  getUserInfo: () => Promise<UserInfo | null | undefined>;
 }
 
 type UserStore = UserStoreState & UserStoreAction;
@@ -64,6 +69,18 @@ export const useUserStore = create<UserStore>((set, get) => ({
       const auth = Array.isArray(res.data) ? res.data : [];
 
       get().setAuth(auth); */
+    } catch (error) {
+      console.log('error', error);
+    }
+  },
+  getUserInfo: async () => {
+    try {
+      const res = await reqGetSelfUserInfo();
+      if (res.code === 200) {
+        set({ userInfo: res.data });
+        return res.data as UserInfo;
+      }
+      return null;
     } catch (error) {
       console.log('error', error);
     }
