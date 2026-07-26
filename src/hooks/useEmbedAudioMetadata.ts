@@ -150,34 +150,93 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
         throw new Error('音频文件名无效');
       }
       // 仅当 cover Blob 真实存在时才映射封面；避免只有 coverName 导致找不到 cover.jpg
-      const coverExt = cover ? rawCoverExt : null;
+      const coverExt = cover ? normalizeCoverExt(rawCoverExt) : null;
       if (cover && !coverExt) {
         throw new Error('专辑封面文件名无效');
       }
-      const { args, inputName, outputName, mimeType } = buildFfmpegArgs(
-        inputExt,
-        coverExt,
-        metadata,
-        outputFormat,
-      );
-      console.log('args', args);
-      const temporaryFiles = [inputName, outputName];
+
+      const sourceName = `input.${inputExt}`;
+      const temporaryFiles = [sourceName];
       if (coverExt) temporaryFiles.push(`cover.${coverExt}`);
 
       const ffmpeg = getSharedFfmpeg();
       try {
         await loadFfmpeg();
         setSharedStatus('processing');
-        await ffmpeg.writeFile(inputName, await fetchFile(audio));
+        await ffmpeg.writeFile(sourceName, await fetchFile(audio));
 
         if (cover && coverExt) {
           await ffmpeg.writeFile(`cover.${coverExt}`, await fetchFile(cover));
         }
 
+        // 视频容器：有封面时先抽纯音轨再嵌封面（避免音画交织+封面同时处理卡住）；
+        // 无封面且目标 m4a 时可一步完成（抽轨+元数据），少一轮 remux
+        let audioInputName = sourceName;
+        let audioInputExt = inputExt;
+        const isVideoInput = isVideoContainerExt(inputExt);
+
+        if (isVideoInput) {
+          const canFinishInOnePass = !coverExt && outputFormat === 'm4a';
+          const extractedName = canFinishInOnePass ? `output.${outputFormat}` : 'extracted.m4a';
+          temporaryFiles.push(extractedName);
+
+          const extractArgs = [
+            '-y',
+            '-i',
+            sourceName,
+            '-map',
+            '0:a:0',
+            '-vn',
+            '-c:a',
+            'copy',
+            ...(canFinishInOnePass ? buildMetadataArgs(metadata) : []),
+            extractedName,
+          ];
+          console.log('extractArgs', extractArgs);
+          const extractCode = await ffmpeg.exec(extractArgs);
+          if (extractCode !== 0) {
+            throw new Error(`ffmpeg 抽取音轨失败，退出码：${extractCode}`);
+          }
+
+          await ffmpeg.deleteFile(sourceName).catch(() => undefined);
+          const sourceIdx = temporaryFiles.indexOf(sourceName);
+          if (sourceIdx >= 0) temporaryFiles.splice(sourceIdx, 1);
+
+          if (canFinishInOnePass) {
+            const outputData = await ffmpeg.readFile(extractedName);
+            setSharedProgress(100);
+            callbacksRef.current.onProgress?.(100);
+            const outputBlob = createOutputBlob(outputData, OUTPUT_MIME[outputFormat]);
+            setSharedStatus('ready');
+            return outputBlob;
+          }
+
+          audioInputName = extractedName;
+          audioInputExt = 'm4a';
+        }
+
+        const { args, outputName, mimeType } = buildFfmpegArgs(
+          audioInputName,
+          audioInputExt,
+          coverExt,
+          metadata,
+          outputFormat,
+        );
+        temporaryFiles.push(outputName);
+        console.log('args', args);
+
         const exitCode = await ffmpeg.exec(args);
         if (exitCode !== 0) {
           throw new Error(`ffmpeg 处理失败，退出码：${exitCode}`);
         }
+
+        // 读输出前删掉输入，避免 wasm/JS 内存叠加卡住
+        await cleanupFiles(
+          ffmpeg,
+          temporaryFiles.filter((name) => name !== outputName),
+        );
+        temporaryFiles.length = 0;
+        temporaryFiles.push(outputName);
 
         const outputData = await ffmpeg.readFile(outputName);
         setSharedProgress(100);
@@ -269,13 +328,32 @@ const OUTPUT_MIME: Record<EmbedOutputFormat, string> = {
   flac: 'audio/flac',
 };
 
+/** 视为视频容器的扩展名：需先抽音轨再嵌元数据 */
+const VIDEO_CONTAINER_EXTS = new Set(['mp4', 'mov', 'm4v', 'webm', 'mkv', 'avi']);
+
+const isVideoContainerExt = (ext: string) => VIDEO_CONTAINER_EXTS.has(ext);
+
+/** jpeg 系封面可直接 copy，避免 wasm 再编码卡住 */
+const JPEG_COVER_EXTS = new Set(['jpg', 'jpeg', 'jpe', 'jfif', 'mjpeg']);
+
+/**
+ * 归一化封面扩展名
+ * @example
+ * normalizeCoverExt('JPEG') // 'jpeg'
+ */
+const normalizeCoverExt = (ext: string | null) => {
+  if (!ext) return null;
+  if (ext === 'jpg' || ext === 'jpe' || ext === 'jfif') return 'jpeg';
+  return ext;
+};
+
 /** 按目标格式选择音频编码参数；同格式时可 copy */
 const buildAudioCodecArgs = (outputFormat: EmbedOutputFormat, inputExt: string) => {
   if (outputFormat === 'mp3') {
     return inputExt === 'mp3' ? ['-c:a', 'copy'] : ['-c:a', 'libmp3lame', '-q:a', '2'];
   }
   if (outputFormat === 'm4a') {
-    return ['m4a', 'mp4', 'aac'].includes(inputExt)
+    return ['m4a', 'aac'].includes(inputExt)
       ? ['-c:a', 'copy']
       : ['-c:a', 'aac', '-b:a', '256k'];
   }
@@ -283,15 +361,23 @@ const buildAudioCodecArgs = (outputFormat: EmbedOutputFormat, inputExt: string) 
 };
 
 /** 按目标格式追加封面 / 标签容器相关参数 */
-const buildContainerArgs = (outputFormat: EmbedOutputFormat, hasCover: boolean) => {
+const buildContainerArgs = (
+  outputFormat: EmbedOutputFormat,
+  coverExt: string | null,
+) => {
   const args: string[] = [];
+  const hasCover = Boolean(coverExt);
+  const coverVideoCodec =
+    coverExt && JPEG_COVER_EXTS.has(coverExt) ? 'copy' : 'mjpeg';
 
   if (outputFormat === 'mp3') {
     args.push('-id3v2_version', '3', '-write_id3v2', '1');
     if (hasCover) {
       args.push(
         '-c:v',
-        'mjpeg',
+        coverVideoCodec,
+        '-frames:v',
+        '1',
         '-metadata:s:v',
         'title=Album cover',
         '-metadata:s:v',
@@ -303,14 +389,28 @@ const buildContainerArgs = (outputFormat: EmbedOutputFormat, hasCover: boolean) 
 
   if (outputFormat === 'm4a') {
     if (hasCover) {
-      args.push('-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic');
+      args.push(
+        '-c:v',
+        coverVideoCodec,
+        '-frames:v',
+        '1',
+        '-disposition:v:0',
+        'attached_pic',
+      );
     }
     return args;
   }
 
   // flac
   if (hasCover) {
-    args.push('-c:v', 'mjpeg', '-disposition:v:0', 'attached_pic');
+    args.push(
+      '-c:v',
+      coverVideoCodec,
+      '-frames:v',
+      '1',
+      '-disposition:v:0',
+      'attached_pic',
+    );
   }
   return args;
 };
@@ -345,17 +445,21 @@ const buildMetadataArgs = (metadata: AudioMetadata) => {
 
 /**
  * 按目标格式（mp3 / m4a / flac）构建 ffmpeg 参数，写入元信息与可选封面
+ * @example
+ * ```ts
+ * buildFfmpegArgs('extracted.m4a', 'm4a', 'jpeg', { title: '歌名' }, 'm4a');
+ * ```
  */
 const buildFfmpegArgs = (
+  inputName: string,
   inputExt: string,
   coverExt: string | null,
   metadata: AudioMetadata,
   outputFormat: EmbedOutputFormat,
 ) => {
-  const inputName = `input.${inputExt}`;
   const outputName = `output.${outputFormat}`;
   const hasCover = Boolean(coverExt);
-  const args = ['-i', inputName];
+  const args = ['-y', '-i', inputName];
 
   if (hasCover && coverExt) {
     args.push('-i', `cover.${coverExt}`, '-map', '0:a:0', '-map', '1:v:0');
@@ -364,11 +468,11 @@ const buildFfmpegArgs = (
   }
 
   args.push(...buildAudioCodecArgs(outputFormat, inputExt));
-  args.push(...buildContainerArgs(outputFormat, hasCover));
+  args.push(...buildContainerArgs(outputFormat, coverExt));
   args.push(...buildMetadataArgs(metadata));
   args.push(outputName);
 
-  return { args, inputName, outputName, mimeType: OUTPUT_MIME[outputFormat], outputFormat };
+  return { args, outputName, mimeType: OUTPUT_MIME[outputFormat], outputFormat };
 };
 
 /** 将 FFmpeg 文件系统返回值转换为可下载 Blob。 */

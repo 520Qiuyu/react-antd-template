@@ -1,6 +1,7 @@
-import { reqGetSongInfo } from '@/apis';
+import { reqGetSongInfo, reqGetVideoInfo } from '@/apis';
 import { useEmbedAudioMetadata, useSearchParams } from '@/hooks';
 import type { PlaylistInfo, PlaylistMusicInfo } from '@/types/qishui';
+import eventBus from '@/utils/eventBus';
 import { msgError, msgSuccess } from '@/utils/modal';
 import { PLAYLIST_PARSE_CONCURRENCY } from '../../constants';
 import { downloadSongAudio, downloadSongLyric, runWithConcurrency } from '../../downloadSong';
@@ -10,7 +11,7 @@ import EngineStatus from '../EngineStatus';
 import PlaylistHero from './components/PlaylistHero';
 import TrackList from './components/TrackList';
 import styles from './index.module.less';
-import eventBus from '@/utils/eventBus';
+import { isDev } from '@/utils';
 
 interface PlaylistResultProps {
   data: PlaylistInfo;
@@ -32,9 +33,14 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     (state) => state.clearPlaylistDownloadStatus,
   );
   /** 内嵌音频元数据 */
-  const { embedMetadata } = useEmbedAudioMetadata();
+  const { embedMetadata } = useEmbedAudioMetadata({
+    onLog: (message, type) => {
+      /* if (isDev) {
+        console.log('embedMetadata log', message, type);
+      } */
+    },
+  });
 
-  const [filter, setFilter] = useState('');
   const [batchProgress, setBatchProgress] = useState({ success: 0, failed: 0 });
   const [parsingIds, setParsingIds] = useState<Set<string>>(() => new Set());
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(() => new Set());
@@ -78,7 +84,11 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
 
       markParsing(track.id, true);
       try {
-        const res = await reqGetSongInfo({ songId: track.id, cardSecret: searchParams.cardSecret });
+        const cardSecret = searchParams.cardSecret;
+        const res =
+          track.type === 'video'
+            ? await reqGetVideoInfo({ videoId: track.id, cardSecret })
+            : await reqGetSongInfo({ songId: track.id, cardSecret });
         if (res.code !== 200) {
           // if (!silent) msgError(res.message || '解析失败');
           return false;

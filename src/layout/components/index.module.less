@@ -85,15 +85,14 @@
     user-select: none;
   }
 
-  &:global(.ant-layout-sider){
-     backdrop-filter: blur(var(--layout-glass-blur));
-      -webkit-backdrop-filter: blur(var(--layout-glass-blur));
+  &:global(.ant-layout-sider) {
+    backdrop-filter: blur(var(--layout-glass-blur));
+    -webkit-backdrop-filter: blur(var(--layout-glass-blur));
   }
 
   :global {
     .ant-layout-sider-children {
       // background: linear-gradient(180deg, var(--layout-glass-bg-strong), var(--layout-glass-bg));
-     
     }
 
     .ant-menu {
@@ -150,7 +149,6 @@
     &.is-hide {
       right: 0;
       opacity: 0;
-
     }
   }
 }
@@ -233,7 +231,11 @@
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      background 0.15s ease,
+      box-shadow 0.15s ease,
+      color 0.15s ease;
 
     &:hover {
       transform: translateY(-1px);
@@ -271,6 +273,10 @@
   backdrop-filter: blur(var(--layout-glass-blur));
   -webkit-backdrop-filter: blur(var(--layout-glass-blur));
   padding: 14px;
+
+  &.hidden-layout {
+    padding: 0;
+  }
 
   &::-webkit-scrollbar {
     width: 10px;

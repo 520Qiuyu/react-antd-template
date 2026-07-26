@@ -7,6 +7,7 @@ import {
   LoadingOutlined,
   SearchOutlined,
   ThunderboltOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames';
 import { formatDuration, isTrackParsed } from '../../../../utils';
@@ -261,7 +262,15 @@ const TrackList: React.FC<TrackListProps> = ({
                 [styles['itemBusy']]: parsing || downloading,
               })}>
               <span className={styles['index']}>{String(index + 1).padStart(2, '0')}</span>
-              <img className={styles['itemCover']} src={track.cover} alt='' />
+              <div className={styles['itemCoverWrap']}>
+                <img className={styles['itemCover']} src={track.cover} alt='' />
+                {track.type === 'video' ? (
+                  <span className={styles['videoBadge']} aria-label='视频歌曲'>
+                    <VideoCameraOutlined />
+                    视频
+                  </span>
+                ) : null}
+              </div>
               <div className={styles['info']}>
                 <p className={styles['itemTitle']}>{track.title || '未知歌曲'}</p>
                 <p className={styles['itemArtist']}>
@@ -334,32 +343,37 @@ const TrackList: React.FC<TrackListProps> = ({
                       {downloading ? <LoadingOutlined /> : <CloudDownloadOutlined />}
                       下载
                     </button>
-                    <button
-                      className={classNames(
-                        sharedStyles['btn'],
-                        sharedStyles['btnGhost'],
-                        sharedStyles['btnSm'],
-                      )}
-                      type='button'
-                      disabled={downloading}
-                      aria-label={`下载歌词 lrc ${track.title}`}
-                      onClick={() => onDownloadLyric(track, 'lrc')}>
-                      <FileTextOutlined />
-                      lrc
-                    </button>
-                    <button
-                      className={classNames(
-                        sharedStyles['btn'],
-                        sharedStyles['btnGhost'],
-                        sharedStyles['btnSm'],
-                      )}
-                      type='button'
-                      disabled={downloading}
-                      aria-label={`下载歌词 txt ${track.title}`}
-                      onClick={() => onDownloadLyric(track, 'txt')}>
-                      <FileTextOutlined />
-                      txt
-                    </button>
+                    {track.type === 'track' ? (
+                      <>
+                        {' '}
+                        <button
+                          className={classNames(
+                            sharedStyles['btn'],
+                            sharedStyles['btnGhost'],
+                            sharedStyles['btnSm'],
+                          )}
+                          type='button'
+                          disabled={downloading}
+                          aria-label={`下载歌词 lrc ${track.title}`}
+                          onClick={() => onDownloadLyric(track, 'lrc')}>
+                          <FileTextOutlined />
+                          lrc
+                        </button>
+                        <button
+                          className={classNames(
+                            sharedStyles['btn'],
+                            sharedStyles['btnGhost'],
+                            sharedStyles['btnSm'],
+                          )}
+                          type='button'
+                          disabled={downloading}
+                          aria-label={`下载歌词 txt ${track.title}`}
+                          onClick={() => onDownloadLyric(track, 'txt')}>
+                          <FileTextOutlined />
+                          txt
+                        </button>
+                      </>
+                    ) : null}
                   </>
                 )}
               </div>

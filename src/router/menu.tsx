@@ -15,6 +15,14 @@ export const routes: IMenu[] = [
         name: '卡密管理',
         component: lazy(() => import('@/views/qishui/cardSecret')),
       },
+      // 快速创建卡密
+      {
+        path: 'quick-create-card',
+        name: '快速创建卡密',
+        component: lazy(() => import('@/views/qishui/quickCreateCard')),
+        hiddenLayout: true,
+        hidden: true,
+      },
       {
         path: 'auth-info',
         name: '认证信息管理',

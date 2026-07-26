@@ -1,6 +1,8 @@
 import type {
   GetSongInfoParams,
   GetSongInfoResponseData,
+  GetVideoInfoParams,
+  GetVideoInfoResponseData,
   ParsePlaylistShareLinkResponseData,
   ParseShareLinkParams,
   ParseSongShareLinkResponseData,
@@ -46,3 +48,13 @@ export const reqParsePlaylistShareLink = (params: ParseShareLinkParams) =>
  */
 export const reqGetSongInfo = (params: GetSongInfoParams) =>
   get<GetSongInfoResponseData>('/qishui/get-song-info', params);
+
+/**
+ * 根据视频 id 获取视频歌曲信息
+ * @example
+ * ```ts
+ * const res = await reqGetVideoInfo({ videoId: '7639280897337855278' });
+ * ```
+ */
+export const reqGetVideoInfo = (params: GetVideoInfoParams) =>
+  get<GetVideoInfoResponseData>('/qishui/get-video-info', params);

@@ -106,7 +106,11 @@ export default function Main() {
       ) : null}
       <TransitionComponent>
         {(nodeRef) => (
-          <div className={styles['content']} ref={nodeRef as RefObject<HTMLDivElement>}>
+          <div
+            className={classNames(styles['content'], {
+              [styles['hidden-layout']]: currentRoute?.hiddenLayout,
+            })}
+            ref={nodeRef as RefObject<HTMLDivElement>}>
             <Suspense
               fallback={
                 <Spin

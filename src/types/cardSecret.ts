@@ -40,6 +40,8 @@ export interface ListCardSecretParams {
   keyword?: string;
   type?: CardSecretType;
   status?: CardSecretStatus;
+  /** 创建者 ID（逗号分隔多选，仅管理员可用） */
+  createUserId?: string;
 }
 
 /** 卡密列表项 */
@@ -67,6 +69,8 @@ export interface CardSecretListItem {
   status: CardSecretStatus | string;
   /** 备注 */
   remark?: string | null;
+  /** 创建者 */
+  createUser?: { account: string } | null;
   /** 创建时间 */
   ctime: string;
   /** 更新时间 */

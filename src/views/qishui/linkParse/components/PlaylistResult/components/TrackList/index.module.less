@@ -177,12 +177,42 @@
   text-align: center;
 }
 
-.itemCover {
+.itemCoverWrap {
+  position: relative;
   width: 44px;
   height: 44px;
+}
+
+.itemCover {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   border-radius: 8px;
   background: var(--lp-bg-mute);
+}
+
+.videoBadge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  border-radius: 0 8px 0 6px;
+  color: #fff;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.35);
+  pointer-events: none;
+
+  :global(.anticon) {
+    font-size: 9px;
+  }
 }
 
 .info {
@@ -271,8 +301,10 @@
     grid-area: index;
   }
 
-  .itemCover {
+  .itemCoverWrap {
     grid-area: cover;
+    width: 40px;
+    height: 40px;
   }
 
   .info {

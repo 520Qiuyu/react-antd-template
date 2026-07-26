@@ -40,6 +40,27 @@
   flex-direction: column;
   gap: 6px;
   min-width: 120px;
+  padding: 2px 0;
+  cursor: pointer;
+  border-radius: 4px;
+  outline: none;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.75;
+
+    .parsed {
+      color: @primary-color;
+    }
+
+    .parseBarFill {
+      background: linear-gradient(90deg, darken(@primary-color, 4%) 0%, @primary-color 100%);
+    }
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px fade(@primary-color, 25%);
+  }
 }
 
 .parseCountText {

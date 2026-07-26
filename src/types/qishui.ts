@@ -31,6 +31,7 @@ export interface MusicInfo {
 
 /** 歌单内歌曲信息 */
 export interface PlaylistMusicInfo {
+  type?: 'track' | 'video';
   id?: string;
   title?: string;
   artist?: string;
@@ -87,5 +88,17 @@ export interface GetSongInfoParams {
 /** 根据歌曲 id 获取歌曲信息响应 */
 export interface GetSongInfoResponseData {
   songId: string;
+  fullInfo: MusicInfo | null;
+}
+
+/** 根据视频 id 查询参数 */
+export interface GetVideoInfoParams {
+  videoId: string;
+  cardSecret: string;
+}
+
+/** 根据视频 id 获取视频歌曲信息响应 */
+export interface GetVideoInfoResponseData {
+  videoId: string;
   fullInfo: MusicInfo | null;
 }

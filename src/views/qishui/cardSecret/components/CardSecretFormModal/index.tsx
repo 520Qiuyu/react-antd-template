@@ -199,6 +199,10 @@ function CardSecretFormModal(
                       value: dayjs().add(1, 'month'),
                     },
                     {
+                      label: '三个月',
+                      value: dayjs().add(3, 'month'),
+                    },
+                    {
                       label: '半年',
                       value: dayjs().add(6, 'month'),
                     },

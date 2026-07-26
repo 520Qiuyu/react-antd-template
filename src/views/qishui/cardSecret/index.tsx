@@ -7,16 +7,16 @@ import {
 import { CopyText, MyButton, MyPagination, SearchForm } from '@/components';
 import type { Option as SearchFormOption } from '@/components/SearchForm';
 import { Status, STATUS_OPTIONS } from '@/constants';
-import { useCompRef, useGetList, useSearchParams } from '@/hooks';
+import { getSearchFromObject, useCompRef, useGetList, useSearchParams } from '@/hooks';
 import { useUser } from '@/hooks/useUser';
 import type { CardSecretListItem, CardSecretListStats, CardSecretType } from '@/types/cardSecret';
-import copy from '@/utils/copy';
 import { confirm, msgError, msgSuccess } from '@/utils/modal';
 import { CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import { Card, Space, Switch, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
 import CardSecretFormModal from './components/CardSecretFormModal';
 import CardSecretStat from './components/CardSecretStat';
 import {
@@ -25,12 +25,14 @@ import {
   CARD_SECRET_TYPE_TEXT_MAP,
 } from './constants';
 import styles from './index.module.less';
+import { copyCardSecretText } from './utils/copyCardSecretText';
 
 const defaultSearchParams: SearchParams = {
   pageNum: 1,
   pageSize: 10,
 };
 const CardSecret: React.FC = () => {
+  const navigate = useNavigate();
   const formModalRef = useCompRef(CardSecretFormModal);
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
   const { isAdmin, isSuperAdmin } = useUser();
@@ -95,22 +97,7 @@ const CardSecret: React.FC = () => {
 
   /** 复制卡密发货文本 */
   const handleCopyCardSecretText = (record: CardSecretListItem) => {
-    const { origin, pathname } = window.location;
-    const { secret, type, expireTime, parseLimit } = record;
-    // 是否是按次付费
-    const isCount = type === 'count';
-    const expireTimeText = expireTime ? dayjs(expireTime).format('YYYY-MM-DD HH:mm:ss') : '-';
-    const parseLimitText = parseLimit ? `${parseLimit}次` : '-';
-    const url = `${origin}${pathname}#/qishui/link-parse?cardSecret=${secret}`;
-    const text = `欢迎使用汽水音乐下载系统
-    您的卡密：${secret}
-    卡密类型为：${CARD_SECRET_TYPE_TEXT_MAP[type]}
-    ${isCount ? `按次付费，每次解析消耗${parseLimitText}` : `过期时间：${expireTimeText}`}
-    请使用以下链接前往浏览器访问：
-      ${url}
-    `;
-    confirm(<div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>, '提示');
-    copy(text);
+    copyCardSecretText(record);
   };
 
   /** 启用/禁用卡密 */
@@ -129,6 +116,16 @@ const CardSecret: React.FC = () => {
     }
   };
 
+  /** 跳转解析日志，按当前卡密筛选 */
+  const handleGoParseLogs = (record: CardSecretListItem) => {
+    const search = getSearchFromObject({
+      pageNum: 1,
+      pageSize: 10,
+      keyword: record.secret,
+    });
+    navigate(`/qishui/logs?${search}`);
+  };
+
   /** 渲染解析数量 */
   const renderParseCount = (record: CardSecretListItem) => {
     /* if (record.type !== 'count') {
@@ -139,7 +136,18 @@ const CardSecret: React.FC = () => {
     const percent = totalCount > 0 ? (record.parsedCount / totalCount) * 100 : 0;
 
     return (
-      <div className={styles['parseCount']}>
+      <div
+        className={styles['parseCount']}
+        role='link'
+        tabIndex={0}
+        aria-label={`查看卡密 ${record.secret} 的解析日志`}
+        onClick={() => handleGoParseLogs(record)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleGoParseLogs(record);
+          }
+        }}>
         <div className={styles['parseCountText']}>
           <span className={styles['parsed']}>{record.parsedCount}</span>
           <span className={styles['divider']}>/</span>
