@@ -37,6 +37,6 @@ export const buildCardSecretShipText = (record: CardSecretListItem) => {
  */
 export const copyCardSecretText = async (record: CardSecretListItem) => {
   const text = buildCardSecretShipText(record);
-  await confirm(<div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>, '提示');
-  await copy(text);
+  copy(text);
+  confirm(<div style={{ whiteSpace: 'pre-wrap' }}>{text}</div>, '提示');
 };
