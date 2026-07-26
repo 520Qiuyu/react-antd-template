@@ -347,15 +347,15 @@ const normalizeCoverExt = (ext: string | null) => {
   return ext;
 };
 
-/** 按目标格式选择音频编码参数；同格式时可 copy */
+/** 按目标格式选择音频编码参数；同格式时可 copy，跨格式用高码率重编码 */
 const buildAudioCodecArgs = (outputFormat: EmbedOutputFormat, inputExt: string) => {
   if (outputFormat === 'mp3') {
-    return inputExt === 'mp3' ? ['-c:a', 'copy'] : ['-c:a', 'libmp3lame', '-q:a', '2'];
+    return inputExt === 'mp3' ? ['-c:a', 'copy'] : ['-c:a', 'libmp3lame', '-b:a', '320k'];
   }
   if (outputFormat === 'm4a') {
     return ['m4a', 'aac'].includes(inputExt)
       ? ['-c:a', 'copy']
-      : ['-c:a', 'aac', '-b:a', '256k'];
+      : ['-c:a', 'aac', '-b:a', '320k'];
   }
   return inputExt === 'flac' ? ['-c:a', 'copy'] : ['-c:a', 'flac'];
 };
