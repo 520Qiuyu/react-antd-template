@@ -1,4 +1,4 @@
-import { useSearchParams } from '@/hooks';
+import { useEmbedAudioMetadata, useSearchParams } from '@/hooks';
 import eventBus from '@/utils/eventBus';
 import {
   AppstoreOutlined,
@@ -29,6 +29,7 @@ const LinkParse: React.FC = () => {
   const tocSections = useParseStore((state) => state.tocSections);
   const cardSecret = searchParams.cardSecret?.trim() || '';
   const hasCardSecret = Boolean(cardSecret);
+  useEmbedAudioMetadata();
 
   const handleGuideClick = useCallback(() => {
     if (searchParams.currentView !== 'song') {
