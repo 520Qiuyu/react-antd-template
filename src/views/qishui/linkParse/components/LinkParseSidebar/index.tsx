@@ -1,4 +1,4 @@
-import { useSearchParams } from '@/hooks';
+import { useClickOutside, useSearchParams } from '@/hooks';
 import { useConfig } from '@/hooks/useConfig';
 import {
   CustomerServiceOutlined,
@@ -35,8 +35,13 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
     setSearchParams((prev) => ({ ...prev, sidebarOpen: false }));
   };
 
+  const siderBarRef = useClickOutside(() => {
+    setSearchParams({ ...searchParams, sidebarOpen: false });
+  });
+
   return (
     <aside
+      ref={siderBarRef}
       className={classNames(styles['sidebar'], { [styles['isOpen']]: searchParams.sidebarOpen })}
       aria-label='文档侧边栏'>
       <div className={styles['group']}>
