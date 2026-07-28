@@ -128,9 +128,37 @@ const CardSecret: React.FC = () => {
 
   /** 渲染解析数量 */
   const renderParseCount = (record: CardSecretListItem) => {
-    /* if (record.type !== 'count') {
-      return <span className={styles['cookieEmpty']}>-</span>;
-    } */
+    if (record.type === 'time') {
+      if (record.dailyParseLimit == null || record.dailyParseLimit <= 0) {
+        return <span className={styles['cookieEmpty']}>不限日次数</span>;
+      }
+      const used = record.dailyParsedCount ?? 0;
+      const total = record.dailyParseLimit;
+      const percent = total > 0 ? (used / total) * 100 : 0;
+      return (
+        <div
+          className={styles['parseCount']}
+          role='link'
+          tabIndex={0}
+          aria-label={`查看卡密 ${record.secret} 的解析日志`}
+          onClick={() => handleGoParseLogs(record)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleGoParseLogs(record);
+            }
+          }}>
+          <div className={styles['parseCountText']}>
+            <span className={styles['parsed']}>{used}</span>
+            <span className={styles['divider']}>/</span>
+            <span className={styles['unparsed']}>{total}</span>
+          </div>
+          <div className={styles['parseBar']} aria-hidden>
+            <div className={styles['parseBarFill']} style={{ width: `${percent}%` }} />
+          </div>
+        </div>
+      );
+    }
 
     const totalCount = record.parseLimit || record.parsedCount + record.unparsedCount;
     const percent = totalCount > 0 ? (record.parsedCount / totalCount) * 100 : 0;
@@ -205,7 +233,7 @@ const CardSecret: React.FC = () => {
       render: (val?: string | null) => (val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'),
     },
     {
-      title: '解析数量（已解析/剩余）',
+      title: '解析数量（已用/额度）',
       key: 'parseCount',
       dataIndex: 'parsedCount',
       width: 180,

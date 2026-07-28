@@ -94,8 +94,18 @@ const CardSecretPanel: React.FC = () => {
     const isExpired = expire ? expire.isBefore(now) : false;
     const remainDays = expire ? Math.max(0, expire.diff(now, 'day')) : null;
     const remainHours = expire && remainDays === 0 ? Math.max(0, expire.diff(now, 'hour')) : null;
-    const stateLabel = !isNormal ? '已禁用' : isExpired ? '已过期' : '有效中';
-    const stateTone = !isNormal || isExpired ? 'bad' : 'ok';
+    const dailyLimit = cardSecret.dailyParseLimit;
+    const dailyUsed = cardSecret.dailyParsedCount ?? 0;
+    const dailyExhausted =
+      dailyLimit != null && dailyLimit > 0 && dailyUsed >= dailyLimit;
+    const stateLabel = !isNormal
+      ? '已禁用'
+      : isExpired
+        ? '已过期'
+        : dailyExhausted
+          ? '今日已达上限'
+          : '有效中';
+    const stateTone = !isNormal || isExpired || dailyExhausted ? 'bad' : 'ok';
 
     cardBody = (
       <div
@@ -123,11 +133,13 @@ const CardSecretPanel: React.FC = () => {
               ? '卡密已过期，无法继续解析'
               : !isNormal
                 ? '卡密已禁用，请更换后使用'
-                : remainDays !== null && remainDays > 0
-                  ? `有效期内，剩余 ${remainDays} 天`
-                  : remainHours !== null
-                    ? `即将到期，剩余约 ${remainHours} 小时`
-                    : '卡密有效，可正常解析'}
+                : dailyExhausted
+                  ? '今日解析次数已达上限，请明天再试'
+                  : remainDays !== null && remainDays > 0
+                    ? `有效期内，剩余 ${remainDays} 天`
+                    : remainHours !== null
+                      ? `即将到期，剩余约 ${remainHours} 小时`
+                      : '卡密有效，可正常解析'}
           </span>
         </div>
 
@@ -137,6 +149,15 @@ const CardSecretPanel: React.FC = () => {
             {expire ? expire.format('YYYY-MM-DD HH:mm') : '未设置'}
           </div>
         </div>
+
+        {dailyLimit != null && dailyLimit > 0 ? (
+          <div className={styles['metricBlock']}>
+            <div className={styles['metricLabel']}>今日解析</div>
+            <div className={styles['metricValue']}>
+              {dailyUsed} / {dailyLimit}
+            </div>
+          </div>
+        ) : null}
 
         {expire && (
           <div className={styles['timeBar']} aria-hidden>

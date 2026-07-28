@@ -13,6 +13,7 @@ import styles from './index.module.less';
 
 const DEFAULT_CREATE_COUNT = 1;
 const DEFAULT_PARSE_LIMIT = 100;
+const DEFAULT_DAILY_PARSE_LIMIT = 2000;
 const CREATE_COUNT_MARKS = { 1: '1', 25: '25', 50: '50', 75: '75', 100: '100' };
 
 const normalizeOptionalText = (value?: string) => {
@@ -35,22 +36,20 @@ function CardSecretFormModal(
       onOpen: (record?: CardSecretListItem) => {
         setEditingRecord(record ?? null);
         if (record) {
-          const { type, expireTime, parseLimit, authInfo } = record;
+          const { type, expireTime, parseLimit, dailyParseLimit, authInfo } = record;
           const { deviceId, cookie, xHelios, xMedusa } = authInfo ?? {};
           formRef.setFieldsValue({
-            type,
+            ...record,
             expireTime: expireTime ? dayjs(expireTime) : undefined,
             parseLimit: parseLimit || DEFAULT_PARSE_LIMIT,
-            deviceId,
-            cookie,
-            xHelios,
-            xMedusa,
+            dailyParseLimit: dailyParseLimit == null ? undefined : dailyParseLimit,
           });
         } else {
           formRef.setFieldsValue({
             createCount: DEFAULT_CREATE_COUNT,
             type: 'time',
             parseLimit: DEFAULT_PARSE_LIMIT,
+            dailyParseLimit: DEFAULT_DAILY_PARSE_LIMIT,
           });
         }
       },
@@ -101,6 +100,12 @@ function CardSecretFormModal(
         expireTime: values.type === 'time' ? (values.expireTime?.toISOString() ?? null) : null,
         parseLimit:
           values.type === 'count' ? (values.parseLimit ?? DEFAULT_PARSE_LIMIT) : undefined,
+        dailyParseLimit:
+          values.type === 'time'
+            ? values.dailyParseLimit == null
+              ? null
+              : values.dailyParseLimit
+            : null,
         authInfo: authInfo ?? undefined,
       };
 
@@ -109,6 +114,7 @@ function CardSecretFormModal(
           type: payload.type,
           expireTime: payload.expireTime,
           parseLimit: payload.parseLimit,
+          dailyParseLimit: payload.dailyParseLimit,
           // null 表示清空认证信息；有对象则更新
           authInfo: authInfo,
         });
@@ -120,6 +126,7 @@ function CardSecretFormModal(
           type: payload.type,
           expireTime: payload.expireTime,
           parseLimit: payload.parseLimit,
+          dailyParseLimit: payload.dailyParseLimit,
           authInfo: payload.authInfo,
         });
         if (res.code !== 200) return msgError(res.message);
@@ -173,46 +180,60 @@ function CardSecretFormModal(
               />
             </Form.Item>
             {cardType === 'time' ? (
-              <Form.Item
-                label='结束时间'
-                name='expireTime'
-                initialValue={dayjs().add(1, 'day')}
-                rules={[{ required: true, message: '请选择结束时间' }]}>
-                <DatePicker
-                  style={{ width: '100%' }}
-                  placeholder='例如：2026-12-31 23:59:59'
-                  disabledDate={(current) => current && current.isBefore(dayjs().startOf('day'))}
-                  format='YYYY-MM-DD HH:mm:ss'
-                  showTime={false}
-                  // 快捷方式，一天，七天，一个月，半年
-                  presets={[
-                    {
-                      label: '一天',
-                      value: dayjs().add(1, 'day'),
-                    },
-                    {
-                      label: '七天',
-                      value: dayjs().add(7, 'day'),
-                    },
-                    {
-                      label: '一个月',
-                      value: dayjs().add(1, 'month'),
-                    },
-                    {
-                      label: '三个月',
-                      value: dayjs().add(3, 'month'),
-                    },
-                    {
-                      label: '半年',
-                      value: dayjs().add(6, 'month'),
-                    },
-                    {
-                      label: '一年',
-                      value: dayjs().add(1, 'year'),
-                    },
-                  ]}
-                />
-              </Form.Item>
+              <>
+                <Form.Item
+                  label='结束时间'
+                  name='expireTime'
+                  initialValue={dayjs().add(1, 'day')}
+                  rules={[{ required: true, message: '请选择结束时间' }]}>
+                  <DatePicker
+                    style={{ width: '100%' }}
+                    placeholder='例如：2026-12-31 23:59:59'
+                    disabledDate={(current) => current && current.isBefore(dayjs().startOf('day'))}
+                    format='YYYY-MM-DD HH:mm:ss'
+                    showTime={false}
+                    // 快捷方式，一天，七天，一个月，半年
+                    presets={[
+                      {
+                        label: '一天',
+                        value: dayjs().add(1, 'day'),
+                      },
+                      {
+                        label: '七天',
+                        value: dayjs().add(7, 'day'),
+                      },
+                      {
+                        label: '一个月',
+                        value: dayjs().add(1, 'month'),
+                      },
+                      {
+                        label: '三个月',
+                        value: dayjs().add(3, 'month'),
+                      },
+                      {
+                        label: '半年',
+                        value: dayjs().add(6, 'month'),
+                      },
+                      {
+                        label: '一年',
+                        value: dayjs().add(1, 'year'),
+                      },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label='每天最多解析数量'
+                  name='dailyParseLimit'
+                  extra='留空表示不限制每日次数；默认 2000'
+                  className={styles['fullWidth']}>
+                  <InputNumber
+                    min={1}
+                    max={999999}
+                    style={{ width: '100%' }}
+                    placeholder='例如：2000，留空不限制'
+                  />
+                </Form.Item>
+              </>
             ) : (
               <Form.Item
                 label='可解析数量'
@@ -229,7 +250,7 @@ function CardSecretFormModal(
           </div>
         </div>
 
-        <div className={styles['section']}>
+        {/*  <div className={styles['section']}>
           <SubTitle title='认证信息' className={styles['sectionTitle']} />
           <div className={styles['formGrid']}>
             <Form.Item label='Device ID' name='deviceId' className={styles['fullWidth']}>
@@ -263,7 +284,7 @@ function CardSecretFormModal(
               />
             </Form.Item>
           </div>
-        </div>
+        </div> */}
       </Form>
     </MyModal>
   );

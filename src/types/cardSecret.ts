@@ -25,6 +25,10 @@ export interface CardSecretDetail {
   parseLimit: number;
   /** 已解析数量 */
   parsedCount: number;
+  /** 每日最多解析数量（按时长；为空不限制） */
+  dailyParseLimit?: number | null;
+  /** 当日已解析数量 */
+  dailyParsedCount?: number;
   /** 状态 */
   status: CardSecretStatus | string;
   /** 备注 */
@@ -61,6 +65,12 @@ export interface CardSecretListItem {
   parsedCount: number;
   /** 未解析 / 剩余可解析数量 */
   unparsedCount: number;
+  /** 每日最多解析数量（按时长；为空不限制） */
+  dailyParseLimit?: number | null;
+  /** 当日已解析数量 */
+  dailyParsedCount?: number;
+  /** 当日计数对应日期 */
+  dailyParseDate?: string | null;
   /** 认证信息 ID */
   authInfoId?: string | null;
   /** 认证信息 */
@@ -94,6 +104,8 @@ export interface CreateCardSecretParams {
   expireTime?: string | null;
   /** 可解析数量（按数量） */
   parseLimit?: number;
+  /** 每日最多解析数量（按时长；null 表示不限制） */
+  dailyParseLimit?: number | null;
   authInfo?: CardSecretAuthInfo;
   remark?: string;
   status?: CardSecretStatus;
@@ -104,6 +116,8 @@ export interface UpdateCardSecretParams {
   type?: CardSecretType;
   expireTime?: string | null;
   parseLimit?: number;
+  /** 每日最多解析数量（按时长；null 表示不限制） */
+  dailyParseLimit?: number | null;
   authInfo?: CardSecretAuthInfo | null;
   remark?: string | null;
   status?: CardSecretStatus;
@@ -123,5 +137,7 @@ export interface CardSecretFormValues {
   expireTime?: string | null;
   /** 可解析数量（按数量） */
   parseLimit?: number;
+  /** 每日最多解析数量（按时长；null 表示不限制） */
+  dailyParseLimit?: number | null;
   authInfo?: CardSecretAuthInfo;
 }
