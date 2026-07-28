@@ -62,6 +62,22 @@
   white-space: nowrap;
 }
 
+.engineProgress {
+  margin-top: 6px;
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(15, 31, 24, 0.08);
+}
+
+.engineProgressFill {
+  height: 100%;
+  width: var(--progress, 0%);
+  border-radius: inherit;
+  background: var(--lp-gradient-btn);
+  transition: width 0.2s var(--lp-ease);
+}
+
 .engineRetry {
   flex-shrink: 0;
   min-height: 30px;

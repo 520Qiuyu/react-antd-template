@@ -1,5 +1,5 @@
 import { FFmpeg, type LogEventCallback, type ProgressEventCallback } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { fetchFile } from '@ffmpeg/util';
 
 const FFMPEG_CORE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
 
@@ -100,14 +100,53 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
     // 已有进行中的加载则直接复用，避免并发重复 load
     if (!loadPromise) {
       setSharedStatus('loading');
+      setSharedProgress(0);
       // 同步赋值：把整段异步流程包进 IIFE，先占位再 await，
-      // 否则 await toBlobURL 期间 loadPromise 仍为 null，并发调用会各自重新加载
+      // 否则 await 下载期间 loadPromise 仍为 null，并发调用会各自重新加载
       loadPromise = (async () => {
+        const downloadState = {
+          jsReceived: 0,
+          jsTotal: 0,
+          wasmReceived: 0,
+          wasmTotal: 0,
+        };
+
+        const reportLoadProgress = () => {
+          const total = downloadState.jsTotal + downloadState.wasmTotal;
+          if (total <= 0) return;
+          const received = downloadState.jsReceived + downloadState.wasmReceived;
+          // 下载占 0–90%，剩余留给 ffmpeg.load 初始化
+          const downloadPercent = Math.round(Math.min(1, received / total) * 90);
+          setSharedProgress(downloadPercent);
+          callbacksRef.current.onProgress?.(downloadPercent);
+        };
+
         const [coreURL, wasmURL] = await Promise.all([
-          toBlobURL(`${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`, 'text/javascript'),
-          toBlobURL(`${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`, 'application/wasm'),
+          fetchToBlobURL(
+            `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`,
+            'text/javascript',
+            ({ received, total }) => {
+              downloadState.jsReceived = received;
+              downloadState.jsTotal = total;
+              reportLoadProgress();
+            },
+          ),
+          fetchToBlobURL(
+            `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`,
+            'application/wasm',
+            ({ received, total }) => {
+              downloadState.wasmReceived = received;
+              downloadState.wasmTotal = total;
+              reportLoadProgress();
+            },
+          ),
         ]);
+
+        setSharedProgress(95);
+        callbacksRef.current.onProgress?.(95);
         await ffmpeg.load({ coreURL, wasmURL });
+        setSharedProgress(100);
+        callbacksRef.current.onProgress?.(100);
         return ffmpeg;
       })();
     }
@@ -353,22 +392,16 @@ const buildAudioCodecArgs = (outputFormat: EmbedOutputFormat, inputExt: string) 
     return inputExt === 'mp3' ? ['-c:a', 'copy'] : ['-c:a', 'libmp3lame', '-b:a', '320k'];
   }
   if (outputFormat === 'm4a') {
-    return ['m4a', 'aac'].includes(inputExt)
-      ? ['-c:a', 'copy']
-      : ['-c:a', 'aac', '-b:a', '320k'];
+    return ['m4a', 'aac'].includes(inputExt) ? ['-c:a', 'copy'] : ['-c:a', 'aac', '-b:a', '320k'];
   }
   return inputExt === 'flac' ? ['-c:a', 'copy'] : ['-c:a', 'flac'];
 };
 
 /** 按目标格式追加封面 / 标签容器相关参数 */
-const buildContainerArgs = (
-  outputFormat: EmbedOutputFormat,
-  coverExt: string | null,
-) => {
+const buildContainerArgs = (outputFormat: EmbedOutputFormat, coverExt: string | null) => {
   const args: string[] = [];
   const hasCover = Boolean(coverExt);
-  const coverVideoCodec =
-    coverExt && JPEG_COVER_EXTS.has(coverExt) ? 'copy' : 'mjpeg';
+  const coverVideoCodec = coverExt && JPEG_COVER_EXTS.has(coverExt) ? 'copy' : 'mjpeg';
 
   if (outputFormat === 'mp3') {
     args.push('-id3v2_version', '3', '-write_id3v2', '1');
@@ -389,28 +422,14 @@ const buildContainerArgs = (
 
   if (outputFormat === 'm4a') {
     if (hasCover) {
-      args.push(
-        '-c:v',
-        coverVideoCodec,
-        '-frames:v',
-        '1',
-        '-disposition:v:0',
-        'attached_pic',
-      );
+      args.push('-c:v', coverVideoCodec, '-frames:v', '1', '-disposition:v:0', 'attached_pic');
     }
     return args;
   }
 
   // flac
   if (hasCover) {
-    args.push(
-      '-c:v',
-      coverVideoCodec,
-      '-frames:v',
-      '1',
-      '-disposition:v:0',
-      'attached_pic',
-    );
+    args.push('-c:v', coverVideoCodec, '-frames:v', '1', '-disposition:v:0', 'attached_pic');
   }
   return args;
 };
@@ -486,4 +505,59 @@ const createOutputBlob = (data: Awaited<ReturnType<FFmpeg['readFile']>>, mimeTyp
 /** 安全清理 FFmpeg 虚拟文件系统中的临时文件。 */
 const cleanupFiles = async (ffmpeg: FFmpeg, fileNames: string[]) => {
   await Promise.allSettled(fileNames.map((fileName) => ffmpeg.deleteFile(fileName)));
+};
+
+/**
+ * 带下载进度的资源拉取，替代 `@ffmpeg/util` 的 `toBlobURL`
+ *
+ * @description
+ * 通过 ReadableStream 累计已下载字节；若响应带 `Content-Length` 可算出 0–100，
+ * 否则 `total` 为 0，调用方只能展示已下载体积。
+ *
+ * @example
+ * ```ts
+ * const url = await fetchToBlobURL(
+ *   'https://cdn.example.com/ffmpeg-core.wasm',
+ *   'application/wasm',
+ *   ({ received, total }) => {
+ *     if (total > 0) console.log(Math.round((received / total) * 100));
+ *   },
+ * );
+ * ```
+ */
+const fetchToBlobURL = async (
+  url: string,
+  mimeType: string,
+  onChunk?: (info: { received: number; total: number }) => void,
+) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`下载失败（${response.status}）：${url}`);
+  }
+  if (!response.body) {
+    throw new Error(`响应无 body：${url}`);
+  }
+
+  const total = Number(response.headers.get('content-length') || 0);
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.byteLength;
+    onChunk?.({ received, total });
+  }
+
+  const bytes = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  const blob = new Blob([bytes], { type: mimeType });
+  return URL.createObjectURL(blob);
 };
