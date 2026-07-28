@@ -4,15 +4,21 @@ import {
   CloseCircleFilled,
   CloudDownloadOutlined,
   FileTextOutlined,
+  LeftOutlined,
   LoadingOutlined,
+  RightOutlined,
   SearchOutlined,
   ThunderboltOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
+import { Pagination } from 'antd';
 import classNames from 'classnames';
 import { formatDuration, isTrackParsed } from '../../../../utils';
 import sharedStyles from '../shared.module.less';
 import styles from './index.module.less';
+
+/** 每页最多曲目数 */
+const PAGE_SIZE = 195;
 
 export type BatchAction = 'parse' | 'download' | 'retry' | 'lrc' | 'txt' | null;
 
@@ -50,6 +56,7 @@ const TrackList: React.FC<TrackListProps> = ({
 }) => {
   // 过滤
   const [filter, setFilter] = useState('');
+  const [page, setPage] = useState(1);
   const filteredTracks = useMemo(() => {
     const keyword = filter.trim().toLowerCase();
     if (!keyword) return tracks;
@@ -59,6 +66,21 @@ const TrackList: React.FC<TrackListProps> = ({
         (track.artist || '').toLowerCase().includes(keyword),
     );
   }, [tracks, filter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTracks.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageTracks = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredTracks.slice(start, start + PAGE_SIZE);
+  }, [filteredTracks, currentPage]);
+  const pageOffset = (currentPage - 1) * PAGE_SIZE;
+
+  const tracksSignature = `${tracks[0]?.id || ''}:${tracks.length}`;
+
+  /** 筛选或歌单切换时回到第一页 */
+  useEffect(() => {
+    setPage(1);
+  }, [filter, tracksSignature]);
 
   /** 选中的歌曲 */
   const [selectedTracks, setSelectedTracks] = useState<PlaylistMusicInfo[]>([]);
@@ -125,6 +147,10 @@ const TrackList: React.FC<TrackListProps> = ({
     }
   };
 
+  const handlePageChange = (nextPage: number) => {
+    setPage(nextPage);
+  };
+
   // 状态
   const isParseBatch = batchAction === 'parse';
   const isDownloadBatch = batchAction === 'download' || batchAction === 'retry';
@@ -142,6 +168,7 @@ const TrackList: React.FC<TrackListProps> = ({
   const batchBusy = batchAction !== null;
   const showParseLive = batchAction === 'parse';
   const showDownloadLive = batchAction === 'download' || batchAction === 'retry';
+  const showPagination = filteredTracks.length > PAGE_SIZE;
 
   return (
     <>
@@ -221,6 +248,41 @@ const TrackList: React.FC<TrackListProps> = ({
       <div className={styles['toolbar']}>
         <div className={styles['countRow']}>
           <span className={styles['count']}>共 {filteredTracks.length} 首</span>
+          {showPagination ? (
+            <div className={styles['pageNav']} role='group' aria-label='曲目翻页'>
+              <button
+                className={classNames(
+                  sharedStyles['btn'],
+                  sharedStyles['btnGhost'],
+                  sharedStyles['btnSm'],
+                  styles['pageNavBtn'],
+                )}
+                type='button'
+                disabled={currentPage <= 1}
+                aria-label='上一页'
+                onClick={() => handlePageChange(currentPage - 1)}>
+                <LeftOutlined aria-hidden='true' />
+                上一页
+              </button>
+              <span className={styles['count']}>
+                第 {currentPage}/{totalPages} 页
+              </span>
+              <button
+                className={classNames(
+                  sharedStyles['btn'],
+                  sharedStyles['btnGhost'],
+                  sharedStyles['btnSm'],
+                  styles['pageNavBtn'],
+                )}
+                type='button'
+                disabled={currentPage >= totalPages}
+                aria-label='下一页'
+                onClick={() => handlePageChange(currentPage + 1)}>
+                下一页
+                <RightOutlined aria-hidden='true' />
+              </button>
+            </div>
+          ) : null}
           {showStats ? (
             <>
               <span className={styles['countDivider']} aria-hidden='true'>
@@ -247,9 +309,12 @@ const TrackList: React.FC<TrackListProps> = ({
         </div>
       </div>
       <ul className={styles['list']}>
-        {filteredTracks.map((track, index) => {
-          const key = track.id || String(index);
+        {pageTracks.map((track, index) => {
+          const globalIndex = pageOffset + index;
+          const key = track.id || String(globalIndex);
           const parsed = isTrackParsed(track);
+          const hasPlayUrl = Boolean(track.fullInfo?.urls?.some((item) => item.url));
+          const noPlayUrl = parsed && !hasPlayUrl;
           const parsing = Boolean(track.id && parsingIds.has(track.id));
           const downloading = Boolean(track.id && downloadingIds.has(track.id));
           const downloadStatus = track.downloadStatus;
@@ -258,10 +323,12 @@ const TrackList: React.FC<TrackListProps> = ({
             <li
               key={key}
               className={classNames(styles['item'], {
-                [styles['itemParsed']]: parsed,
+                [styles['itemParsed']]: parsed && hasPlayUrl,
+                [styles['itemNoUrl']]: noPlayUrl,
                 [styles['itemBusy']]: parsing || downloading,
-              })}>
-              <span className={styles['index']}>{String(index + 1).padStart(2, '0')}</span>
+              })}
+              aria-disabled={noPlayUrl || undefined}>
+              <span className={styles['index']}>{String(globalIndex + 1).padStart(2, '0')}</span>
               <div className={styles['itemCoverWrap']}>
                 <img className={styles['itemCover']} src={track.cover} alt='' />
                 {track.type === 'video' ? (
@@ -337,15 +404,16 @@ const TrackList: React.FC<TrackListProps> = ({
                         sharedStyles['btnSm'],
                       )}
                       type='button'
-                      disabled={downloading}
-                      aria-label={`下载歌曲 ${track.title}`}
+                      disabled={downloading || noPlayUrl}
+                      aria-label={
+                        noPlayUrl ? `无播放地址，无法下载 ${track.title}` : `下载歌曲 ${track.title}`
+                      }
                       onClick={() => onDownload(track)}>
                       {downloading ? <LoadingOutlined /> : <CloudDownloadOutlined />}
                       下载
                     </button>
                     {track.type === 'track' ? (
                       <>
-                        {' '}
                         <button
                           className={classNames(
                             sharedStyles['btn'],
@@ -381,6 +449,19 @@ const TrackList: React.FC<TrackListProps> = ({
           );
         })}
       </ul>
+      {showPagination ? (
+        <div className={styles['pagination']} aria-label='曲目分页'>
+          <Pagination
+            size='small'
+            current={currentPage}
+            pageSize={PAGE_SIZE}
+            total={filteredTracks.length}
+            showSizeChanger={false}
+            showQuickJumper
+            onChange={handlePageChange}
+          />
+        </div>
+      ) : null}
     </>
   );
 };

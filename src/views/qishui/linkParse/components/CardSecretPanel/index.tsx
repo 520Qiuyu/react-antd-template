@@ -27,35 +27,37 @@ const CardSecretPanel: React.FC = () => {
   };
 
   /**
-   * 重新拉取当前卡密详情并更新面板
+   * 重新拉取当前卡密详情并更新面板（防抖，避免短时间重复刷新）
    * @example
    * ```ts
-   * await handleRefresh();
+   * handleRefresh();
    * ```
    */
-  const handleRefresh = async () => {
-    if (!searchParams.cardSecret || refreshing) return;
-    try {
-      setRefreshing(true);
-      const data = await getCardSecret(searchParams.cardSecret);
-      if (!data) {
-        msgError('刷新卡密信息失败');
+  const { run: handleRefresh } = useDebounceFn(
+    async () => {
+      if (!searchParams.cardSecret || refreshing) return;
+      try {
+        setRefreshing(true);
+        const data = await getCardSecret(searchParams.cardSecret);
+        if (!data) {
+          msgError('刷新卡密信息失败');
+        }
+      } catch (error) {
+        console.log('error', error);
+        msgError(error instanceof Error ? error.message : '刷新卡密信息失败');
+      } finally {
+        setRefreshing(false);
       }
-    } catch (error) {
-      console.log('error', error);
-      msgError(error instanceof Error ? error.message : '刷新卡密信息失败');
-    } finally {
-      setRefreshing(false);
-    }
-  };
+    },
+    { wait: 400 },
+  );
 
   useEffect(() => {
-    console.log('刷新卡密信息');
     eventBus.on('cardSecretRefresh', handleRefresh);
     return () => {
       eventBus.off('cardSecretRefresh', handleRefresh);
     };
-  }, []);
+  }, [handleRefresh]);
 
   if (!cardSecret) {
     return (

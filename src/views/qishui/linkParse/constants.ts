@@ -21,4 +21,4 @@ export const DOWNLOAD_QUALITY_ORDER = [
 ] as const;
 
 /** 歌单批量解析并发数 */
-export const PLAYLIST_PARSE_CONCURRENCY = 6;
+export const PLAYLIST_PARSE_CONCURRENCY = 3;

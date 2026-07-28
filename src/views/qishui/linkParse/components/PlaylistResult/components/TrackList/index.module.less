@@ -62,6 +62,17 @@
   min-width: 0;
 }
 
+.pageNav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageNavBtn {
+  gap: 4px;
+  padding-inline: 8px;
+}
+
 .countDivider {
   color: var(--lp-text-3);
   opacity: 0.5;
@@ -154,6 +165,26 @@
 
   &:hover {
     background: linear-gradient(90deg, rgba(16, 185, 129, 0.2), rgba(var(--lp-soda-rgb), 0.08));
+  }
+}
+
+/** 已解析但无播放地址：灰白禁用态 */
+.itemNoUrl {
+  // opacity: 0.62;
+  filter: grayscale(0.62);
+  background: linear-gradient(90deg, rgba(100, 116, 139, 0.14), rgba(148, 163, 184, 0.06));
+  border-left-color: #94a3b8;
+
+  &:hover {
+    background: linear-gradient(90deg, rgba(100, 116, 139, 0.18), rgba(148, 163, 184, 0.08));
+  }
+
+  .index {
+    color: #64748b;
+  }
+
+  .itemCover {
+    filter: grayscale(1);
   }
 }
 
@@ -268,6 +299,13 @@
   font-size: 12.5px;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 4px;
+  padding: 8px 0 4px;
 }
 
 .previewTag {
