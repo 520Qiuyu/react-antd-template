@@ -101,6 +101,123 @@
   }
 }
 
+/* —— 解析用量卡片：主次层级 —— */
+.usageCard {
+  margin: 0 12px 12px;
+  padding: 12px 14px;
+  overflow: hidden;
+  background: rgba(242, 242, 247, 0.92);
+  border-radius: 14px;
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+}
+
+.usageBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.usageFollow {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 0.5px solid rgba(60, 60, 67, 0.12);
+}
+
+.usagePrimary {
+  .usageValue strong {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.028em;
+    line-height: 1.05;
+    color: var(--qc-text, #1d1d1f);
+  }
+
+  .usageLabel {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--qc-text-2, #6e6e73);
+  }
+}
+
+.usageSecondary {
+  .usageValue strong {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.012em;
+    line-height: 1.15;
+    color: var(--qc-text, #1d1d1f);
+  }
+
+  .usageLabel {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--qc-text-3, #8e8e93);
+  }
+
+  .usageTrack {
+    height: 3px;
+  }
+}
+
+.usageHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.usageLabel {
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.usageHint {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--qc-text-3, #8e8e93);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.usageValue {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.usageDenom {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--qc-text-3, #8e8e93);
+  letter-spacing: -0.01em;
+}
+
+.usageTrack {
+  position: relative;
+  height: 4px;
+  margin-top: 4px;
+  overflow: hidden;
+  background: rgba(60, 60, 67, 0.12);
+  border-radius: 999px;
+}
+
+.usageFill {
+  height: 100%;
+  background: var(--qc-blue, #007aff);
+  border-radius: inherit;
+  transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.usageFillWarn {
+  background: #ff9f0a;
+}
+
 .group {
   margin: 0 12px 12px;
   overflow: hidden;
@@ -316,6 +433,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .usageFill,
   .parseBarFill,
   .actionBtn,
   .moreSummary,
@@ -330,8 +448,11 @@
 }
 
 @media (prefers-reduced-transparency: reduce) {
+  .usageCard,
   .group,
   .more {
     background: #f2f2f7;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }

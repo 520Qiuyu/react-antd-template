@@ -20,7 +20,7 @@ const formatTime = (val?: string | null) =>
   val ? dayjs(val).format('YYYY-MM-DD HH:mm') : '-';
 
 /**
- * 移动端卡密列表项（Apple 信息层级：卡密优先）
+ * 移动端卡密列表项（Apple 信息层级：卡密优先，用量层次分明）
  * @example
  * ```tsx
  * <CardSecretMobileItem
@@ -42,8 +42,23 @@ const CardSecretMobileItem: React.FC<Props> = ({
   onStatusChange,
 }) => {
   const type = record.type as CardSecretType;
-  const totalCount = record.parseLimit || record.parsedCount + record.unparsedCount;
-  const percent = totalCount > 0 ? (record.parsedCount / totalCount) * 100 : 0;
+  const hasDailyLimit = record.dailyParseLimit != null && record.dailyParseLimit > 0;
+  const dailyUsed = record.dailyParsedCount ?? 0;
+  const dailyLimit = record.dailyParseLimit || 0;
+  const dailyPercent = hasDailyLimit
+    ? Math.min(100, Math.round((dailyUsed / dailyLimit) * 1000) / 10)
+    : 0;
+  const dailyRemain = hasDailyLimit ? Math.max(0, dailyLimit - dailyUsed) : null;
+
+  const hasTotalLimit = type === 'count' && (record.parseLimit || 0) > 0;
+  const totalUsed = record.parsedCount || 0;
+  const totalLimit = record.parseLimit || 0;
+  const totalRemain = hasTotalLimit ? Math.max(0, totalLimit - totalUsed) : null;
+  const totalPercent = hasTotalLimit
+    ? Math.min(100, Math.round((totalUsed / totalLimit) * 1000) / 10)
+    : 0;
+
+  const dailyIsPrimary = hasDailyLimit && type === 'time';
   const auth = record.authInfo;
   const hasAuth = Boolean(auth?.deviceId || auth?.cookie);
   const isEnabled = record.status === Status.NORMAL;
@@ -80,6 +95,77 @@ const CardSecretMobileItem: React.FC<Props> = ({
         </div>
       </header>
 
+      <div className={styles['usageCard']} aria-label='解析用量'>
+        {hasDailyLimit ? (
+          <div
+            className={classNames(styles['usageBlock'], {
+              [styles['usagePrimary']]: dailyIsPrimary,
+              [styles['usageSecondary']]: !dailyIsPrimary,
+            })}>
+            <div className={styles['usageHead']}>
+              <span className={styles['usageLabel']}>今日</span>
+              {dailyRemain !== null ? (
+                <span className={styles['usageHint']}>剩 {dailyRemain}</span>
+              ) : null}
+            </div>
+            <div className={styles['usageValue']}>
+              <strong>{dailyUsed}</strong>
+              <span className={styles['usageDenom']}>/ {dailyLimit}</span>
+            </div>
+            <div
+              className={styles['usageTrack']}
+              role='progressbar'
+              aria-valuenow={dailyPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label='今日解析进度'>
+              <div
+                className={classNames(styles['usageFill'], {
+                  [styles['usageFillWarn']]: dailyPercent >= 90,
+                })}
+                style={{ width: `${dailyPercent}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <div
+          className={classNames(styles['usageBlock'], {
+            [styles['usagePrimary']]: !dailyIsPrimary,
+            [styles['usageSecondary']]: dailyIsPrimary,
+            [styles['usageFollow']]: hasDailyLimit,
+          })}>
+          <div className={styles['usageHead']}>
+            <span className={styles['usageLabel']}>总解析</span>
+            {totalRemain !== null ? (
+              <span className={styles['usageHint']}>剩 {totalRemain}</span>
+            ) : null}
+          </div>
+          <div className={styles['usageValue']}>
+            <strong>{totalUsed}</strong>
+            {hasTotalLimit ? (
+              <span className={styles['usageDenom']}>/ {totalLimit}</span>
+            ) : null}
+          </div>
+          {hasTotalLimit ? (
+            <div
+              className={styles['usageTrack']}
+              role='progressbar'
+              aria-valuenow={totalPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label='总解析进度'>
+              <div
+                className={classNames(styles['usageFill'], {
+                  [styles['usageFillWarn']]: totalPercent >= 90,
+                })}
+                style={{ width: `${totalPercent}%` }}
+              />
+            </div>
+          ) : null}
+        </div>
+      </div>
+
       <div className={styles['group']}>
         <div className={styles['row']}>
           <span className={styles['label']}>启用</span>
@@ -91,20 +177,6 @@ const CardSecretMobileItem: React.FC<Props> = ({
               onChange={handleStatusChange}
               aria-label={isEnabled ? '禁用卡密' : '启用卡密'}
             />
-          </div>
-        </div>
-
-        <div className={styles['row']}>
-          <span className={styles['label']}>解析进度</span>
-          <div className={styles['parse']}>
-            <div className={styles['parseText']}>
-              <strong>{record.parsedCount}</strong>
-              <span>/</span>
-              <em>{record.unparsedCount}</em>
-            </div>
-            <div className={styles['parseBar']} aria-hidden>
-              <div className={styles['parseBarFill']} style={{ width: `${percent}%` }} />
-            </div>
           </div>
         </div>
 
