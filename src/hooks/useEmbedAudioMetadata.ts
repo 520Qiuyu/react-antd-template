@@ -511,8 +511,9 @@ const cleanupFiles = async (ffmpeg: FFmpeg, fileNames: string[]) => {
  * 带下载进度的资源拉取，替代 `@ffmpeg/util` 的 `toBlobURL`
  *
  * @description
- * 通过 ReadableStream 累计已下载字节；若响应带 `Content-Length` 可算出 0–100，
- * 否则 `total` 为 0，调用方只能展示已下载体积。
+ * 通过 ReadableStream 累计已读字节。浏览器会自动解压 gzip/br 时，
+ * `Content-Length` 是压缩体积而 `received` 是解压后体积，二者不可直接相除；
+ * 此时用压缩比估算解压后体积作为进度分母，结束时以真实 `received` 校准。
  *
  * @example
  * ```ts
@@ -538,7 +539,20 @@ const fetchToBlobURL = async (
     throw new Error(`响应无 body：${url}`);
   }
 
-  const total = Number(response.headers.get('content-length') || 0);
+  const contentLength = Number(response.headers.get('content-length') || 0);
+  const encoding = (response.headers.get('content-encoding') || '').toLowerCase();
+  const isCompressed =
+    encoding.includes('gzip') || encoding.includes('br') || encoding.includes('deflate');
+  // 压缩传输时 Content-Length 偏小；经验解压比约 3.5（wasm 常见 3~4）
+  const GZIP_RATIO_ESTIMATE = 3.5;
+  let total =
+    contentLength <= 0
+      ? 0
+      : isCompressed
+        ? Math.round(contentLength * GZIP_RATIO_ESTIMATE)
+        : contentLength;
+  let treatedAsCompressed = isCompressed;
+
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let received = 0;
@@ -548,8 +562,21 @@ const fetchToBlobURL = async (
     if (done) break;
     chunks.push(value);
     received += value.byteLength;
+
+    // CORS 可能藏掉 Content-Encoding：一旦解压字节超过 Content-Length，按压缩传输处理
+    if (!treatedAsCompressed && contentLength > 0 && received > contentLength) {
+      treatedAsCompressed = true;
+      total = Math.round(contentLength * GZIP_RATIO_ESTIMATE);
+    }
+    // 估算仍偏小则继续放大，避免进度提前顶满
+    if (total > 0 && received > total) {
+      total = Math.round(received / 0.9);
+    }
     onChunk?.({ received, total });
   }
+
+  // 下载结束用真实体积校准，保证该文件进度到 100%
+  onChunk?.({ received, total: received });
 
   const bytes = new Uint8Array(received);
   let offset = 0;
