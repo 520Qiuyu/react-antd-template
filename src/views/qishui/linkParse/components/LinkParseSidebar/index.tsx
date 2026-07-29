@@ -12,6 +12,7 @@ import classNames from 'classnames';
 import { useRef } from 'react';
 import type { SearchParams } from '../..';
 import type { DOWNLOAD_QUALITY_ORDER, LinkParseView } from '../../constants';
+import { useParseStore } from '../../store';
 import { DOWNLOAD_FORMAT_OPTIONS, DOWNLOAD_QUALITY_OPTIONS, type DownloadFormat } from '../../utils';
 import styles from './index.module.less';
 
@@ -26,6 +27,8 @@ const NAME_FORMAT_TOKENS = ['【序号】', '【歌名】', '【专辑名】', '
  */
 const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => {
   const { setSearchParams, searchParams } = useSearchParams<SearchParams>();
+  const sidebarOpen = useParseStore((state) => state.sidebarOpen);
+  const setSidebarOpen = useParseStore((state) => state.setSidebarOpen);
   const { config, setConfig } = useConfig();
   const { preferredQuality, downloadFormat, downloadNameFormat } = {
     ...DEFAULT_CONFIG,
@@ -34,17 +37,20 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
   const inputRef = useRef<InputRef>(null);
 
   const handleViewClick = (view: LinkParseView) => {
-    setSearchParams((prev) => ({ ...prev, currentView: view, sidebarOpen: false }));
+    setSearchParams((prev) => ({ ...prev, currentView: view }));
+    setSidebarOpen(false);
   };
 
   const handleGuideClick = () => {
     onGuideClick();
-    setSearchParams((prev) => ({ ...prev, sidebarOpen: false }));
+    setSidebarOpen(false);
   };
 
   const handleNameFormatChange = (value: string) => {
     setConfig({ ...config!, downloadNameFormat: value });
   };
+
+  console.log('render')
 
   /**
    * 在输入框光标处插入占位符；无输入元素时追加到末尾
@@ -70,13 +76,13 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
   };
 
   const siderBarRef = useClickOutside(() => {
-    setSearchParams({ ...searchParams, sidebarOpen: false });
+    setSidebarOpen(false);
   });
 
   return (
     <aside
       ref={siderBarRef}
-      className={classNames(styles['sidebar'], { [styles['isOpen']]: searchParams.sidebarOpen })}
+      className={classNames(styles['sidebar'], { [styles['isOpen']]: sidebarOpen })}
       aria-label='文档侧边栏'>
       <div className={styles['group']}>
         <p className={styles['heading']}>解析工具</p>

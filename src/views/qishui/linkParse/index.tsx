@@ -21,12 +21,13 @@ import { useParseStore } from './store';
 
 const defaultSearchParams: SearchParams = {
   currentView: 'song',
-  sidebarOpen: false,
 };
 
 const LinkParse: React.FC = () => {
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
   const tocSections = useParseStore((state) => state.tocSections);
+  const sidebarOpen = useParseStore((state) => state.sidebarOpen);
+  const setSidebarOpen = useParseStore((state) => state.setSidebarOpen);
   const cardSecret = searchParams.cardSecret?.trim() || '';
   const hasCardSecret = Boolean(cardSecret);
   useEmbedAudioMetadata();
@@ -45,6 +46,10 @@ const LinkParse: React.FC = () => {
   const handleOpenCardSecret = useCallback(() => {
     eventBus.emit('cardSecretChange', 'bind');
   }, []);
+
+  const handleToggleSidebar = () => {
+    setSidebarOpen(true);
+  };
 
   return (
     <div className={styles['page']}>
@@ -102,12 +107,10 @@ const LinkParse: React.FC = () => {
           <button
             className={styles['navToggle']}
             type='button'
-            aria-label={searchParams.sidebarOpen ? '关闭侧边栏' : '打开侧边栏'}
-            aria-expanded={searchParams.sidebarOpen}
+            aria-label={sidebarOpen ? '关闭侧边栏' : '打开侧边栏'}
+            aria-expanded={sidebarOpen}
             tabIndex={0}
-            onClick={() =>
-              setSearchParams({ ...searchParams, sidebarOpen: !searchParams.sidebarOpen })
-            }>
+            onClick={handleToggleSidebar}>
             <MenuOutlined />
           </button>
         </div>
@@ -133,6 +136,5 @@ export default LinkParse;
 
 export interface SearchParams {
   currentView: LinkParseView;
-  sidebarOpen: boolean;
   cardSecret?: string;
 }
