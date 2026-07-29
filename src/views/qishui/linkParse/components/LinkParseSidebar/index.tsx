@@ -1,13 +1,15 @@
 import { useClickOutside, useSearchParams } from '@/hooks';
-import { useConfig } from '@/hooks/useConfig';
+import { DEFAULT_CONFIG, useConfig } from '@/hooks/useConfig';
 import {
   CustomerServiceOutlined,
   ProfileOutlined,
   QuestionCircleOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
-import { Select } from 'antd';
+import type { InputRef } from 'antd';
+import { Input, Select } from 'antd';
 import classNames from 'classnames';
+import { useRef } from 'react';
 import type { SearchParams } from '../..';
 import type { DOWNLOAD_QUALITY_ORDER, LinkParseView } from '../../constants';
 import { DOWNLOAD_FORMAT_OPTIONS, DOWNLOAD_QUALITY_OPTIONS, type DownloadFormat } from '../../utils';
@@ -17,14 +19,19 @@ interface LinkParseSidebarProps {
   onGuideClick: () => void;
 }
 
+const NAME_FORMAT_TOKENS = ['【序号】', '【歌名】', '【专辑名】', '【歌手】'] as const;
+
 /**
  * 链接解析侧边栏
  */
 const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => {
   const { setSearchParams, searchParams } = useSearchParams<SearchParams>();
-  // 假数据：后续可接入全局设置 / 持久化
   const { config, setConfig } = useConfig();
-  const { preferredQuality, downloadFormat } = config!;
+  const { preferredQuality, downloadFormat, downloadNameFormat } = {
+    ...DEFAULT_CONFIG,
+    ...config,
+  };
+  const inputRef = useRef<InputRef>(null);
 
   const handleViewClick = (view: LinkParseView) => {
     setSearchParams((prev) => ({ ...prev, currentView: view, sidebarOpen: false }));
@@ -33,6 +40,33 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
   const handleGuideClick = () => {
     onGuideClick();
     setSearchParams((prev) => ({ ...prev, sidebarOpen: false }));
+  };
+
+  const handleNameFormatChange = (value: string) => {
+    setConfig({ ...config!, downloadNameFormat: value });
+  };
+
+  /**
+   * 在输入框光标处插入占位符；无输入元素时追加到末尾
+   * @example
+   * handleInsertToken('【专辑名】')
+   */
+  const handleInsertToken = (token: string) => {
+    const current = downloadNameFormat ?? DEFAULT_CONFIG.downloadNameFormat;
+    const el = inputRef.current?.input;
+    if (!el) {
+      handleNameFormatChange(`${current}${token}`);
+      return;
+    }
+    const start = el.selectionStart ?? current.length;
+    const end = el.selectionEnd ?? current.length;
+    const next = `${current.slice(0, start)}${token}${current.slice(end)}`;
+    handleNameFormatChange(next);
+    requestAnimationFrame(() => {
+      const pos = start + token.length;
+      el.focus();
+      el.setSelectionRange(pos, pos);
+    });
   };
 
   const siderBarRef = useClickOutside(() => {
@@ -112,6 +146,31 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
             popupMatchSelectWidth
             aria-label='首选下载音质'
           />
+        </label>
+
+        {/* 下载名称格式 */}
+        <label className={styles['field']} htmlFor='download-name-format'>
+          <span className={styles['fieldLabel']}>下载名称格式</span>
+          <Input
+            id='download-name-format'
+            ref={inputRef}
+            className={styles['fieldInput']}
+            value={downloadNameFormat}
+            onChange={(e) => handleNameFormatChange(e.target.value)}
+            placeholder={DEFAULT_CONFIG.downloadNameFormat}
+            aria-label='下载名称格式'
+          />
+          <div className={styles['tokenRow']} role='group' aria-label='插入占位符'>
+            {NAME_FORMAT_TOKENS.map((token) => (
+              <button
+                key={token}
+                type='button'
+                className={styles['token']}
+                onClick={() => handleInsertToken(token)}>
+                {token}
+              </button>
+            ))}
+          </div>
         </label>
       </div>
     </aside>

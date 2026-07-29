@@ -10,7 +10,8 @@ export const useConfig = () => {
   });
 
   useEffect(() => {
-    window.config = config || DEFAULT_CONFIG;
+    // 合并默认值，兼容旧 localStorage 缺字段
+    window.config = { ...DEFAULT_CONFIG, ...(config || {}) };
   }, [config]);
 
   return {
@@ -22,6 +23,7 @@ export const useConfig = () => {
 interface Config {
   downloadFormat: DownloadFormat;
   preferredQuality: (typeof DOWNLOAD_QUALITY_ORDER)[number];
+  downloadNameFormat: string;
 }
 declare global {
   interface Window {
@@ -31,4 +33,5 @@ declare global {
 export const DEFAULT_CONFIG: Config = {
   downloadFormat: 'm4a',
   preferredQuality: DOWNLOAD_QUALITY_ORDER[0],
+  downloadNameFormat: '【歌名】-【歌手】',
 };

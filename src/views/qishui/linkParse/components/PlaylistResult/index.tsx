@@ -47,6 +47,14 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
 
   const tracks = data.tracks || [];
 
+  /** 解析曲目在完整歌单中的序号（从 1 起，不补零） */
+  const resolvePlaylistIndex = (track: PlaylistMusicInfo): number | undefined => {
+    const list = usePlaylistParseStore.getState().playlistHasResult?.tracks || tracks;
+    if (!track.id) return undefined;
+    const i = list.findIndex((item) => item.id === track.id);
+    return i >= 0 ? i + 1 : undefined;
+  };
+
   /** 更新批量操作进度 */
   const bumpBatchProgress = (ok: boolean) => {
     setBatchProgress((prev) => ({
@@ -231,7 +239,12 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
         return;
       }
 
-      await downloadSongAudio({ data: fullInfo, item: urlItem, embedMetadata });
+      await downloadSongAudio({
+        data: fullInfo,
+        item: urlItem,
+        embedMetadata,
+        index: resolvePlaylistIndex(latest),
+      });
       msgSuccess('下载成功');
     } catch (error) {
       console.error(error);
@@ -248,7 +261,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
       return;
     }
     try {
-      downloadSongLyric(fullInfo, mode);
+      downloadSongLyric(fullInfo, mode, resolvePlaylistIndex(track));
       msgSuccess(mode === 'lrc' ? 'lrc 歌词已保存' : 'txt 歌词已保存');
     } catch (error) {
       msgError(error instanceof Error ? error.message : '暂无歌词可保存');
@@ -280,6 +293,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
           data: track.fullInfo,
           item: urlItem,
           embedMetadata,
+          index: resolvePlaylistIndex(track),
         });
         setTrackDownloadStatus(track.id, 'success');
         success += 1;
@@ -350,7 +364,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
         continue;
       }
       try {
-        downloadSongLyric(track.fullInfo, mode);
+        downloadSongLyric(track.fullInfo, mode, resolvePlaylistIndex(track));
         success += 1;
       } catch {
         failed += 1;

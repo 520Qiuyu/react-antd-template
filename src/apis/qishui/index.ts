@@ -58,3 +58,30 @@ export const reqGetSongInfo = (params: GetSongInfoParams) =>
  */
 export const reqGetVideoInfo = (params: GetVideoInfoParams) =>
   get<GetVideoInfoResponseData>('/qishui/get-video-info', params);
+
+/**
+ * 经后端代理拉取远程图片（规避 CDN CORS）
+ * @example
+ * ```ts
+ * const blob = await reqProxyImage('https://p3-sign.douyinpic.com/...');
+ * ```
+ */
+export const reqProxyImage = async (url: string) => {
+  const data = await get<Blob>(
+    '/qishui/proxy-image',
+    { url },
+    {
+      responseType: 'blob',
+      showError: false,
+    },
+  );
+
+  if (!(data instanceof Blob)) {
+    throw new Error('封面代理失败');
+  }
+  // 业务错误时后端常返回 JSON，axios blob 模式下会变成 application/json 的 Blob
+  if (data.type.includes('application/json')) {
+    throw new Error('封面代理失败');
+  }
+  return data;
+};

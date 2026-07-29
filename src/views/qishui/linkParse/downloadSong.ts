@@ -6,35 +6,80 @@ import { SodaAudioDecryptor } from '../../../utils/sodaDecryptor';
 
 export type DownloadProgressPhase = 'downloading' | 'decrypting' | 'embedding';
 
+export const DEFAULT_DOWNLOAD_NAME_FORMAT = '【歌名】-【歌手】';
+
+export interface DownloadNameParts {
+  index?: number;
+  title?: string;
+  album?: string;
+  artist?: string;
+}
+
 export interface DownloadSongAudioOptions {
   data: MusicInfo;
   item: QishuiUrl;
   embedMetadata?: (options: EmbedAudioMetadataOptions) => Promise<Blob>;
   onProgress?: (phase: DownloadProgressPhase, progress: number) => void;
+  /** 歌单列表序号（从 1 起）；单曲不传 */
+  index?: number;
 }
 
 const sanitizeFilenamePart = (value: string) => value.replace(/[\\/:*?"<>|]/g, '_').trim();
 
+/**
+ * 按配置模板解析下载文件名主体（不含扩展名）
+ * @example
+ * resolveDownloadBasename({ title: '晴天', artist: '周杰伦' })
+ * // 默认模板 → '晴天-周杰伦'
+ * resolveDownloadBasename({ index: 1, title: '晴天', artist: '周杰伦' })
+ * // 若模板为【序号】-【歌名】-【歌手】 → '1-晴天-周杰伦'
+ */
+export const resolveDownloadBasename = (parts: DownloadNameParts): string => {
+  const format =
+    (typeof window !== 'undefined' && window.config?.downloadNameFormat?.trim()) ||
+    DEFAULT_CONFIG.downloadNameFormat ||
+    DEFAULT_DOWNLOAD_NAME_FORMAT;
+
+  const values: Record<string, string> = {
+    序号: parts.index == null ? '' : String(parts.index),
+    歌名: sanitizeFilenamePart(parts.title || '未知歌曲'),
+    专辑名: sanitizeFilenamePart(parts.album || '未知专辑'),
+    歌手: sanitizeFilenamePart(parts.artist || '未知歌手'),
+  };
+
+  const basename = format.replace(/【(序号|歌名|专辑名|歌手)】/g, (_, key: string) => values[key] ?? '');
+  const cleaned = basename.trim();
+  return cleaned || '未知歌曲';
+};
+
 export const buildSongFilename = (
-  title: string | undefined,
-  artist: string | undefined,
+  data: Pick<MusicInfo, 'title' | 'artist' | 'album'>,
   item: QishuiUrl,
   forceExt?: string,
+  index?: number,
 ) => {
-  const name = sanitizeFilenamePart(title || '未知歌曲');
-  const singer = sanitizeFilenamePart(artist || '未知歌手');
+  const basename = resolveDownloadBasename({
+    index,
+    title: data.title,
+    album: data.album,
+    artist: data.artist,
+  });
   const ext = (forceExt || item.format || 'm4a').replace(/^\./, '') || 'm4a';
-  return `${name}-${singer}.${ext}`;
+  return `${basename}.${ext}`;
 };
 
 export const buildLyricFilename = (
-  title: string | undefined,
-  artist: string | undefined,
+  data: Pick<MusicInfo, 'title' | 'artist' | 'album'>,
   ext: 'lrc' | 'txt',
+  index?: number,
 ) => {
-  const name = sanitizeFilenamePart(title || '未知歌曲');
-  const singer = sanitizeFilenamePart(artist || '未知歌手');
-  return `${name}-${singer}.${ext}`;
+  const basename = resolveDownloadBasename({
+    index,
+    title: data.title,
+    album: data.album,
+    artist: data.artist,
+  });
+  return `${basename}.${ext}`;
 };
 
 /**
@@ -45,6 +90,7 @@ export const downloadSongAudio = async ({
   item,
   embedMetadata,
   onProgress,
+  index,
 }: DownloadSongAudioOptions) => {
   if (!item.url) {
     throw new Error('缺少播放地址');
@@ -85,7 +131,7 @@ export const downloadSongAudio = async ({
       resultBlob = await embedMetadata({
         audio: resultBlob,
         cover: coverBlob,
-        audioName: buildSongFilename(data.title, data.artist, item),
+        audioName: buildSongFilename(data, item, undefined, index),
         coverName: coverBlob
           ? `cover.${data.cover?.split('?')[0].split('.').pop()?.toLowerCase() || 'jpg'}`
           : undefined,
@@ -105,14 +151,14 @@ export const downloadSongAudio = async ({
 
   downloadBlob(
     resultBlob,
-    buildSongFilename(data.title, data.artist, item, embedded ? outputFormat : undefined),
+    buildSongFilename(data, item, embedded ? outputFormat : undefined, index),
   );
 };
 
 /**
  * 下载单曲歌词（lrc 带时间轴 / txt 用后端 lrcText）
  */
-export const downloadSongLyric = (data: MusicInfo, mode: 'lrc' | 'txt') => {
+export const downloadSongLyric = (data: MusicInfo, mode: 'lrc' | 'txt', index?: number) => {
   const lyricText = mode === 'lrc' ? data.lrc : data.lrcText;
 
   if (!lyricText?.trim()) {
@@ -121,7 +167,7 @@ export const downloadSongLyric = (data: MusicInfo, mode: 'lrc' | 'txt') => {
 
   downloadBlob(
     new Blob([lyricText], { type: 'text/plain;charset=utf-8' }),
-    buildLyricFilename(data.title, data.artist, mode),
+    buildLyricFilename(data, mode, index),
   );
 };
 
