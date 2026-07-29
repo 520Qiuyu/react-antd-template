@@ -153,12 +153,45 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     [parseTrack],
   );
 
+  /** 仅解析尚未解析的曲目 */
+  const parseUnparsedTracks = useCallback(
+    async (targetTracks: PlaylistMusicInfo[]) => {
+      const pending = targetTracks.filter((track) => track.id && !isTrackParsed(track));
+      let success = 0;
+      let failed = 0;
+
+      await runWithConcurrency(pending, PLAYLIST_PARSE_CONCURRENCY, async (track) => {
+        const ok = await parseTrack(track, true);
+        if (ok) success += 1;
+        else failed += 1;
+        bumpBatchProgress(ok);
+      });
+
+      return { success, failed, total: pending.length };
+    },
+    [parseTrack],
+  );
+
   const handleParseAll = async (targetTracks: PlaylistMusicInfo[]) => {
     setBatchProgress({ success: 0, failed: 0 });
     try {
       const { success, failed, total } = await parseAllTracks(targetTracks);
       if (total === 0) {
         msgError('没有可解析的曲目');
+        return;
+      }
+      msgSuccess(`解析完成：成功 ${success}，失败 ${failed}`);
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+
+  const handleParseUnparsed = async (targetTracks: PlaylistMusicInfo[]) => {
+    setBatchProgress({ success: 0, failed: 0 });
+    try {
+      const { success, failed, total } = await parseUnparsedTracks(targetTracks);
+      if (total === 0) {
+        msgError('没有未解析的曲目');
         return;
       }
       msgSuccess(`解析完成：成功 ${success}，失败 ${failed}`);
@@ -278,6 +311,19 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     }
   };
 
+  /** 仅下载尚未成功的曲目，不清空已有成功状态 */
+  const handleDownloadUndownloaded = async (targetTracks: PlaylistMusicInfo[]) => {
+    if (targetTracks.length === 0) return;
+    setBatchProgress({ success: 0, failed: 0 });
+    try {
+      await ensureTracksParsed(targetTracks);
+      const { success, failed } = await downloadTrackList(targetTracks);
+      msgSuccess(`下载完成：成功 ${success}，失败 ${failed}`);
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+
   const handleRetryFailedDownloads = async (retryTracks: PlaylistMusicInfo[]) => {
     if (retryTracks.length === 0) return;
     setBatchProgress({ success: 0, failed: 0 });
@@ -325,7 +371,9 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
         liveSuccessCount={batchProgress.success}
         liveFailCount={batchProgress.failed}
         onParseAll={handleParseAll}
+        onParseUnparsed={handleParseUnparsed}
         onDownloadAll={handleDownloadAll}
+        onDownloadUndownloaded={handleDownloadUndownloaded}
         onRetryFailedDownloads={handleRetryFailedDownloads}
         onDownloadAllLyrics={handleDownloadAllLyrics}
         onParse={parseTrack}

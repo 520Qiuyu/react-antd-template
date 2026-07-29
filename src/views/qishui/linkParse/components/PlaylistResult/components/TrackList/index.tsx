@@ -20,7 +20,15 @@ import styles from './index.module.less';
 /** 每页最多曲目数 */
 const PAGE_SIZE = 195;
 
-export type BatchAction = 'parse' | 'download' | 'retry' | 'lrc' | 'txt' | null;
+export type BatchAction =
+  | 'parse'
+  | 'parseUnparsed'
+  | 'download'
+  | 'downloadUndownloaded'
+  | 'retry'
+  | 'lrc'
+  | 'txt'
+  | null;
 
 interface TrackListProps {
   tracks: PlaylistMusicInfo[];
@@ -31,7 +39,10 @@ interface TrackListProps {
   /** 进行中实时失败数（解析 / 下载） */
   liveFailCount: number;
   onParseAll: (tracks: PlaylistMusicInfo[]) => Promise<void>;
+  onParseUnparsed: (tracks: PlaylistMusicInfo[]) => Promise<void>;
   onDownloadAll: (tracks: PlaylistMusicInfo[]) => Promise<void>;
+  /** 仅下载尚未成功的曲目（保留已成功状态） */
+  onDownloadUndownloaded: (tracks: PlaylistMusicInfo[]) => Promise<void>;
   onRetryFailedDownloads: (tracks: PlaylistMusicInfo[]) => Promise<void>;
   onDownloadAllLyrics: (mode: 'lrc' | 'txt') => Promise<void>;
   onParse: (track: PlaylistMusicInfo, silent?: boolean, force?: boolean) => void;
@@ -47,7 +58,9 @@ const TrackList: React.FC<TrackListProps> = ({
   liveSuccessCount,
   liveFailCount,
   onParseAll,
+  onParseUnparsed,
   onDownloadAll,
+  onDownloadUndownloaded,
   onRetryFailedDownloads,
   onDownloadAllLyrics,
   onParse,
@@ -66,6 +79,18 @@ const TrackList: React.FC<TrackListProps> = ({
         (track.artist || '').toLowerCase().includes(keyword),
     );
   }, [tracks, filter]);
+
+  /** 当前筛选结果中尚未解析的曲目 */
+  const unparsedTracks = useMemo(
+    () => filteredTracks.filter((track) => Boolean(track.id) && !isTrackParsed(track)),
+    [filteredTracks],
+  );
+
+  /** 当前筛选结果中尚未成功下载的曲目 */
+  const undownloadedTracks = useMemo(
+    () => filteredTracks.filter((track) => Boolean(track.id) && track.downloadStatus !== 'success'),
+    [filteredTracks],
+  );
 
   const totalPages = Math.max(1, Math.ceil(filteredTracks.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -114,12 +139,32 @@ const TrackList: React.FC<TrackListProps> = ({
       setBatchAction(null);
     }
   };
+  /** 仅解析当前筛选结果中尚未解析的曲目 */
+  const handleParseUnparsed = async () => {
+    if (batchAction) return;
+    setBatchAction('parseUnparsed');
+    try {
+      await onParseUnparsed(unparsedTracks);
+    } finally {
+      setBatchAction(null);
+    }
+  };
   /** 全部下载 */
   const handleDownloadAll = async () => {
     if (batchAction) return;
     setBatchAction('download');
     try {
       await onDownloadAll(filteredTracks);
+    } finally {
+      setBatchAction(null);
+    }
+  };
+  /** 仅下载当前筛选结果中尚未成功下载的曲目 */
+  const handleDownloadUndownloaded = async () => {
+    if (batchAction) return;
+    setBatchAction('downloadUndownloaded');
+    try {
+      await onDownloadUndownloaded(undownloadedTracks);
     } finally {
       setBatchAction(null);
     }
@@ -152,8 +197,11 @@ const TrackList: React.FC<TrackListProps> = ({
   };
 
   // 状态
-  const isParseBatch = batchAction === 'parse';
-  const isDownloadBatch = batchAction === 'download' || batchAction === 'retry';
+  const isParseBatch = batchAction === 'parse' || batchAction === 'parseUnparsed';
+  const isDownloadBatch =
+    batchAction === 'download' ||
+    batchAction === 'downloadUndownloaded' ||
+    batchAction === 'retry';
   const statKind: 'parse' | 'download' | null = isParseBatch
     ? 'parse'
     : isDownloadBatch || downloadSuccessCount > 0 || downloadFailCount > 0
@@ -166,8 +214,10 @@ const TrackList: React.FC<TrackListProps> = ({
   const successLabel = statKind === 'parse' ? '解析成功' : '下载成功';
   const failLabel = statKind === 'parse' ? '解析失败' : '下载失败';
   const batchBusy = batchAction !== null;
-  const showParseLive = batchAction === 'parse';
+  const showParseAllLive = batchAction === 'parse';
+  const showParseUnparsedLive = batchAction === 'parseUnparsed';
   const showDownloadLive = batchAction === 'download' || batchAction === 'retry';
+  const showDownloadUndownloadedLive = batchAction === 'downloadUndownloaded';
   const showPagination = filteredTracks.length > PAGE_SIZE;
 
   return (
@@ -180,7 +230,7 @@ const TrackList: React.FC<TrackListProps> = ({
           onClick={handleParseAll}>
           {batchAction === 'parse' ? <LoadingOutlined /> : <ThunderboltOutlined />}
           全部解析
-          {showParseLive ? (
+          {showParseAllLive ? (
             <>
               <span className={classNames(styles['btnCount'], styles['btnCountOk'])}>
                 {liveSuccessCount}
@@ -190,6 +240,26 @@ const TrackList: React.FC<TrackListProps> = ({
               </span>
             </>
           ) : null}
+        </button>
+        <button
+          className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
+          type='button'
+          disabled={unparsedTracks.length === 0 || batchBusy}
+          onClick={handleParseUnparsed}>
+          {batchAction === 'parseUnparsed' ? <LoadingOutlined /> : <ThunderboltOutlined />}
+          解析未解析的
+          {showParseUnparsedLive ? (
+            <>
+              <span className={classNames(styles['btnCount'], styles['btnCountOk'])}>
+                {liveSuccessCount}
+              </span>
+              <span className={classNames(styles['btnCount'], styles['btnCountFail'])}>
+                {liveFailCount}
+              </span>
+            </>
+          ) : (
+            <span className={styles['btnCount']}>{unparsedTracks.length}</span>
+          )}
         </button>
         <button
           className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
@@ -209,6 +279,30 @@ const TrackList: React.FC<TrackListProps> = ({
             </>
           ) : (
             <span className={styles['btnCount']}>{tracks.length}</span>
+          )}
+        </button>
+        <button
+          className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
+          type='button'
+          disabled={undownloadedTracks.length === 0 || batchBusy}
+          onClick={handleDownloadUndownloaded}>
+          {batchAction === 'downloadUndownloaded' ? (
+            <LoadingOutlined />
+          ) : (
+            <CloudDownloadOutlined />
+          )}
+          下载未下载的
+          {showDownloadUndownloadedLive ? (
+            <>
+              <span className={classNames(styles['btnCount'], styles['btnCountOk'])}>
+                {liveSuccessCount}
+              </span>
+              <span className={classNames(styles['btnCount'], styles['btnCountFail'])}>
+                {liveFailCount}
+              </span>
+            </>
+          ) : (
+            <span className={styles['btnCount']}>{undownloadedTracks.length}</span>
           )}
         </button>
         {downloadFailCount > 0 ? (
@@ -406,7 +500,9 @@ const TrackList: React.FC<TrackListProps> = ({
                       type='button'
                       disabled={downloading || noPlayUrl}
                       aria-label={
-                        noPlayUrl ? `无播放地址，无法下载 ${track.title}` : `下载歌曲 ${track.title}`
+                        noPlayUrl
+                          ? `无播放地址，无法下载 ${track.title}`
+                          : `下载歌曲 ${track.title}`
                       }
                       onClick={() => onDownload(track)}>
                       {downloading ? <LoadingOutlined /> : <CloudDownloadOutlined />}

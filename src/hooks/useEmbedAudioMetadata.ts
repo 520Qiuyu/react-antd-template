@@ -9,6 +9,11 @@ let loadPromise: Promise<FFmpeg> | null = null;
 let sharedStatus: FFmpegStatus = 'idle';
 let sharedError: Error | null = null;
 let sharedProgress = 0;
+/** 实例重建代数：hook 用其重新绑定 log/progress，避免挂在已 terminate 的旧实例上 */
+let sharedGeneration = 0;
+/** 缓存 core blob URL，OOM 重建时免重复下载 ~30MB wasm */
+let cachedCoreURL: string | null = null;
+let cachedWasmURL: string | null = null;
 
 type SharedListener = () => void;
 const sharedListeners = new Set<SharedListener>();
@@ -34,6 +39,48 @@ const setSharedProgress = (progress: number) => {
 };
 
 /**
+ * 判断是否为 ffmpeg.wasm 致命内存错误（堆越界/OOM）
+ * @example
+ * isFfmpegFatalMemoryError(new RuntimeError('memory access out of bounds')) // true
+ */
+const isFfmpegFatalMemoryError = (cause: unknown) => {
+  const message = cause instanceof Error ? cause.message : String(cause ?? '');
+  const name = cause instanceof Error ? cause.name : '';
+  const text = `${name} ${message}`.toLowerCase();
+  return (
+    text.includes('memory access out of bounds') ||
+    text.includes('out of memory') ||
+    text.includes('cannot enlarge memory') ||
+    text.includes('oom') ||
+    name === 'RuntimeError'
+  );
+};
+
+/**
+ * 销毁当前共享 FFmpeg 实例并提升 generation，供后续重新 load
+ * @example
+ * await resetSharedFfmpeg();
+ * await loadFfmpeg(); // 会拿到全新实例
+ */
+const resetSharedFfmpeg = async () => {
+  const prev = sharedFfmpeg;
+  sharedFfmpeg = null;
+  loadPromise = null;
+  sharedProgress = 0;
+  sharedError = null;
+  sharedGeneration += 1;
+  sharedStatus = 'idle';
+  notifySharedListeners();
+
+  if (!prev) return;
+  try {
+    prev.terminate();
+  } catch {
+    /* terminate 在 worker 已挂时可能抛错，忽略 */
+  }
+};
+
+/**
  * 使用 ffmpeg-wasm 为音频 Blob 写入元信息 / 封面，并可选转为 mp3 | m4a | flac
  *
  * @example
@@ -52,6 +99,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
   const [status, setStatus] = useState<FFmpegStatus>(sharedStatus);
   const [progress, setProgress] = useState(sharedProgress);
   const [error, setError] = useState<Error | null>(sharedError);
+  const [generation, setGeneration] = useState(sharedGeneration);
 
   useEffect(() => {
     callbacksRef.current = options;
@@ -63,6 +111,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
       setStatus(sharedStatus);
       setProgress(sharedProgress);
       setError(sharedError);
+      setGeneration(sharedGeneration);
     };
     sync();
     sharedListeners.add(sync);
@@ -71,6 +120,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
     };
   }, []);
 
+  // generation 变化时重新绑定到新实例（OOM 重建后旧 worker 已失效）
   useEffect(() => {
     const ffmpeg = getSharedFfmpeg();
     const handleLog: LogEventCallback = ({ message, type }) =>
@@ -88,7 +138,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
       ffmpeg.off('log', handleLog);
       ffmpeg.off('progress', handleProgress);
     };
-  }, []);
+  }, [generation]);
 
   const loadFfmpeg = useCallback(async () => {
     const ffmpeg = getSharedFfmpeg();
@@ -104,47 +154,51 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
       // 同步赋值：把整段异步流程包进 IIFE，先占位再 await，
       // 否则 await 下载期间 loadPromise 仍为 null，并发调用会各自重新加载
       loadPromise = (async () => {
-        const downloadState = {
-          jsReceived: 0,
-          jsTotal: 0,
-          wasmReceived: 0,
-          wasmTotal: 0,
-        };
+        if (!cachedCoreURL || !cachedWasmURL) {
+          const downloadState = {
+            jsReceived: 0,
+            jsTotal: 0,
+            wasmReceived: 0,
+            wasmTotal: 0,
+          };
 
-        const reportLoadProgress = () => {
-          const total = downloadState.jsTotal + downloadState.wasmTotal;
-          if (total <= 0) return;
-          const received = downloadState.jsReceived + downloadState.wasmReceived;
-          // 下载占 0–90%，剩余留给 ffmpeg.load 初始化
-          const downloadPercent = Math.round(Math.min(1, received / total) * 90);
-          setSharedProgress(downloadPercent);
-          callbacksRef.current.onProgress?.(downloadPercent);
-        };
+          const reportLoadProgress = () => {
+            const total = downloadState.jsTotal + downloadState.wasmTotal;
+            if (total <= 0) return;
+            const received = downloadState.jsReceived + downloadState.wasmReceived;
+            // 下载占 0–90%，剩余留给 ffmpeg.load 初始化
+            const downloadPercent = Math.round(Math.min(1, received / total) * 90);
+            setSharedProgress(downloadPercent);
+            callbacksRef.current.onProgress?.(downloadPercent);
+          };
 
-        const [coreURL, wasmURL] = await Promise.all([
-          fetchToBlobURL(
-            `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`,
-            'text/javascript',
-            ({ received, total }) => {
-              downloadState.jsReceived = received;
-              downloadState.jsTotal = total;
-              reportLoadProgress();
-            },
-          ),
-          fetchToBlobURL(
-            `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`,
-            'application/wasm',
-            ({ received, total }) => {
-              downloadState.wasmReceived = received;
-              downloadState.wasmTotal = total;
-              reportLoadProgress();
-            },
-          ),
-        ]);
+          const [coreURL, wasmURL] = await Promise.all([
+            fetchToBlobURL(
+              `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`,
+              'text/javascript',
+              ({ received, total }) => {
+                downloadState.jsReceived = received;
+                downloadState.jsTotal = total;
+                reportLoadProgress();
+              },
+            ),
+            fetchToBlobURL(
+              `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`,
+              'application/wasm',
+              ({ received, total }) => {
+                downloadState.wasmReceived = received;
+                downloadState.wasmTotal = total;
+                reportLoadProgress();
+              },
+            ),
+          ]);
+          cachedCoreURL = coreURL;
+          cachedWasmURL = wasmURL;
+        }
 
         setSharedProgress(95);
         callbacksRef.current.onProgress?.(95);
-        await ffmpeg.load({ coreURL, wasmURL });
+        await ffmpeg.load({ coreURL: cachedCoreURL!, wasmURL: cachedWasmURL! });
         setSharedProgress(100);
         callbacksRef.current.onProgress?.(100);
         return ffmpeg;
@@ -194,102 +248,114 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
         throw new Error('专辑封面文件名无效');
       }
 
-      const sourceName = `input.${inputExt}`;
-      const temporaryFiles = [sourceName];
-      if (coverExt) temporaryFiles.push(`cover.${coverExt}`);
+      // 批量多首后 WASM 堆可能越界：捕获后重建实例并重试当前曲一次
+      let allowMemoryRetry = true;
 
-      const ffmpeg = getSharedFfmpeg();
-      try {
-        await loadFfmpeg();
-        setSharedStatus('processing');
-        await ffmpeg.writeFile(sourceName, await fetchFile(audio));
+      while (true) {
+        const sourceName = `input.${inputExt}`;
+        const temporaryFiles = [sourceName];
+        if (coverExt) temporaryFiles.push(`cover.${coverExt}`);
 
-        if (cover && coverExt) {
-          await ffmpeg.writeFile(`cover.${coverExt}`, await fetchFile(cover));
-        }
+        const ffmpeg = getSharedFfmpeg();
+        try {
+          await loadFfmpeg();
+          setSharedStatus('processing');
+          await ffmpeg.writeFile(sourceName, await fetchFile(audio));
 
-        // 视频容器：有封面时先抽纯音轨再嵌封面（避免音画交织+封面同时处理卡住）；
-        // 无封面且目标 m4a 时可一步完成（抽轨+元数据），少一轮 remux
-        let audioInputName = sourceName;
-        let audioInputExt = inputExt;
-        const isVideoInput = isVideoContainerExt(inputExt);
-
-        if (isVideoInput) {
-          const canFinishInOnePass = !coverExt && outputFormat === 'm4a';
-          const extractedName = canFinishInOnePass ? `output.${outputFormat}` : 'extracted.m4a';
-          temporaryFiles.push(extractedName);
-
-          const extractArgs = [
-            '-y',
-            '-i',
-            sourceName,
-            '-map',
-            '0:a:0',
-            '-vn',
-            '-c:a',
-            'copy',
-            ...(canFinishInOnePass ? buildMetadataArgs(metadata) : []),
-            extractedName,
-          ];
-          console.log('extractArgs', extractArgs);
-          const extractCode = await ffmpeg.exec(extractArgs);
-          if (extractCode !== 0) {
-            throw new Error(`ffmpeg 抽取音轨失败，退出码：${extractCode}`);
+          if (cover && coverExt) {
+            await ffmpeg.writeFile(`cover.${coverExt}`, await fetchFile(cover));
           }
 
-          await ffmpeg.deleteFile(sourceName).catch(() => undefined);
-          const sourceIdx = temporaryFiles.indexOf(sourceName);
-          if (sourceIdx >= 0) temporaryFiles.splice(sourceIdx, 1);
+          // 视频容器：有封面时先抽纯音轨再嵌封面（避免音画交织+封面同时处理卡住）；
+          // 无封面且目标 m4a 时可一步完成（抽轨+元数据），少一轮 remux
+          let audioInputName = sourceName;
+          let audioInputExt = inputExt;
+          const isVideoInput = isVideoContainerExt(inputExt);
 
-          if (canFinishInOnePass) {
-            const outputData = await ffmpeg.readFile(extractedName);
-            setSharedProgress(100);
-            callbacksRef.current.onProgress?.(100);
-            const outputBlob = createOutputBlob(outputData, OUTPUT_MIME[outputFormat]);
-            setSharedStatus('ready');
-            return outputBlob;
+          if (isVideoInput) {
+            const canFinishInOnePass = !coverExt && outputFormat === 'm4a';
+            const extractedName = canFinishInOnePass ? `output.${outputFormat}` : 'extracted.m4a';
+            temporaryFiles.push(extractedName);
+
+            const extractArgs = [
+              '-y',
+              '-i',
+              sourceName,
+              '-map',
+              '0:a:0',
+              '-vn',
+              '-c:a',
+              'copy',
+              ...(canFinishInOnePass ? buildMetadataArgs(metadata) : []),
+              extractedName,
+            ];
+            console.log('extractArgs', extractArgs);
+            const extractCode = await ffmpeg.exec(extractArgs);
+            if (extractCode !== 0) {
+              throw new Error(`ffmpeg 抽取音轨失败，退出码：${extractCode}`);
+            }
+
+            await ffmpeg.deleteFile(sourceName).catch(() => undefined);
+            const sourceIdx = temporaryFiles.indexOf(sourceName);
+            if (sourceIdx >= 0) temporaryFiles.splice(sourceIdx, 1);
+
+            if (canFinishInOnePass) {
+              const outputData = await ffmpeg.readFile(extractedName);
+              setSharedProgress(100);
+              callbacksRef.current.onProgress?.(100);
+              const outputBlob = createOutputBlob(outputData, OUTPUT_MIME[outputFormat]);
+              setSharedStatus('ready');
+              return outputBlob;
+            }
+
+            audioInputName = extractedName;
+            audioInputExt = 'm4a';
           }
 
-          audioInputName = extractedName;
-          audioInputExt = 'm4a';
+          const { args, outputName, mimeType } = buildFfmpegArgs(
+            audioInputName,
+            audioInputExt,
+            coverExt,
+            metadata,
+            outputFormat,
+          );
+          temporaryFiles.push(outputName);
+          console.log('args', args);
+
+          const exitCode = await ffmpeg.exec(args);
+          if (exitCode !== 0) {
+            throw new Error(`ffmpeg 处理失败，退出码：${exitCode}`);
+          }
+
+          // 读输出前删掉输入，避免 wasm/JS 内存叠加卡住
+          await cleanupFiles(
+            ffmpeg,
+            temporaryFiles.filter((name) => name !== outputName),
+          );
+          temporaryFiles.length = 0;
+          temporaryFiles.push(outputName);
+
+          const outputData = await ffmpeg.readFile(outputName);
+          setSharedProgress(100);
+          callbacksRef.current.onProgress?.(100);
+          const outputBlob = createOutputBlob(outputData, mimeType);
+          setSharedStatus('ready');
+          return outputBlob;
+        } catch (cause) {
+          console.log('cause', cause);
+          if (allowMemoryRetry && isFfmpegFatalMemoryError(cause)) {
+            allowMemoryRetry = false;
+            console.warn('FFmpeg WASM 内存异常，重建实例后重试当前歌曲');
+            await resetSharedFfmpeg();
+            continue;
+          }
+          const processingError =
+            cause instanceof Error ? cause : new Error('音频元信息写入失败');
+          setSharedStatus('error', processingError);
+          throw processingError;
+        } finally {
+          await cleanupFiles(ffmpeg, temporaryFiles);
         }
-
-        const { args, outputName, mimeType } = buildFfmpegArgs(
-          audioInputName,
-          audioInputExt,
-          coverExt,
-          metadata,
-          outputFormat,
-        );
-        temporaryFiles.push(outputName);
-        console.log('args', args);
-
-        const exitCode = await ffmpeg.exec(args);
-        if (exitCode !== 0) {
-          throw new Error(`ffmpeg 处理失败，退出码：${exitCode}`);
-        }
-
-        // 读输出前删掉输入，避免 wasm/JS 内存叠加卡住
-        await cleanupFiles(
-          ffmpeg,
-          temporaryFiles.filter((name) => name !== outputName),
-        );
-        temporaryFiles.length = 0;
-        temporaryFiles.push(outputName);
-
-        const outputData = await ffmpeg.readFile(outputName);
-        setSharedProgress(100);
-        callbacksRef.current.onProgress?.(100);
-        const outputBlob = createOutputBlob(outputData, mimeType);
-        setSharedStatus('ready');
-        return outputBlob;
-      } catch (cause) {
-        console.log('cause', cause);
-        const processingError = cause instanceof Error ? cause : new Error('音频元信息写入失败');
-        setSharedStatus('error', processingError);
-        throw processingError;
-      } finally {
-        await cleanupFiles(ffmpeg, temporaryFiles);
       }
     },
     [loadFfmpeg],
