@@ -1,6 +1,8 @@
 import { Role } from '@/constants';
 import { useUserStore } from '@/store';
 
+let firstLoad = true;
+
 export const useUser = () => {
   /** 用户信息 */
   const userInfo = useUserStore((state) => state.userInfo);
@@ -23,7 +25,11 @@ export const useUser = () => {
 
   // 挂载的时候获取用户信息
   useEffect(() => {
-    getUserInfo();
+    if (firstLoad) {
+      getUserInfo();
+      firstLoad = false;
+      return;
+    }
   }, []);
 
   return {
