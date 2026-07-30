@@ -3,22 +3,21 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
     "allowJs": true,
     "sourceMap": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "@@/*": ["./src/.umi/*"], // 解决 umi 找不到部分模块的问题,
-      "src/*": ["src/*"],
-      "utils/*": ["src/utils/*"],
-      "components/*": ["src/components/*"],
-      "images/*": ["src/assets/images/*"],
-      "assets/*": ["src/assets/*"],
-      "views/*": ["src/views/*"],
-      "apis/*": ["src/apis/*"]
+      "src/*": ["./src/*"],
+      "utils/*": ["./src/utils/*"],
+      "components/*": ["./src/components/*"],
+      "images/*": ["./src/assets/images/*"],
+      "assets/*": ["./src/assets/*"],
+      "views/*": ["./src/views/*"],
+      "apis/*": ["./src/apis/*"]
     },
 
     /* Bundler mode */

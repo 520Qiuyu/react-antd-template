@@ -15,6 +15,12 @@ export const useUser = () => {
   /** 是否是代理 */
   const isProxy = userInfo?.roles?.some((role) => role.code === Role.PROXY);
 
+  /** 是否有权限 */
+  const hasPermission = (permissionCode: string) => {
+    if (isSuperAdmin) return true;
+    return userInfo?.permissions?.some((permission) => permission.code === permissionCode);
+  };
+
   // 挂载的时候获取用户信息
   useEffect(() => {
     getUserInfo();
@@ -27,5 +33,6 @@ export const useUser = () => {
     isProxy,
     getUserInfo,
     clearUser,
+    hasPermission,
   };
 };

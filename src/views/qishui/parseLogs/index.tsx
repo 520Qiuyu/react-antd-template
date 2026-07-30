@@ -218,6 +218,7 @@ const ParseLogs: React.FC = () => {
             type='text'
             size='small'
             danger
+            permissionCode='qishui_logs_remove'
             icon={<DeleteOutlined />}
             toolTip='删除'
             onClick={() => handleDelete(record)}

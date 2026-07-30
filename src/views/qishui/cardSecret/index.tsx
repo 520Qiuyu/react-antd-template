@@ -11,15 +11,16 @@ import { getSearchFromObject, useCompRef, useGetList, useSearchParams } from '@/
 import { useUser } from '@/hooks/useUser';
 import type { CardSecretListItem, CardSecretListStats, CardSecretType } from '@/types/cardSecret';
 import { confirm, msgError, msgSuccess } from '@/utils/modal';
-import { CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { CopyOutlined, DeleteOutlined, EditOutlined, ExportOutlined, PlusOutlined } from '@ant-design/icons';
 import { Card, Space, Switch, Table, Tag } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnsType, TableProps } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import classNames from 'classnames';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import CardSecretFormModal from './components/CardSecretFormModal';
 import CardSecretStat from './components/CardSecretStat';
+import ExportModal from './components/ExportModal';
 import {
   CARD_SECRET_TYPE_COLOR_MAP,
   CARD_SECRET_TYPE_OPTIONS,
@@ -126,6 +127,29 @@ const CardSecret: React.FC = () => {
       keyword: record.secret,
     });
     navigate(`/qishui/logs?${search}`);
+  };
+
+  // 勾选
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [selectedRows, setSelectedRows] = useState<CardSecretListItem[]>([]);
+  const rowSelection: TableProps<CardSecretListItem>['rowSelection'] = {
+    preserveSelectedRowKeys: true,
+    selectedRowKeys,
+    onChange: (keys, rows) => {
+      setSelectedRowKeys(keys as string[]);
+      setSelectedRows(rows);
+    },
+  };
+
+  // 批量导出
+  const exportModalRef = useCompRef(ExportModal);
+  /** 导出卡密 */
+  const handleExportCardSecret = () => {
+    if (!selectedRowKeys.length) {
+      msgError('请先勾选要导出的卡密');
+      return;
+    }
+    exportModalRef.current?.open({ selectedRows });
   };
 
   /** 渲染解析用量：紧凑双行，不撑高表格 */
@@ -323,6 +347,7 @@ const CardSecret: React.FC = () => {
             size='small'
             variant='text'
             color='primary'
+            permissionCode='qishui_card_secret_update'
             icon={<EditOutlined />}
             toolTip='编辑'
             onClick={() => formModalRef.current?.open(record)}
@@ -331,6 +356,7 @@ const CardSecret: React.FC = () => {
             type='text'
             size='small'
             danger
+            permissionCode='qishui_card_secret_remove'
             icon={<DeleteOutlined />}
             toolTip='删除'
             onClick={() => handleDelete(record)}
@@ -351,12 +377,22 @@ const CardSecret: React.FC = () => {
         className={styles['listCard']}
         title='卡密列表'
         extra={
-          <MyButton
-            type='primary'
-            icon={<PlusOutlined />}
-            onClick={() => formModalRef.current?.open()}>
-            创建卡密
-          </MyButton>
+          <Space>
+            <MyButton
+              type='primary'
+              permissionCode='qishui_card_secret_create'
+              icon={<PlusOutlined />}
+              onClick={() => formModalRef.current?.open()}>
+              创建卡密
+            </MyButton>
+            <MyButton
+              type='primary'
+              icon={<ExportOutlined />}
+              disabled={!selectedRowKeys.length}
+              onClick={handleExportCardSecret}>
+              导出卡密
+            </MyButton>
+          </Space>
         }>
         <div className={styles['toolbar']}>
           <SearchForm
@@ -373,6 +409,7 @@ const CardSecret: React.FC = () => {
           loading={loading}
           pagination={false}
           scroll={{ x: 1460 }}
+          rowSelection={rowSelection}
           onChange={(_, __, sorter) => {
             const { field, order } = sorter as SorterResult<CardSecretListItem>;
             setSearchParams({
@@ -393,6 +430,14 @@ const CardSecret: React.FC = () => {
       <CardSecretFormModal
         ref={formModalRef}
         onSuccess={() => setSearchParams({ ...searchParams })}
+      />
+
+      <ExportModal
+        ref={exportModalRef}
+        onSuccess={() => {
+          setSelectedRowKeys([]);
+          setSelectedRows([]);
+        }}
       />
     </div>
   );
