@@ -233,21 +233,7 @@ function CardSecretFormModal(
                       : '留空表示不限制每日次数；默认 1000'
                   }
                   className={styles['fullWidth']}
-                  rules={[
-                    { required: !isSuperAdmin, message: '请输入每天最多解析数量' },
-                    {
-                      validator: (_, value) => {
-                        if (value && value < 1) {
-                          return Promise.reject(new Error('每天最多解析数量不能小于1'));
-                        }
-                        const max = isSuperAdmin ? 999999 : isAdmin ? 2000 : 1000;
-                        if (value && value > max) {
-                          return Promise.reject(new Error(`每天最多解析数量不能大于${max}`));
-                        }
-                        return Promise.resolve();
-                      },
-                    },
-                  ]}>
+                  rules={[{ required: !isSuperAdmin, message: '请输入每天最多解析数量' }]}>
                   <InputNumber
                     min={1}
                     max={999999}

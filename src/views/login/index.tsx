@@ -1,4 +1,4 @@
-import { useQuery } from '@/hooks';
+import { useQuery, useUser } from '@/hooks';
 import { reqPostLogin, reqPostRegister } from '@/apis/auth';
 import type { AuthFormValues, LoginFormValues, RegisterFormValues } from '@/types/auth';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
@@ -9,6 +9,7 @@ import { setLocalToken, setLocalUserInfo } from '@/utils/userInfo';
 import styles from './index.module.less';
 import { msgError, msgSuccess } from '@/utils/modal';
 import { Status } from '@/constants';
+import { useUserStore } from '@/store';
 
 interface LoginQuery {
   callbackUrl?: string;
@@ -22,7 +23,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<Mode>('login');
-
+  const getUserInfo = useUserStore((state) => state.getUserInfo);
   const handleSubmit = async (values: AuthFormValues) => {
     setLoading(true);
     try {
@@ -37,6 +38,7 @@ const Login = () => {
             account,
             status: Status.NORMAL,
           });
+          getUserInfo();
           msgSuccess('登录成功');
           if (callbackUrl) {
             navigate(decodeURIComponent(callbackUrl), { replace: true });

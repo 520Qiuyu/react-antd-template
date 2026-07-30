@@ -69,7 +69,12 @@ const CardSecretMobileItem: React.FC<Props> = ({
   const handleStatusChange = (checked: boolean) => onStatusChange(record, checked);
 
   return (
-    <article className={styles['card']} aria-label={`卡密 ${record.secret}`}>
+    <article
+      className={classNames(styles['card'], {
+        [styles['cardTypeTime']]: type === 'time',
+        [styles['cardTypeCount']]: type === 'count',
+      })}
+      aria-label={`卡密 ${record.secret}`}>
       <header className={styles['hero']}>
         <div className={styles['heroTop']}>
           <span className={styles['index']} aria-hidden>
@@ -83,7 +88,13 @@ const CardSecretMobileItem: React.FC<Props> = ({
               )}>
               {isEnabled ? '正常' : '禁用'}
             </span>
-            <span className={styles['chip']}>{CARD_SECRET_TYPE_TEXT_MAP[type]}</span>
+            <span
+              className={classNames(styles['chip'], {
+                [styles['chipTypeTime']]: type === 'time',
+                [styles['chipTypeCount']]: type === 'count',
+              })}>
+              {CARD_SECRET_TYPE_TEXT_MAP[type]}
+            </span>
           </div>
         </div>
 

@@ -1,10 +1,9 @@
 import copy from '@/utils/copy';
-import { msgSuccess } from '@/utils/modal';
+import { msgError, msgSuccess } from '@/utils/modal';
 import { CopyOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
-import styles from './style.module.less';
-import TextOverflowShowTips from '../TextOverflowShowTips';
 import classNames from 'classnames';
+import TextOverflowShowTips from '../TextOverflowShowTips';
+import styles from './style.module.less';
 
 interface CopyTextProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -23,9 +22,15 @@ interface CopyTextProps extends React.HTMLAttributes<HTMLDivElement> {
  */
 export default function CopyText(props: CopyTextProps) {
   const { text, className, ...rest } = props;
-  const handleCopy = () => {
-    copy(text);
-    msgSuccess('复制成功');
+
+  const handleCopy = async () => {
+    try {
+      await copy(text);
+      msgSuccess('复制成功');
+    } catch (error) {
+      console.log('error', error);
+      msgError(error instanceof Error ? error.message : '复制失败，请重试');
+    }
   };
 
   return (
@@ -33,7 +38,7 @@ export default function CopyText(props: CopyTextProps) {
       <TextOverflowShowTips
         text={text}
         tooltipProps={{
-          getPopupContainer: (node) => {
+          getPopupContainer: () => {
             return document.body;
           },
         }}

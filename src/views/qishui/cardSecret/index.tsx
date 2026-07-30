@@ -11,16 +11,23 @@ import { getSearchFromObject, useCompRef, useGetList, useSearchParams } from '@/
 import { useUser } from '@/hooks/useUser';
 import type { CardSecretListItem, CardSecretListStats, CardSecretType } from '@/types/cardSecret';
 import { confirm, msgError, msgSuccess } from '@/utils/modal';
-import { CopyOutlined, DeleteOutlined, EditOutlined, ExportOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  CopyOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  ExportOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
 import { Card, Space, Switch, Table, Tag } from 'antd';
 import type { ColumnsType, TableProps } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
-import classNames from 'classnames';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import CardSecretFormModal from './components/CardSecretFormModal';
 import CardSecretStat from './components/CardSecretStat';
+import ExpireTimeCell from './components/ExpireTimeCell';
 import ExportModal from './components/ExportModal';
+import ParseUsageCell from './components/ParseUsageCell';
 import {
   CARD_SECRET_TYPE_COLOR_MAP,
   CARD_SECRET_TYPE_OPTIONS,
@@ -152,85 +159,6 @@ const CardSecret: React.FC = () => {
     exportModalRef.current?.open({ selectedRows });
   };
 
-  /** 渲染解析用量：紧凑双行，不撑高表格 */
-  const renderParseCount = (record: CardSecretListItem) => {
-    const hasDailyLimit = record.dailyParseLimit != null && record.dailyParseLimit > 0;
-    const dailyUsed = record.dailyParsedCount ?? 0;
-    const dailyLimit = record.dailyParseLimit || 0;
-    const dailyPercent = hasDailyLimit
-      ? Math.min(100, Math.round((dailyUsed / dailyLimit) * 1000) / 10)
-      : 0;
-
-    const hasTotalLimit = record.type === 'count' && (record.parseLimit || 0) > 0;
-    const totalUsed = record.parsedCount || 0;
-    const totalLimit = record.parseLimit || 0;
-    const totalRemain = hasTotalLimit ? Math.max(0, totalLimit - totalUsed) : null;
-    const totalPercent = hasTotalLimit
-      ? Math.min(100, Math.round((totalUsed / totalLimit) * 1000) / 10)
-      : 0;
-
-    const dailyIsPrimary = hasDailyLimit && record.type === 'time';
-    const primaryPercent = dailyIsPrimary ? dailyPercent : totalPercent;
-    const showPrimaryBar = dailyIsPrimary ? hasDailyLimit : hasTotalLimit;
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        handleGoParseLogs(record);
-      }
-    };
-
-    return (
-      <div
-        className={styles['parseUsage']}
-        role='link'
-        tabIndex={0}
-        aria-label={`查看卡密 ${record.secret} 的解析日志`}
-        onClick={() => handleGoParseLogs(record)}
-        onKeyDown={handleKeyDown}>
-        {hasDailyLimit ? (
-          <div className={styles['usageLine']}>
-            <span className={styles['usageLabel']}>今日</span>
-            <span className={styles['usageNums']}>
-              <strong className={dailyIsPrimary ? styles['isPrimary'] : undefined}>
-                {dailyUsed}
-              </strong>
-              <span>/ {dailyLimit}</span>
-            </span>
-          </div>
-        ) : null}
-
-        <div className={styles['usageLine']}>
-          <span className={styles['usageLabel']}>总解析</span>
-          <span className={styles['usageNums']}>
-            <strong className={!dailyIsPrimary ? styles['isPrimary'] : undefined}>
-              {totalUsed}
-            </strong>
-            {hasTotalLimit ? <span>/ {totalLimit}</span> : null}
-            {totalRemain !== null ? <em>剩 {totalRemain}</em> : null}
-          </span>
-        </div>
-
-        {showPrimaryBar ? (
-          <div
-            className={styles['usageTrack']}
-            role='progressbar'
-            aria-valuenow={primaryPercent}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={dailyIsPrimary ? '今日解析进度' : '总解析进度'}>
-            <div
-              className={classNames(styles['usageFill'], {
-                [styles['usageFillWarn']]: primaryPercent >= 90,
-              })}
-              style={{ width: `${primaryPercent}%` }}
-            />
-          </div>
-        ) : null}
-      </div>
-    );
-  };
-
   /** 列配置 */
   const columns: ColumnsType<CardSecretListItem> = [
     {
@@ -245,7 +173,7 @@ const CardSecret: React.FC = () => {
     {
       title: '卡号',
       dataIndex: 'secret',
-      width: 200,
+      width: 220,
       fixed: 'left',
       sorter: true,
       sortOrder: searchParams.sortField === 'secret' ? searchParams.sortOrder : undefined,
@@ -255,7 +183,9 @@ const CardSecret: React.FC = () => {
       title: '创建者',
       dataIndex: 'createUser',
       width: 120,
-      render: (val: { account: string }) => <span>{val?.account}</span>,
+      render: (val: { account: string; nickname: string | null }) => (
+        <span>{val?.nickname || val?.account}</span>
+      ),
     },
     {
       title: '类型',
@@ -273,7 +203,7 @@ const CardSecret: React.FC = () => {
       width: 180,
       sorter: true,
       sortOrder: searchParams.sortField === 'expireTime' ? searchParams.sortOrder : undefined,
-      render: (val?: string | null) => (val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'),
+      render: (_, record) => <ExpireTimeCell record={record} />,
     },
     {
       title: '解析用量',
@@ -282,7 +212,9 @@ const CardSecret: React.FC = () => {
       width: 160,
       sorter: true,
       sortOrder: searchParams.sortField === 'parsedCount' ? searchParams.sortOrder : undefined,
-      render: (_, record) => renderParseCount(record),
+      render: (_, record) => (
+        <ParseUsageCell record={record} onClick={() => handleGoParseLogs(record)} />
+      ),
     },
     {
       title: '认证信息',

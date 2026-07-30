@@ -80,7 +80,7 @@ export interface CardSecretListItem {
   /** 备注 */
   remark?: string | null;
   /** 创建者 */
-  createUser?: { account: string } | null;
+  createUser?: { account: string; nickname: string | null } | null;
   /** 创建时间 */
   ctime: string;
   /** 更新时间 */

@@ -3,6 +3,16 @@
   background: var(--qc-card, #fff);
   border-radius: var(--qc-radius-lg, 20px);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset, 0 10px 28px rgba(0, 0, 0, 0.04);
+  transition: background 200ms ease;
+}
+
+/* 按类型：卡片淡底色区分 */
+.cardTypeTime {
+  background: linear-gradient(180deg, rgba(0, 122, 255, 0.08) 0%, #fff 42%);
+}
+
+.cardTypeCount {
+  background: linear-gradient(180deg, rgba(175, 82, 222, 0.08) 0%, #fff 42%);
 }
 
 .hero {
@@ -60,6 +70,17 @@
 .chipOff {
   color: var(--qc-text-3, #8e8e93);
   background: rgba(142, 142, 147, 0.18);
+}
+
+/* 类型 chip：比卡片底色更深，一眼可辨 */
+.chipTypeTime {
+  color: #0055d4;
+  background: rgba(0, 122, 255, 0.22);
+}
+
+.chipTypeCount {
+  color: #7a28a8;
+  background: rgba(175, 82, 222, 0.22);
 }
 
 .secretBlock {
@@ -448,6 +469,14 @@
 }
 
 @media (prefers-reduced-transparency: reduce) {
+  .cardTypeTime {
+    background: #eef5ff;
+  }
+
+  .cardTypeCount {
+    background: #f7effc;
+  }
+
   .usageCard,
   .group,
   .more {
