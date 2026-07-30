@@ -73,7 +73,6 @@ function UserAuthorizeModal(
         keyword: nextKeyword || undefined,
       });
       if (res.code !== 200) {
-        msgError(res.message);
         return false;
       }
       setRoles(res.data?.list ?? []);
@@ -168,10 +167,11 @@ function UserAuthorizeModal(
     try {
       setSubmitting(true);
       const res = await reqSyncPermissionUserRoles(user.id, selectedRoleIds);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess('授权成功');
-      close();
-      await onSuccess?.();
+      if (res.code === 200) {
+        msgSuccess('授权成功');
+        close();
+        await onSuccess?.();
+      }
     } catch (error) {
       console.log('error', error);
       msgError(error instanceof Error ? error.message : '授权失败');

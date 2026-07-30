@@ -10,23 +10,27 @@ import type { RefObject } from 'react';
 import { Suspense } from 'react';
 import { matchPath, Navigate } from 'react-router';
 import styles from './index.module.less';
+import { useUser } from '@/hooks/useUser';
 
 export default function Main() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const currentRoute = useCurrentRoute();
-  const auth = useUserStore((state) => state.auth);
   const tabs = useAppStore((state) => state.tabs);
   const removeTab = useAppStore((state) => state.removeTab);
+  const { userInfo, isSuperAdmin } = useUser();
 
   // 根据权限过滤出路由
   const authRoutes = useMemo(() => {
     return flattenRoutesList?.filter((route) => {
       if (!route.auth) return true;
+      const auth = userInfo?.permissions || [];
       const routeAuth = Array.isArray(route.auth) ? route.auth : [route.auth];
-      return routeAuth.some((item) => auth?.includes(item));
+      return routeAuth.some(
+        (item) => isSuperAdmin || auth?.some((permission) => permission.code === item),
+      );
     });
-  }, [auth]);
+  }, [userInfo, isSuperAdmin]);
 
   const handleTabClose = (tab: ITab) => {
     /**

@@ -13,12 +13,14 @@ export const routes: IMenu[] = [
       {
         path: 'card-secret',
         name: '卡密管理',
+        auth: ['card-secret-management'],
         component: lazy(() => import('@/views/qishui/cardSecret')),
       },
       // 快速创建卡密
       {
         path: 'quick-create-card',
         name: '快速创建卡密',
+        auth: ['card-secret-management'],
         component: lazy(() => import('@/views/qishui/quickCreateCard')),
         hiddenLayout: true,
         hidden: true,
@@ -37,6 +39,7 @@ export const routes: IMenu[] = [
       {
         path: 'logs',
         name: '日志管理',
+        auth: ['qishui-logs-management'],
         component: lazy(() => import('@/views/qishui/parseLogs')),
       },
     ],
@@ -45,21 +48,25 @@ export const routes: IMenu[] = [
   {
     path: 'system',
     name: '系统管理',
+    auth: ['system-management'],
     icon: 'settings',
     children: [
       {
         path: 'user',
         name: '用户管理',
+        auth: ['user-management'],
         component: lazy(() => import('@/views/system/user')),
       },
       {
         path: 'role',
         name: '角色管理',
+        auth: ['role-management'],
         component: lazy(() => import('@/views/system/role')),
       },
       {
         path: 'resource',
         name: '资源管理',
+        auth: ['resource-management'],
         component: lazy(() => import('@/views/system/resource')),
       },
     ],

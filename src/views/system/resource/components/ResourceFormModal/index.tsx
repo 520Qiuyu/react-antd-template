@@ -68,7 +68,7 @@ function ResourceFormModal(
     try {
       const res = await reqGetPermissionResourceTree({ mode: 'full' });
       if (res.code !== 200) {
-        return msgError(res.message);
+        return;
       }
       setParentOptions(buildParentOptions(res.data ?? [], record?.id));
     } finally {
@@ -117,10 +117,11 @@ function ResourceFormModal(
       const res = isEdit
         ? await reqUpdatePermissionResource(editingRecord!.id, payload)
         : await reqCreatePermissionResource(payload);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess(isEdit ? '更新成功' : '创建成功');
-      close();
-      await onSuccess?.();
+      if (res.code === 200) {
+        msgSuccess(isEdit ? '更新成功' : '创建成功');
+        close();
+        await onSuccess?.();
+      }
     } catch (error) {
       console.log('error', error);
     }

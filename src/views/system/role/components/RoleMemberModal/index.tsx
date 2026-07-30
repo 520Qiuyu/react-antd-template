@@ -70,7 +70,6 @@ function RoleMemberModal(props: Props, ref: React.ForwardedRef<Ref<void, Permiss
         keyword: nextKeyword || undefined,
       });
       if (res.code !== 200) {
-        msgError(res.message);
         return false;
       }
       setUsers(res.data?.list ?? []);
@@ -164,10 +163,11 @@ function RoleMemberModal(props: Props, ref: React.ForwardedRef<Ref<void, Permiss
     try {
       setSubmitting(true);
       const res = await reqSyncPermissionRoleMembers(role.id, selectedUserIds);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess('成员授权成功');
-      close();
-      await onSuccess?.();
+      if (res.code === 200) {
+        msgSuccess('成员授权成功');
+        close();
+        await onSuccess?.();
+      }
     } catch (error) {
       console.log('error', error);
       msgError(error instanceof Error ? error.message : '成员授权失败');
@@ -242,9 +242,7 @@ function RoleMemberModal(props: Props, ref: React.ForwardedRef<Ref<void, Permiss
                     </Avatar>
                     <div className={styles['itemContent']}>
                       <div className={styles['itemHeader']}>
-                        <span className={styles['itemTitle']}>
-                          {user.nickname || '未设置昵称'}
-                        </span>
+                        <span className={styles['itemTitle']}>{user.nickname || '未设置昵称'}</span>
                         <Tag color={disabled ? 'default' : 'success'}>
                           {disabled ? '已禁用' : '正常'}
                         </Tag>

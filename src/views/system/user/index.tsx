@@ -51,9 +51,10 @@ const UserManagement: React.FC = () => {
     try {
       await confirm(`确定要删除用户「${record.account}」吗？`, '提示');
       const res = await reqDeleteUser(record.id);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess('删除成功');
-      setSearchParams({ ...searchParams });
+      if (res.code === 200) {
+        msgSuccess('删除成功');
+        setSearchParams({ ...searchParams });
+      }
     } catch (error) {
       console.log('error', error);
     }
@@ -65,9 +66,10 @@ const UserManagement: React.FC = () => {
     try {
       await confirm(`确定要${actionText}用户「${record.account}」吗？`, '提示');
       const res = await reqUpdateUserStatus(record.id, { status: nextStatus });
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess(`${actionText}成功`);
-      setSearchParams({ ...searchParams });
+      if (res.code === 200) {
+        msgSuccess(`${actionText}成功`);
+        setSearchParams({ ...searchParams });
+      }
     } catch (error) {
       console.log('error', error);
     }

@@ -118,8 +118,9 @@ function CardSecretFormModal(
           // null 表示清空认证信息；有对象则更新
           authInfo: authInfo,
         });
-        if (res.code !== 200) return msgError(res.message);
-        msgSuccess('更新成功');
+        if (res.code === 200) {
+          msgSuccess('更新成功');
+        }
       } else {
         const res = await reqCreateCardSecret({
           createCount: payload.createCount,
@@ -129,8 +130,9 @@ function CardSecretFormModal(
           dailyParseLimit: payload.dailyParseLimit,
           authInfo: payload.authInfo,
         });
-        if (res.code !== 200) return msgError(res.message);
-        msgSuccess(`创建成功（${res.data?.count ?? payload.createCount} 条）`);
+        if (res.code === 200) {
+          msgSuccess(`创建成功（${res.data?.count ?? payload.createCount} 条）`);
+        }
       }
 
       close();

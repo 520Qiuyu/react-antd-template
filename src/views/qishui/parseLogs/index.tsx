@@ -83,9 +83,10 @@ const ParseLogs: React.FC = () => {
     try {
       await confirm(`确定要删除日志「${record.targetName || record.id}」吗？`, '提示');
       const res = await reqDeleteParseLog(record.id);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess('删除成功');
-      setSearchParams({ ...searchParams });
+      if (res.code === 200) {
+        msgSuccess('删除成功');
+        setSearchParams({ ...searchParams });
+      }
     } catch (error) {
       console.log('error', error);
     }

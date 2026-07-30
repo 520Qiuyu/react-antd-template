@@ -1,7 +1,4 @@
-import {
-  reqDeletePermissionRole,
-  reqListPermissionRoles,
-} from '@/apis';
+import { reqDeletePermissionRole, reqListPermissionRoles } from '@/apis';
 import { MyButton, MyPagination, SearchForm } from '@/components';
 import { Status } from '@/constants';
 import { useCompRef, useSearchParams } from '@/hooks';
@@ -60,9 +57,10 @@ const RoleManagement: React.FC = () => {
     try {
       setLoading(true);
       const res = await reqListPermissionRoles(searchParams);
-      if (res.code !== 200) return msgError(res.message);
-      setList(res.data?.list ?? []);
-      setTotal(res.data?.total ?? 0);
+      if (res.code === 200) {
+        setList(res.data?.list ?? []);
+        setTotal(res.data?.total ?? 0);
+      }
     } catch (error) {
       console.log('error', error);
     } finally {
@@ -86,9 +84,10 @@ const RoleManagement: React.FC = () => {
     try {
       await confirm(`确定要删除角色「${record.name}」吗？`, '提示');
       const res = await reqDeletePermissionRole(record.id);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess('删除成功');
-      fetchList();
+      if (res.code === 200) {
+        msgSuccess('删除成功');
+        fetchList();
+      }
     } catch (error) {
       console.log('error', error);
     }
@@ -226,7 +225,10 @@ const RoleManagement: React.FC = () => {
             disabled={!selectedRowKeys.length}>
             导出角色 ({selectedRowKeys.length})
           </MyButton>
-          <MyButton type='primary' icon={<PlusOutlined />} onClick={() => formModalRef.current?.open()}>
+          <MyButton
+            type='primary'
+            icon={<PlusOutlined />}
+            onClick={() => formModalRef.current?.open()}>
             新建角色
           </MyButton>
         </Space>

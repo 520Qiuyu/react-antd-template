@@ -75,10 +75,7 @@ function mapToTreeData(nodes: PermissionResourceTreeNode[]): DataNode[] {
   });
 }
 
-function RoleResourceModal(
-  props: Props,
-  ref: React.ForwardedRef<Ref<void, PermissionRoleItem>>,
-) {
+function RoleResourceModal(props: Props, ref: React.ForwardedRef<Ref<void, PermissionRoleItem>>) {
   const { onSuccess } = props;
   const [role, setRole] = useState<PermissionRoleItem | null>(null);
   const [treeSource, setTreeSource] = useState<PermissionResourceTreeNode[]>([]);
@@ -185,10 +182,11 @@ function RoleResourceModal(
     try {
       setSubmitting(true);
       const res = await reqSyncPermissionRoleResources(role.id, checkedKeys);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess('资源授权成功');
-      close();
-      await onSuccess?.();
+      if (res.code === 200) {
+        msgSuccess('资源授权成功');
+        close();
+        await onSuccess?.();
+      }
     } catch (error) {
       console.log('error', error);
       msgError(error instanceof Error ? error.message : '资源授权失败');

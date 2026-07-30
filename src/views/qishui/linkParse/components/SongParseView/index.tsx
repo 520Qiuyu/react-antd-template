@@ -46,7 +46,6 @@ const SongParseView: React.FC<SongParseViewProps> = () => {
       if (res.code !== 200) {
         setSongHasResult(null);
         setError(res.message || '解析失败');
-        msgError(res.message || '解析失败');
         return;
       }
 

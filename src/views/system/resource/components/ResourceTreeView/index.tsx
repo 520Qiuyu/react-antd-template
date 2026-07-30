@@ -55,8 +55,9 @@ const ResourceTreeView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
     try {
       setLoading(true);
       const res = await reqGetPermissionResourceTree({ mode: 'lazy' });
-      if (res.code !== 200) return msgError(res.message);
-      setDataSource(mapLazyNodes(res.data ?? []));
+      if (res.code === 200) {
+        setDataSource(mapLazyNodes(res.data ?? []));
+      }
     } catch (error) {
       console.log('error', error);
     } finally {
@@ -79,9 +80,10 @@ const ResourceTreeView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
         mode: 'lazy',
         parentId: record.id,
       });
-      if (res.code !== 200) return msgError(res.message);
-      const children = mapLazyNodes(res.data ?? []);
-      setDataSource((prev) => updateTreeNode(prev, record.id, (node) => ({ ...node, children })));
+      if (res.code === 200) {
+        const children = mapLazyNodes(res.data ?? []);
+        setDataSource((prev) => updateTreeNode(prev, record.id, (node) => ({ ...node, children })));
+      }
     } catch (error) {
       console.log('error', error);
     } finally {
@@ -93,9 +95,10 @@ const ResourceTreeView: React.FC<Props> = ({ formModalRef, refreshKey }) => {
     try {
       await confirm(`确定要删除资源「${record.name}」吗？`, '提示');
       const res = await reqDeletePermissionResource(record.id);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess('删除成功');
-      fetchTree();
+      if (res.code === 200) {
+        msgSuccess('删除成功');
+        fetchTree();
+      }
     } catch (error) {
       console.log('error', error);
     }

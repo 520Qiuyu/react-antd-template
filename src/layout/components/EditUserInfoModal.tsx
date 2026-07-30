@@ -39,10 +39,11 @@ function EditUserInfoModal(props: Props, ref: React.ForwardedRef<Ref<void, void>
         birthday: values.birthday ? values.birthday.format('YYYY-MM-DD') : undefined,
       };
       const res = await reqPutUserInfo(payload);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess('修改成功');
-      close();
-      await onSuccess?.();
+      if (res.code === 200) {
+        msgSuccess('修改成功');
+        close();
+        await onSuccess?.();
+      }
     } catch (error) {
       console.log('error', error);
     }

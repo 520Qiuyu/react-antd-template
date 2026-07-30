@@ -9,13 +9,14 @@ import { Layout, Menu } from 'antd';
 import classNames from 'classnames';
 import { useDrag } from '../hooks/useDrag';
 import styles from './index.module.less';
+import { useUser } from '@/hooks/useUser';
 
 export default function Sider() {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
   const currentRoute = useCurrentRoute();
   const addTab = useAppStore((state) => state.addTab);
-  const userInfo = useUserStore((state) => state.userInfo);
+  const { userInfo, isSuperAdmin } = useUser();
 
   // 折叠
   const [collapsed, setCollapsed] = useState(false);
@@ -49,7 +50,9 @@ export default function Sider() {
       return routes.filter((route) => {
         // 是否隐藏
         const isHidden = route.hidden;
-        const isPermission = route.auth ? hasAuthority(route.auth) : true;
+        const isPermission =
+          isSuperAdmin ||
+          (route.auth ? hasAuthority(route.auth, userInfo?.permissions || []) : true);
         const shouldAdd = !isHidden && isPermission;
         route.icon = typeof route.icon === 'string' ? <MyIcon type={route.icon} /> : route.icon;
         route.label = route.name;

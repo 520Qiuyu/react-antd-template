@@ -43,7 +43,8 @@ const QuickCreateCard: React.FC = () => {
     const params: SearchParams = {
       ...searchParams,
       keyword: keyword?.trim() || undefined,
-      createUserId: canViewAll && scope === 'mine' && userInfo?.id ? String(userInfo.id) : undefined,
+      createUserId:
+        canViewAll && scope === 'mine' && userInfo?.id ? String(userInfo.id) : undefined,
     };
 
     return params;
@@ -102,9 +103,10 @@ const QuickCreateCard: React.FC = () => {
     try {
       await confirm(`确定要删除卡密「${record.secret}」吗？`, '提示');
       const res = await reqDeleteCardSecret(record.id);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess('删除成功');
-      setSearchParams({ ...searchParams });
+      if (res.code === 200) {
+        msgSuccess('删除成功');
+        setSearchParams({ ...searchParams });
+      }
     } catch (error) {
       console.log('error', error);
     }
@@ -116,9 +118,10 @@ const QuickCreateCard: React.FC = () => {
     try {
       await confirm(`确定要${actionText}卡密「${record.secret}」吗？`, '提示');
       const res = await reqUpdateCardSecretStatus(record.id, { status: nextStatus });
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess(`${actionText}成功`);
-      setSearchParams({ ...searchParams });
+      if (res.code === 200) {
+        msgSuccess(`${actionText}成功`);
+        setSearchParams({ ...searchParams });
+      }
     } catch (error) {
       console.log('error', error);
     }

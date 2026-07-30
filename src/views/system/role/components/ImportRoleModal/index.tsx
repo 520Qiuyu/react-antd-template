@@ -95,7 +95,7 @@ function ImportRoleModal(props: Props, ref: React.ForwardedRef<Ref<void>>) {
       setLoading(true);
       const res = await reqImportPermissionRoles(parsedData);
       if (res.code !== 200) {
-        return msgError(res.message);
+        return;
       }
 
       const { success = 0, failed = 0, failedItems = [] } = res.data ?? {};

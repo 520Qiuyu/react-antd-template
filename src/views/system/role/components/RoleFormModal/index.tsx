@@ -1,21 +1,18 @@
-import {
-  reqCreatePermissionRole,
-  reqUpdatePermissionRole,
-} from '@/apis';
+import { reqCreatePermissionRole, reqUpdatePermissionRole } from '@/apis';
 import { MyModal } from '@/components';
 import { Status, STATUS_OPTIONS } from '@/constants';
 import { useVisible } from '@/hooks';
 import type { Ref } from '@/hooks/useVisible';
-import type {
-  CreatePermissionRoleParams,
-  PermissionRoleItem,
-} from '@/types/permission';
+import type { CreatePermissionRoleParams, PermissionRoleItem } from '@/types/permission';
 import { msgError, msgSuccess } from '@/utils/modal';
 import { Form, Input, Select } from 'antd';
 import { forwardRef } from 'react';
 import styles from './index.module.less';
 
-function RoleFormModal(props: Props, ref: React.ForwardedRef<Ref<void, PermissionRoleItem | void>>) {
+function RoleFormModal(
+  props: Props,
+  ref: React.ForwardedRef<Ref<void, PermissionRoleItem | void>>,
+) {
   const { onSuccess } = props;
   const [formRef] = Form.useForm();
   const [editingRecord, setEditingRecord] = useState<PermissionRoleItem | null>(null);
@@ -56,10 +53,11 @@ function RoleFormModal(props: Props, ref: React.ForwardedRef<Ref<void, Permissio
       const res = isEdit
         ? await reqUpdatePermissionRole(editingRecord!.id, payload)
         : await reqCreatePermissionRole(payload);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess(isEdit ? '更新成功' : '创建成功');
-      close();
-      await onSuccess?.();
+      if (res.code === 200) {
+        msgSuccess(isEdit ? '更新成功' : '创建成功');
+        close();
+        await onSuccess?.();
+      }
     } catch (error) {
       console.log('error', error);
     }
@@ -86,10 +84,7 @@ function RoleFormModal(props: Props, ref: React.ForwardedRef<Ref<void, Permissio
             rules={[{ required: true, message: '请输入角色编码' }]}>
             <Input placeholder='请输入角色编码' disabled={isEdit} />
           </Form.Item>
-          <Form.Item
-            label='状态'
-            name='status'
-            rules={[{ required: true, message: '请选择状态' }]}>
+          <Form.Item label='状态' name='status' rules={[{ required: true, message: '请选择状态' }]}>
             <Select options={STATUS_OPTIONS} placeholder='请选择状态' />
           </Form.Item>
           <Form.Item label='描述' name='description' className={styles['fullWidth']}>

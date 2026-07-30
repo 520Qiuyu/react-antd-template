@@ -28,28 +28,29 @@ const Login = () => {
     try {
       if (mode === 'login') {
         const res = await reqPostLogin(values);
-        if (res.code !== 200) return msgError(res.message);
         if (!res.data) return msgError('登录失败');
-        const { accessToken, account } = res.data;
-        setLocalToken(accessToken);
-        setLocalUserInfo({
-          id: String(account),
-          account,
-          status: Status.NORMAL,
-        });
-        msgSuccess('登录成功');
-        if (callbackUrl) {
-          navigate(decodeURIComponent(callbackUrl), { replace: true });
-        } else {
-          navigate('/', { replace: true });
+        if (res.code === 200) {
+          const { accessToken, account } = res.data;
+          setLocalToken(accessToken);
+          setLocalUserInfo({
+            id: String(account),
+            account,
+            status: Status.NORMAL,
+          });
+          msgSuccess('登录成功');
+          if (callbackUrl) {
+            navigate(decodeURIComponent(callbackUrl), { replace: true });
+          } else {
+            navigate('/', { replace: true });
+          }
+          return;
         }
-        return;
-      } else {
+      } /* else {
         const res = await reqPostRegister(values);
         if (res.code !== 200) return msgError(res.message);
         msgSuccess('注册成功，请登录');
         setMode('login');
-      }
+      } */
     } catch (error) {
       console.error(mode === 'login' ? '登录失败：' : '注册失败：', error);
     } finally {
@@ -132,12 +133,12 @@ const Login = () => {
                   <Form.Item name='remember' valuePropName='checked' noStyle>
                     <Checkbox>记住密码</Checkbox>
                   </Form.Item>
-                  <Button
+                  {/* <Button
                     type='link'
                     className={styles['switch-button']}
                     onClick={() => switchMode('register')}>
                     去注册
-                  </Button>
+                  </Button> */}
                 </div>
 
                 <Button

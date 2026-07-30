@@ -73,10 +73,11 @@ function UserFormModal(props: Props, ref: React.ForwardedRef<Ref<void, UserListI
           ...(values.password ? { password: values.password } : {}),
         };
         const res = await reqUpdateUser(editingRecord!.id, payload);
-        if (res.code !== 200) return msgError(res.message);
-        msgSuccess('更新成功');
-        close();
-        await onSuccess?.();
+        if (res.code === 200) {
+          msgSuccess('更新成功');
+          close();
+          await onSuccess?.();
+        }
       } else {
         const payload: CreateUserParams = {
           account: values.account,

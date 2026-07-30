@@ -88,9 +88,10 @@ const CardSecret: React.FC = () => {
     try {
       await confirm(`确定要删除卡密「${record.secret}」吗？`, '提示');
       const res = await reqDeleteCardSecret(record.id);
-      if (res.code !== 200) return msgError(res.message);
-      msgSuccess('删除成功');
-      setSearchParams({ ...searchParams });
+      if (res.code === 200) {
+        msgSuccess('删除成功');
+        setSearchParams({ ...searchParams });
+      }
     } catch (error) {
       console.log('error', error);
     }
