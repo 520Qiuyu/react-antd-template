@@ -1,5 +1,5 @@
 /** 解析日志类型：单曲 / 歌单 */
-export type ParseLogType = 'song' | 'playlist';
+export type ParseLogType = 'song' | 'playlist' | 'video';
 
 /** 解析结果状态 */
 export type ParseLogStatus = 'success' | 'fail';

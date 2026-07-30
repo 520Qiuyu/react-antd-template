@@ -4,18 +4,21 @@ import type { ParseLogStatus, ParseLogType } from '@/types/parseLog';
 export const PARSE_LOG_TYPE_TEXT_MAP: Record<ParseLogType, string> = {
   song: '单曲',
   playlist: '歌单',
+  video: '视频',
 };
 
 /** 解析类型颜色 */
 export const PARSE_LOG_TYPE_COLOR_MAP: Record<ParseLogType, string> = {
   song: 'blue',
   playlist: 'purple',
+  video: 'green',
 };
 
 /** 解析类型筛选项 */
 export const PARSE_LOG_TYPE_OPTIONS = [
   { label: '单曲', value: 'song' },
   { label: '歌单', value: 'playlist' },
+  { label: '视频', value: 'video' },
 ];
 
 /** 解析状态文案 */
