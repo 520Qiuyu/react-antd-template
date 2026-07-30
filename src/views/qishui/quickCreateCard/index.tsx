@@ -8,11 +8,11 @@ import { Status } from '@/constants';
 import { useCompRef, useGetList, useSearchParams } from '@/hooks';
 import { useUser } from '@/hooks/useUser';
 import type { CardSecretListItem, CardSecretListStats } from '@/types/cardSecret';
-import { confirm, msgError, msgSuccess } from '@/utils/modal';
+import { confirm, msgSuccess } from '@/utils/modal';
 import CardSecretFormModal from '@/views/qishui/cardSecret/components/CardSecretFormModal';
 import { copyCardSecretText } from '@/views/qishui/cardSecret/utils/copyCardSecretText';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Empty, Input, Segmented, Spin } from 'antd';
+import { Empty, Input, Segmented, Spin } from 'antd';
 import CardSecretMobileItem from './components/CardSecretMobileItem';
 import styles from './index.module.less';
 

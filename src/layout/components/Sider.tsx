@@ -1,22 +1,21 @@
 import MyIcon from '@/components/MyIcon';
 import { useCurrentRoute } from '@/hooks/useCurrentRoute';
+import { useUser } from '@/hooks/useUser';
 import { getRoutesList } from '@/router/menu';
-import { useAppStore, useUserStore } from '@/store';
-import { hasAuthority } from '@/utils/userInfo';
+import { useAppStore } from '@/store';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { Layout, Menu } from 'antd';
 import classNames from 'classnames';
 import { useDrag } from '../hooks/useDrag';
 import styles from './index.module.less';
-import { useUser } from '@/hooks/useUser';
 
 export default function Sider() {
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
   const currentRoute = useCurrentRoute();
   const addTab = useAppStore((state) => state.addTab);
-  const { userInfo, isSuperAdmin } = useUser();
+  const { userInfo, isSuperAdmin, hasPermission } = useUser();
 
   // 折叠
   const [collapsed, setCollapsed] = useState(false);
@@ -50,9 +49,7 @@ export default function Sider() {
       return routes.filter((route) => {
         // 是否隐藏
         const isHidden = route.hidden;
-        const isPermission =
-          isSuperAdmin ||
-          (route.auth ? hasAuthority(route.auth, userInfo?.permissions || []) : true);
+        const isPermission = isSuperAdmin || (route.auth ? hasPermission(route.auth) : true);
         const shouldAdd = !isHidden && isPermission;
         route.icon = typeof route.icon === 'string' ? <MyIcon type={route.icon} /> : route.icon;
         route.label = route.name;
@@ -88,7 +85,7 @@ export default function Sider() {
       // TOFIX: 有一个意外的跳转，后续在修复
       setTimeout(() => {
         navigate(firstRoute.path, { replace: true });
-      }, 0);
+      }, 1000);
       addTab({
         key: firstRoute.key,
         path: firstRoute.path,
@@ -96,7 +93,7 @@ export default function Sider() {
         fullPath: firstRoute.path,
       });
     }
-  }, [pathname]);
+  }, [pathname, userInfo]);
 
   const handleMenuClick: MenuProps['onClick'] = (e) => {
     /**

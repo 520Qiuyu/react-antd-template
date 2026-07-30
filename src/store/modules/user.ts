@@ -50,6 +50,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       const res = await reqGetSelfUserInfo();
       if (res.code === 200) {
         set({ userInfo: res.data });
+        setLocalUserInfo(res.data!);
         return res.data as UserInfo;
       }
       return null;

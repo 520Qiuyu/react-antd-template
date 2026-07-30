@@ -1,7 +1,8 @@
 import { TransitionComponent } from '@/components';
 import { useCurrentRoute } from '@/hooks/useCurrentRoute';
+import { useUser } from '@/hooks/useUser';
 import { flattenRoutesList } from '@/router/menu';
-import { useAppStore, useUserStore } from '@/store';
+import { useAppStore } from '@/store';
 import type { ITab } from '@/types/app';
 import { msgError } from '@/utils/modal';
 import { Spin, Tag } from 'antd';
@@ -10,7 +11,6 @@ import type { RefObject } from 'react';
 import { Suspense } from 'react';
 import { matchPath, Navigate } from 'react-router';
 import styles from './index.module.less';
-import { useUser } from '@/hooks/useUser';
 
 export default function Main() {
   const navigate = useNavigate();
@@ -18,7 +18,9 @@ export default function Main() {
   const currentRoute = useCurrentRoute();
   const tabs = useAppStore((state) => state.tabs);
   const removeTab = useAppStore((state) => state.removeTab);
-  const { userInfo, isSuperAdmin } = useUser({ autoGetUserInfo: false });
+  const { userInfo, isSuperAdmin } = useUser({
+    autoGetUserInfo: currentRoute?.auth ? true : false,
+  });
 
   // 根据权限过滤出路由
   const authRoutes = useMemo(() => {
@@ -31,6 +33,7 @@ export default function Main() {
       );
     });
   }, [userInfo, isSuperAdmin]);
+  console.log('authRoutes',authRoutes)
 
   const handleTabClose = (tab: ITab) => {
     /**
@@ -83,6 +86,7 @@ export default function Main() {
       };
     }),
   );
+  
 
   return (
     <>

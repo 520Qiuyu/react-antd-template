@@ -33,13 +33,8 @@ const Login = () => {
         if (res.code === 200) {
           const { accessToken, account } = res.data;
           setLocalToken(accessToken);
-          setLocalUserInfo({
-            id: String(account),
-            account,
-            status: Status.NORMAL,
-          });
-          getUserInfo();
           msgSuccess('登录成功');
+          await getUserInfo();
           if (callbackUrl) {
             navigate(decodeURIComponent(callbackUrl), { replace: true });
           } else {

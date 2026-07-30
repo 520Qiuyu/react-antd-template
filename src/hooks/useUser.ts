@@ -20,9 +20,10 @@ export const useUser = (options?: IOption) => {
   const isProxy = userInfo?.roles?.some((role) => role.code === Role.PROXY);
 
   /** 是否有权限 */
-  const hasPermission = (permissionCode: string) => {
+  const hasPermission = (permissionCode: string | string[]) => {
     if (isSuperAdmin) return true;
-    return userInfo?.permissions?.some((permission) => permission.code === permissionCode);
+    const permissionCodes = Array.isArray(permissionCode) ? permissionCode : [permissionCode];
+    return userInfo?.permissions?.some((permission) => permissionCodes.includes(permission.code));
   };
 
   // 挂载的时候获取用户信息

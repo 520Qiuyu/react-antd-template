@@ -1,6 +1,6 @@
+import { useUser } from '@/hooks';
 import { useCurrentRoute } from '@/hooks/useCurrentRoute';
 import { useAppStore } from '@/store';
-import { hasAuthority } from '@/utils/userInfo';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -14,6 +14,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const addTab = useAppStore((state) => state.addTab);
   const { pathname } = useLocation();
   const { indexName } = currentRoute || {};
+  const { hasPermission, userInfo } = useUser({ autoGetUserInfo: false });
 
   // 设置title
   useTitle(indexName?.join(' | ') || '');
@@ -33,7 +34,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
 
     // 有当前路由信息 但是没有权限 403
-    if (currentRoute.auth && hasAuthority(currentRoute.auth)) {
+    if (currentRoute.auth && userInfo?.permissions && !hasPermission(currentRoute.auth)) {
       console.log('路由跳转403，由AuthGard跳转。');
       navigate('/403', { replace: true });
       return;

@@ -29,8 +29,17 @@ export const clearLocalToken = () => {
   StorageType.removeItem(TokenKey);
 };
 
+/** 获取用户权限 */
+export const getUserPermissions = () => {
+  return getLocalUserInfo()?.permissions || [];
+};
+
 /** 判断是否拥有权限 */
-export function hasAuthority(resources: string | string[], permissions: UserInfoPermission[]) {
+export function hasAuthority(
+  resources: string | string[],
+  permissions: UserInfoPermission[] = getUserPermissions(),
+) {
+  console.log('permissions',permissions)
   const isArray = Array.isArray(resources);
   return (isArray ? resources : [resources]).some((item) => {
     return permissions?.some((permission) => permission.code === item);
