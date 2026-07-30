@@ -76,6 +76,13 @@ export const routes: IMenu[] = [
         auth: ['resource-management'],
         component: lazy(() => import('@/views/system/resource')),
       },
+      // 黑名单管理
+      {
+        path: 'blacklist',
+        name: '黑名单管理',
+        auth: ['blacklist-management'],
+        component: lazy(() => import('@/views/system/blacklist')),
+      },
     ],
   },
   // 登录
