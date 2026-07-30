@@ -10,6 +10,13 @@ export const routes: IMenu[] = [
     name: '汽水音乐',
     icon: 'listening-fill',
     children: [
+      // 数据看板（一期假数据预览；权限资源后续再挂）
+      {
+        path: 'data-dashboard',
+        name: '数据看板',
+        auth: ['data-dashboard'],
+        component: lazy(() => import('@/views/qishui/dataDashboard')),
+      },
       {
         path: 'card-secret',
         name: '卡密管理',
