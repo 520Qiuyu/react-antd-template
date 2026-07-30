@@ -3,7 +3,9 @@ import { useUserStore } from '@/store';
 
 let firstLoad = true;
 
-export const useUser = () => {
+export const useUser = (options?: IOption) => {
+  const { autoGetUserInfo = true } = options ?? {};
+
   /** 用户信息 */
   const userInfo = useUserStore((state) => state.userInfo);
   /** 获取用户信息 */
@@ -25,7 +27,7 @@ export const useUser = () => {
 
   // 挂载的时候获取用户信息
   useEffect(() => {
-    if (firstLoad) {
+    if (firstLoad && autoGetUserInfo) {
       getUserInfo();
       firstLoad = false;
       return;
@@ -42,3 +44,8 @@ export const useUser = () => {
     hasPermission,
   };
 };
+
+interface IOption {
+  /** 是否自动获取用户信息 */
+  autoGetUserInfo?: boolean;
+}

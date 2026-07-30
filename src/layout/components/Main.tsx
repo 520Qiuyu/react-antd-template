@@ -18,7 +18,7 @@ export default function Main() {
   const currentRoute = useCurrentRoute();
   const tabs = useAppStore((state) => state.tabs);
   const removeTab = useAppStore((state) => state.removeTab);
-  const { userInfo, isSuperAdmin } = useUser();
+  const { userInfo, isSuperAdmin } = useUser({ autoGetUserInfo: false });
 
   // 根据权限过滤出路由
   const authRoutes = useMemo(() => {

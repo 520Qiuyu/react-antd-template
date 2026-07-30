@@ -1,7 +1,7 @@
 import { reqCreateCardSecret, reqUpdateCardSecret } from '@/apis/qishui/cardSecret';
 import { MyModal } from '@/components';
 import SubTitle from '@/components/SubTitle';
-import { useVisible } from '@/hooks';
+import { useUser, useVisible } from '@/hooks';
 import type { Ref } from '@/hooks/useVisible';
 import type { CardSecretFormValues, CardSecretListItem, CardSecretType } from '@/types/cardSecret';
 import { msgError, msgSuccess } from '@/utils/modal';
@@ -13,7 +13,6 @@ import styles from './index.module.less';
 
 const DEFAULT_CREATE_COUNT = 1;
 const DEFAULT_PARSE_LIMIT = 100;
-const DEFAULT_DAILY_PARSE_LIMIT = 2000;
 const CREATE_COUNT_MARKS = { 1: '1', 25: '25', 50: '50', 75: '75', 100: '100' };
 
 const normalizeOptionalText = (value?: string) => {
@@ -26,10 +25,12 @@ function CardSecretFormModal(
   ref: React.ForwardedRef<Ref<void, CardSecretListItem | void>>,
 ) {
   const { onSuccess } = props;
+  const { isSuperAdmin, isAdmin, isProxy } = useUser();
   const [formRef] = Form.useForm();
   const [editingRecord, setEditingRecord] = useState<CardSecretListItem | null>(null);
   const isEdit = !!editingRecord;
   const cardType = Form.useWatch('type', formRef) as CardSecretType | undefined;
+  const DEFAULT_DAILY_PARSE_LIMIT = isSuperAdmin ? 999999 : isAdmin ? 2000 : 500;
 
   const { visible, close } = useVisible(
     {
@@ -226,13 +227,33 @@ function CardSecretFormModal(
                 <Form.Item
                   label='每天最多解析数量'
                   name='dailyParseLimit'
-                  extra='留空表示不限制每日次数；默认 2000'
-                  className={styles['fullWidth']}>
+                  extra={
+                    isSuperAdmin
+                      ? '留空表示不限制每日次数；默认 999999'
+                      : '留空表示不限制每日次数；默认 1000'
+                  }
+                  className={styles['fullWidth']}
+                  rules={[
+                    { required: !isSuperAdmin, message: '请输入每天最多解析数量' },
+                    {
+                      validator: (_, value) => {
+                        if (value && value < 1) {
+                          return Promise.reject(new Error('每天最多解析数量不能小于1'));
+                        }
+                        const max = isSuperAdmin ? 999999 : isAdmin ? 2000 : 1000;
+                        if (value && value > max) {
+                          return Promise.reject(new Error(`每天最多解析数量不能大于${max}`));
+                        }
+                        return Promise.resolve();
+                      },
+                    },
+                  ]}>
                   <InputNumber
                     min={1}
                     max={999999}
                     style={{ width: '100%' }}
                     placeholder='例如：2000，留空不限制'
+                    disabled={isProxy && isEdit}
                   />
                 </Form.Item>
               </>
