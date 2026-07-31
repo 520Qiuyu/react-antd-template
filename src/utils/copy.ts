@@ -42,10 +42,10 @@ const fallbackCopyText = (text: string) => {
     'box-shadow:none',
     'background:transparent',
     'opacity:0',
-    'z-index:-1',
+    // 'z-index:-1',
   ].join(';');
-
-  document.body.appendChild(textArea);
+  const active = (document.activeElement as HTMLElement) || document.body;
+  active.appendChild(textArea);
 
   try {
     textArea.focus({ preventScroll: true });
@@ -57,7 +57,7 @@ const fallbackCopyText = (text: string) => {
       throw new Error('复制失败，请检查浏览器权限设置');
     }
   } finally {
-    document.body.removeChild(textArea);
+    active.removeChild(textArea);
   }
 };
 
@@ -70,6 +70,7 @@ const fallbackCopyText = (text: string) => {
  */
 export const copy = async (text: string, options: CopyOptions = {}): Promise<void> => {
   const content = text ?? '';
+  debugger;
 
   // 安全上下文才走 Clipboard API；失败后再降级（保留用户手势内的同步降级）
   if (navigator.clipboard && window.isSecureContext) {
