@@ -5,7 +5,7 @@ import { useUser, useVisible } from '@/hooks';
 import type { Ref } from '@/hooks/useVisible';
 import type { CardSecretFormValues, CardSecretListItem, CardSecretType } from '@/types/cardSecret';
 import { msgError, msgSuccess } from '@/utils/modal';
-import { DatePicker, Form, Input, InputNumber, Radio, Slider } from 'antd';
+import { DatePicker, Form, InputNumber, Radio, Slider } from 'antd';
 import dayjs from 'dayjs';
 import { forwardRef } from 'react';
 import { CARD_SECRET_TYPE_OPTIONS } from '../../constants';
@@ -37,6 +37,7 @@ function CardSecretFormModal(
       onOpen: (record?: CardSecretListItem) => {
         setEditingRecord(record ?? null);
         if (record) {
+          console.log('record', record);
           const { type, expireTime, parseLimit, dailyParseLimit, authInfo } = record;
           const { deviceId, cookie, xHelios, xMedusa } = authInfo ?? {};
           formRef.setFieldsValue({
@@ -180,6 +181,7 @@ function CardSecretFormModal(
                 options={CARD_SECRET_TYPE_OPTIONS}
                 optionType='button'
                 buttonStyle='solid'
+                disabled={isProxy && isEdit}
               />
             </Form.Item>
             {cardType === 'time' ? (
@@ -188,11 +190,31 @@ function CardSecretFormModal(
                   label='结束时间'
                   name='expireTime'
                   initialValue={dayjs().add(1, 'day')}
-                  rules={[{ required: true, message: '请选择结束时间' }]}>
+                  rules={[
+                    { required: true, message: '请选择结束时间' },
+                    // 只能改大不能改小
+                    {
+                      validator: (_, value) => {
+                        if (isSuperAdmin) {
+                          return Promise.resolve();
+                        }
+                        // 编辑的时候，不能小于上次时间
+                        if (isEdit && value && value.isBefore(editingRecord?.expireTime)) {
+                          return Promise.reject(new Error('结束时间不能小于上次时间'));
+                        }
+                        return Promise.resolve();
+                      },
+                    },
+                  ]}>
                   <DatePicker
                     style={{ width: '100%' }}
                     placeholder='例如：2026-12-31 23:59:59'
-                    disabledDate={(current) => current && current.isBefore(dayjs().startOf('day'))}
+                    disabledDate={(current) => {
+                      if (current && current.isBefore(dayjs().startOf('day'))) return true;
+                      if (isProxy && isEdit && current.isBefore(editingRecord?.expireTime))
+                        return true;
+                      return false;
+                    }}
                     format='YYYY-MM-DD HH:mm:ss'
                     showTime={false}
                     // 快捷方式，一天，七天，一个月，半年
@@ -233,13 +255,31 @@ function CardSecretFormModal(
                       : '留空表示不限制每日次数；默认 1000'
                   }
                   className={styles['fullWidth']}
-                  rules={[{ required: !isSuperAdmin, message: '请输入每天最多解析数量' }]}>
+                  rules={[
+                    { required: !isSuperAdmin, message: '请输入每天最多解析数量' },
+                    // 编辑的时候，不能小于上次数量
+                    {
+                      validator: (_, value) => {
+                        if (isSuperAdmin) {
+                          return Promise.resolve();
+                        }
+                        if (
+                          isEdit &&
+                          value &&
+                          editingRecord?.dailyParseLimit &&
+                          value < editingRecord?.dailyParseLimit
+                        ) {
+                          return Promise.reject(new Error('每天最多解析数量不能小于上次数量'));
+                        }
+                        return Promise.resolve();
+                      },
+                    },
+                  ]}>
                   <InputNumber
                     min={1}
                     max={999999}
                     style={{ width: '100%' }}
                     placeholder='例如：2000，留空不限制'
-                    disabled={isProxy && isEdit}
                   />
                 </Form.Item>
               </>
@@ -247,7 +287,26 @@ function CardSecretFormModal(
               <Form.Item
                 label='可解析数量'
                 name='parseLimit'
-                rules={[{ required: true, message: '请输入可解析数量' }]}>
+                rules={[
+                  { required: true, message: '请输入可解析数量' },
+                  // 编辑的时候，不能小于上次数量
+                  {
+                    validator: (_, value) => {
+                      if (isSuperAdmin) {
+                        return Promise.resolve();
+                      }
+                      if (
+                        isEdit &&
+                        value &&
+                        editingRecord?.parseLimit &&
+                        value < editingRecord?.parseLimit
+                      ) {
+                        return Promise.reject(new Error('可解析数量不能小于上次数量'));
+                      }
+                      return Promise.resolve();
+                    },
+                  },
+                ]}>
                 <InputNumber
                   min={1}
                   max={99999}
