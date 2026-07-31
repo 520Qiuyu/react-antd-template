@@ -11,7 +11,6 @@ import EngineStatus from '../EngineStatus';
 import PlaylistHero from './components/PlaylistHero';
 import TrackList from './components/TrackList';
 import styles from './index.module.less';
-import { isDev } from '@/utils';
 
 interface PlaylistResultProps {
   data: PlaylistInfo;
@@ -142,15 +141,22 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     [parseTrack],
   );
 
-  /** 全量重新解析（全部解析按钮） */
-  const parseAllTracks = useCallback(
-    async (targetTracks: PlaylistMusicInfo[]) => {
-      const pending = targetTracks.filter((track) => Boolean(track.id));
+  /**
+   * 批量解析曲目
+   * @example
+   * await parseTracksBatch(tracks, true);  // 强制重解析
+   * await parseTracksBatch(unparsedTracks); // 仅解析未解析
+   */
+  const parseTracksBatch = useCallback(
+    async (targetTracks: PlaylistMusicInfo[], force = false) => {
+      const pending = force
+        ? targetTracks.filter((track) => Boolean(track.id))
+        : targetTracks.filter((track) => track.id && !isTrackParsed(track));
       let success = 0;
       let failed = 0;
 
       await runWithConcurrency(pending, PLAYLIST_PARSE_CONCURRENCY, async (track) => {
-        const ok = await parseTrack(track, true, true);
+        const ok = await parseTrack(track, true, force);
         if (ok) success += 1;
         else failed += 1;
         bumpBatchProgress(ok);
@@ -161,45 +167,22 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     [parseTrack],
   );
 
-  /** 仅解析尚未解析的曲目 */
-  const parseUnparsedTracks = useCallback(
-    async (targetTracks: PlaylistMusicInfo[]) => {
-      const pending = targetTracks.filter((track) => track.id && !isTrackParsed(track));
-      let success = 0;
-      let failed = 0;
-
-      await runWithConcurrency(pending, PLAYLIST_PARSE_CONCURRENCY, async (track) => {
-        const ok = await parseTrack(track, true);
-        if (ok) success += 1;
-        else failed += 1;
-        bumpBatchProgress(ok);
-      });
-
-      return { success, failed, total: pending.length };
-    },
-    [parseTrack],
-  );
-
-  const handleParseAll = async (targetTracks: PlaylistMusicInfo[]) => {
+  /**
+   * 批量解析（曲目由子组件筛选好后传入）
+   * @example
+   * await handleBatchParse(filteredTracks, { force: true });
+   * await handleBatchParse(unparsedTracks);
+   */
+  const handleBatchParse = async (
+    targetTracks: PlaylistMusicInfo[],
+    options?: { force?: boolean },
+  ) => {
+    const force = options?.force ?? false;
     setBatchProgress({ success: 0, failed: 0 });
     try {
-      const { success, failed, total } = await parseAllTracks(targetTracks);
+      const { success, failed, total } = await parseTracksBatch(targetTracks, force);
       if (total === 0) {
-        msgError('没有可解析的曲目');
-        return;
-      }
-      msgSuccess(`解析完成：成功 ${success}，失败 ${failed}`);
-    } catch (error) {
-      console.log('error', error);
-    }
-  };
-
-  const handleParseUnparsed = async (targetTracks: PlaylistMusicInfo[]) => {
-    setBatchProgress({ success: 0, failed: 0 });
-    try {
-      const { success, failed, total } = await parseUnparsedTracks(targetTracks);
-      if (total === 0) {
-        msgError('没有未解析的曲目');
+        msgError(force ? '没有可解析的曲目' : '没有未解析的曲目');
         return;
       }
       msgSuccess(`解析完成：成功 ${success}，失败 ${failed}`);
@@ -272,8 +255,13 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
   const downloadTrackList = async (targetTracks: PlaylistMusicInfo[]) => {
     let success = 0;
     let failed = 0;
-
-    for (const track of targetTracks) {
+    const targetTrackIds = targetTracks.map((track) => track.id);
+    const latestTracks =
+      usePlaylistParseStore
+        .getState()
+        .playlistHasResult?.tracks.filter((track) => targetTrackIds.includes(track.id)) ||
+      targetTracks;
+    for (const track of latestTracks) {
       if (!track.id || !isTrackParsed(track) || !track.fullInfo) {
         if (track.id) setTrackDownloadStatus(track.id, 'error');
         failed += 1;
@@ -312,49 +300,40 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     return { success, failed };
   };
 
-  const handleDownloadAll = async (targetTracks: PlaylistMusicInfo[]) => {
-    setBatchProgress({ success: 0, failed: 0 });
-
-    clearPlaylistDownloadStatus();
-    try {
-      await ensureTracksParsed(targetTracks);
-      const { success, failed } = await downloadTrackList(targetTracks);
-      msgSuccess(`下载完成：成功 ${success}，失败 ${failed}`);
-    } catch (error) {
-      console.log('error', error);
-    }
-  };
-
-  /** 仅下载尚未成功的曲目，不清空已有成功状态 */
-  const handleDownloadUndownloaded = async (targetTracks: PlaylistMusicInfo[]) => {
+  /**
+   * 批量下载（曲目由子组件筛选好后传入）
+   * @example
+   * await handleBatchDownload(filteredTracks, { clearStatus: true }); // 全部下载
+   * await handleBatchDownload(undownloadedTracks);                    // 下载未下载的
+   * await handleBatchDownload(failedTracks, { doneLabel: '重试完成' }); // 重试失败
+   */
+  const handleBatchDownload = async (
+    targetTracks: PlaylistMusicInfo[],
+    options?: { clearStatus?: boolean; doneLabel?: string },
+  ) => {
     if (targetTracks.length === 0) return;
     setBatchProgress({ success: 0, failed: 0 });
+    if (options?.clearStatus) clearPlaylistDownloadStatus();
     try {
       await ensureTracksParsed(targetTracks);
       const { success, failed } = await downloadTrackList(targetTracks);
-      msgSuccess(`下载完成：成功 ${success}，失败 ${failed}`);
+      msgSuccess(`${options?.doneLabel ?? '下载完成'}：成功 ${success}，失败 ${failed}`);
     } catch (error) {
       console.log('error', error);
     }
   };
 
-  const handleRetryFailedDownloads = async (retryTracks: PlaylistMusicInfo[]) => {
-    if (retryTracks.length === 0) return;
-    setBatchProgress({ success: 0, failed: 0 });
-    try {
-      await ensureTracksParsed(retryTracks);
-      const failedIds = new Set(retryTracks.map((track) => track.id).filter(Boolean));
-      const targets = retryTracks.filter((track) => track.id && failedIds.has(track.id));
-      const { success, failed } = await downloadTrackList(targets);
-      msgSuccess(`重试完成：成功 ${success}，失败 ${failed}`);
-    } catch (error) {
-      console.log('error', error);
-    }
-  };
-
-  const handleDownloadAllLyrics = async (mode: 'lrc' | 'txt') => {
-    await ensureTracksParsed(tracks);
-    const latestTracks = usePlaylistParseStore.getState().playlistHasResult?.tracks || tracks;
+  const handleDownloadAllLyrics = async (
+    targetTracks: PlaylistMusicInfo[],
+    mode: 'lrc' | 'txt',
+  ) => {
+    await ensureTracksParsed(targetTracks);
+    const targetTrackIds = targetTracks.map((track) => track.id);
+    const latestTracks =
+      usePlaylistParseStore
+        .getState()
+        .playlistHasResult?.tracks.filter((track) => targetTrackIds.includes(track.id)) ||
+      targetTracks;
     let success = 0;
     let failed = 0;
 
@@ -384,11 +363,8 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
         downloadingIds={downloadingIds}
         liveSuccessCount={batchProgress.success}
         liveFailCount={batchProgress.failed}
-        onParseAll={handleParseAll}
-        onParseUnparsed={handleParseUnparsed}
-        onDownloadAll={handleDownloadAll}
-        onDownloadUndownloaded={handleDownloadUndownloaded}
-        onRetryFailedDownloads={handleRetryFailedDownloads}
+        onBatchParse={handleBatchParse}
+        onBatchDownload={handleBatchDownload}
         onDownloadAllLyrics={handleDownloadAllLyrics}
         onParse={parseTrack}
         onDownload={handleDownload}

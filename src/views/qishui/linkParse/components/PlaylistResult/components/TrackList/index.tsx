@@ -7,7 +7,6 @@ import {
   LeftOutlined,
   LoadingOutlined,
   RightOutlined,
-  SearchOutlined,
   ThunderboltOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
@@ -16,76 +15,135 @@ import classNames from 'classnames';
 import { formatDuration, isTrackParsed } from '../../../../utils';
 import sharedStyles from '../shared.module.less';
 import styles from './index.module.less';
+import { SearchForm } from '@/components';
+import { getOptions, groupBy } from '@/utils';
+import type { Option as SearchFormOption } from '@/components/SearchForm';
 
 /** 每页最多曲目数 */
 const PAGE_SIZE = 195;
 
-export type BatchAction =
-  | 'parse'
-  | 'parseUnparsed'
-  | 'download'
-  | 'downloadUndownloaded'
-  | 'retry'
-  | 'lrc'
-  | 'txt'
-  | null;
-
-interface TrackListProps {
-  tracks: PlaylistMusicInfo[];
-  parsingIds: Set<string>;
-  downloadingIds: Set<string>;
-  /** 进行中实时成功数（解析 / 下载） */
-  liveSuccessCount: number;
-  /** 进行中实时失败数（解析 / 下载） */
-  liveFailCount: number;
-  onParseAll: (tracks: PlaylistMusicInfo[]) => Promise<void>;
-  onParseUnparsed: (tracks: PlaylistMusicInfo[]) => Promise<void>;
-  onDownloadAll: (tracks: PlaylistMusicInfo[]) => Promise<void>;
-  /** 仅下载尚未成功的曲目（保留已成功状态） */
-  onDownloadUndownloaded: (tracks: PlaylistMusicInfo[]) => Promise<void>;
-  onRetryFailedDownloads: (tracks: PlaylistMusicInfo[]) => Promise<void>;
-  onDownloadAllLyrics: (mode: 'lrc' | 'txt') => Promise<void>;
-  onParse: (track: PlaylistMusicInfo, silent?: boolean, force?: boolean) => void;
-  onDownload: (track: PlaylistMusicInfo) => void;
-  onDownloadLyric: (track: PlaylistMusicInfo, mode: 'lrc' | 'txt') => void;
-}
-
-/** 歌单曲目列表 */
+const defaultSearchParams: SearchParams = {
+  pageNum: 1,
+  pageSize: PAGE_SIZE,
+};
 const TrackList: React.FC<TrackListProps> = ({
   tracks,
   parsingIds,
   downloadingIds,
   liveSuccessCount,
   liveFailCount,
-  onParseAll,
-  onParseUnparsed,
-  onDownloadAll,
-  onDownloadUndownloaded,
-  onRetryFailedDownloads,
+  onBatchParse,
+  onBatchDownload,
   onDownloadAllLyrics,
   onParse,
   onDownload,
   onDownloadLyric,
 }) => {
-  // 过滤
-  const [filter, setFilter] = useState('');
-  const [page, setPage] = useState(1);
-  const filteredTracks = useMemo(() => {
-    const keyword = filter.trim().toLowerCase();
-    if (!keyword) return tracks;
-    return tracks.filter(
-      (track) =>
-        (track.title || '').toLowerCase().includes(keyword) ||
-        (track.artist || '').toLowerCase().includes(keyword),
+  // REGION ========================= 筛选 =========================
+  const [searchParams, setSearchParams] = useState<SearchParams>(defaultSearchParams);
+  /** 筛选表单选项 */
+  const searchFormOptions = useMemo(
+    () =>
+      [
+        // 歌曲名称
+        {
+          label: '歌曲名称',
+          name: 'title',
+          type: 'select',
+          options: getOptions(tracks, 'title'),
+        },
+      ] as SearchFormOption[],
+    [tracks],
+  );
+  /** 筛选表单高级筛选项 */
+  const searchFormAdvancedOptions = useMemo(
+    () =>
+      [
+        // 类型
+        {
+          label: '类型',
+          name: 'type',
+          type: 'select',
+          options: [
+            { label: '歌曲', value: 'track' },
+            { label: '视频', value: 'video' },
+          ].filter((item) => tracks.some((track) => track.type === item.value)),
+        },
+        {
+          label: '歌手',
+          name: 'artist',
+          options: getOptions(tracks, 'artist'),
+          type: 'select',
+        },
+        // 专辑
+        {
+          label: '专辑',
+          name: 'album',
+          options: getOptions(tracks, 'album'),
+          type: 'select',
+        },
+        // 是否解析
+        {
+          label: '是否解析',
+          name: 'isParsed',
+          type: 'select',
+          options: [
+            { label: '已解析', value: true },
+            { label: '未解析', value: false },
+          ],
+          inputProps: {
+            mode: undefined,
+          },
+        },
+        // 是否下载
+        {
+          label: '是否下载',
+          name: 'isDownloaded',
+          type: 'select',
+          options: [
+            { label: '已下载', value: true },
+            { label: '未下载', value: false },
+          ],
+          inputProps: {
+            mode: undefined,
+          },
+        },
+      ] as SearchFormOption[],
+    [tracks],
+  );
+  /** 筛选 */
+  const handleSearch = (values: SearchParams) => {
+    const newValues = Object.fromEntries(
+      [...searchFormOptions, ...searchFormAdvancedOptions].map((option) => [
+        option.name,
+        values[option.name],
+      ]),
     );
-  }, [tracks, filter]);
+    setSearchParams({ ...searchParams, ...newValues, pageNum: 1 });
+  };
+
+  /** 筛选之后的音乐 */
+  const filteredTracks = useMemo(() => {
+    const { title, type, artist, album, isParsed, isDownloaded } = searchParams;
+    console.log('searchParams', searchParams);
+    return tracks.filter((track) => {
+      if (title?.length && !title.includes(track.title!)) return false;
+      if (type?.length && !type.includes(track.type!)) return false;
+      if (artist?.length && !artist.includes(track.artist!)) return false;
+      if (album?.length && !album.includes(track.album!)) return false;
+      if (isParsed !== undefined && !!track.fullInfo?.urls?.length !== isParsed) return false;
+      if (isDownloaded !== undefined && (track.downloadStatus === 'success') !== isDownloaded)
+        return false;
+      return true;
+    });
+  }, [tracks, searchParams]);
+  // ENDREGION ========================= 筛选 =========================
 
   /** 当前筛选结果中尚未解析的曲目 */
   const unparsedTracks = useMemo(
     () => filteredTracks.filter((track) => Boolean(track.id) && !isTrackParsed(track)),
     [filteredTracks],
   );
-
   /** 当前筛选结果中尚未成功下载的曲目 */
   const undownloadedTracks = useMemo(
     () => filteredTracks.filter((track) => Boolean(track.id) && track.downloadStatus !== 'success'),
@@ -93,19 +151,12 @@ const TrackList: React.FC<TrackListProps> = ({
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredTracks.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
+  const currentPage = Math.min(searchParams.pageNum, totalPages);
   const pageTracks = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
     return filteredTracks.slice(start, start + PAGE_SIZE);
   }, [filteredTracks, currentPage]);
   const pageOffset = (currentPage - 1) * PAGE_SIZE;
-
-  const tracksSignature = `${tracks[0]?.id || ''}:${tracks.length}`;
-
-  /** 筛选或歌单切换时回到第一页 */
-  useEffect(() => {
-    setPage(1);
-  }, [filter, tracksSignature]);
 
   /** 选中的歌曲 */
   const [selectedTracks, setSelectedTracks] = useState<PlaylistMusicInfo[]>([]);
@@ -134,7 +185,7 @@ const TrackList: React.FC<TrackListProps> = ({
     if (batchAction) return;
     setBatchAction('parse');
     try {
-      await onParseAll(filteredTracks);
+      await onBatchParse(filteredTracks, { force: true });
     } finally {
       setBatchAction(null);
     }
@@ -144,7 +195,7 @@ const TrackList: React.FC<TrackListProps> = ({
     if (batchAction) return;
     setBatchAction('parseUnparsed');
     try {
-      await onParseUnparsed(unparsedTracks);
+      await onBatchParse(unparsedTracks);
     } finally {
       setBatchAction(null);
     }
@@ -154,7 +205,7 @@ const TrackList: React.FC<TrackListProps> = ({
     if (batchAction) return;
     setBatchAction('download');
     try {
-      await onDownloadAll(filteredTracks);
+      await onBatchDownload(filteredTracks, { clearStatus: true });
     } finally {
       setBatchAction(null);
     }
@@ -164,7 +215,7 @@ const TrackList: React.FC<TrackListProps> = ({
     if (batchAction) return;
     setBatchAction('downloadUndownloaded');
     try {
-      await onDownloadUndownloaded(undownloadedTracks);
+      await onBatchDownload(undownloadedTracks);
     } finally {
       setBatchAction(null);
     }
@@ -174,8 +225,9 @@ const TrackList: React.FC<TrackListProps> = ({
     if (batchAction) return;
     setBatchAction('retry');
     try {
-      await onRetryFailedDownloads(
+      await onBatchDownload(
         filteredTracks?.filter((track) => track.downloadStatus === 'error') || [],
+        { doneLabel: '重试完成' },
       );
     } finally {
       setBatchAction(null);
@@ -186,22 +238,20 @@ const TrackList: React.FC<TrackListProps> = ({
     if (batchAction) return;
     setBatchAction(mode);
     try {
-      await onDownloadAllLyrics(mode);
+      await onDownloadAllLyrics(filteredTracks, mode);
     } finally {
       setBatchAction(null);
     }
   };
 
   const handlePageChange = (nextPage: number) => {
-    setPage(nextPage);
+    setSearchParams({ ...searchParams, pageNum: nextPage });
   };
 
   // 状态
   const isParseBatch = batchAction === 'parse' || batchAction === 'parseUnparsed';
   const isDownloadBatch =
-    batchAction === 'download' ||
-    batchAction === 'downloadUndownloaded' ||
-    batchAction === 'retry';
+    batchAction === 'download' || batchAction === 'downloadUndownloaded' || batchAction === 'retry';
   const statKind: 'parse' | 'download' | null = isParseBatch
     ? 'parse'
     : isDownloadBatch || downloadSuccessCount > 0 || downloadFailCount > 0
@@ -226,7 +276,7 @@ const TrackList: React.FC<TrackListProps> = ({
         <button
           className={classNames(sharedStyles['btn'], sharedStyles['btnPrimary'])}
           type='button'
-          disabled={tracks.length === 0 || batchBusy}
+          disabled={filteredTracks.length === 0 || batchBusy}
           onClick={handleParseAll}>
           {batchAction === 'parse' ? <LoadingOutlined /> : <ThunderboltOutlined />}
           全部解析
@@ -239,7 +289,7 @@ const TrackList: React.FC<TrackListProps> = ({
                 {liveFailCount}
               </span>
             </>
-          ) : null}
+          ) : <span className={styles['btnCountPrimary']}>{filteredTracks.length}</span>}
         </button>
         <button
           className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
@@ -264,7 +314,7 @@ const TrackList: React.FC<TrackListProps> = ({
         <button
           className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
           type='button'
-          disabled={tracks.length === 0 || batchBusy}
+          disabled={filteredTracks.length === 0 || batchBusy}
           onClick={handleDownloadAll}>
           {batchAction === 'download' ? <LoadingOutlined /> : <CloudDownloadOutlined />}
           全部下载
@@ -278,7 +328,7 @@ const TrackList: React.FC<TrackListProps> = ({
               </span>
             </>
           ) : (
-            <span className={styles['btnCount']}>{tracks.length}</span>
+            <span className={styles['btnCount']}>{filteredTracks.length}</span>
           )}
         </button>
         <button
@@ -286,11 +336,7 @@ const TrackList: React.FC<TrackListProps> = ({
           type='button'
           disabled={undownloadedTracks.length === 0 || batchBusy}
           onClick={handleDownloadUndownloaded}>
-          {batchAction === 'downloadUndownloaded' ? (
-            <LoadingOutlined />
-          ) : (
-            <CloudDownloadOutlined />
-          )}
+          {batchAction === 'downloadUndownloaded' ? <LoadingOutlined /> : <CloudDownloadOutlined />}
           下载未下载的
           {showDownloadUndownloadedLive ? (
             <>
@@ -328,7 +374,7 @@ const TrackList: React.FC<TrackListProps> = ({
           disabled={tracks.length === 0 || batchBusy}
           onClick={() => handleDownloadAllLyrics('lrc')}>
           {batchAction === 'lrc' ? <LoadingOutlined /> : <FileTextOutlined />}
-          下载全部 lrc 歌词
+          下载全部 lrc 歌词 <span className={styles['btnCount']}>{filteredTracks.length}</span>
         </button>
         <button
           className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
@@ -336,7 +382,7 @@ const TrackList: React.FC<TrackListProps> = ({
           disabled={tracks.length === 0 || batchBusy}
           onClick={() => handleDownloadAllLyrics('txt')}>
           {batchAction === 'txt' ? <LoadingOutlined /> : <FileTextOutlined />}
-          下载全部 txt 歌词
+          下载全部 txt 歌词 <span className={styles['btnCount']}>{filteredTracks.length}</span>
         </button>
       </div>
       <div className={styles['toolbar']}>
@@ -391,16 +437,17 @@ const TrackList: React.FC<TrackListProps> = ({
             </>
           ) : null}
         </div>
-        <div className={styles['search']}>
-          <SearchOutlined aria-hidden='true' />
-          <input
-            type='search'
-            placeholder='筛选歌曲 / 艺人…'
-            aria-label='筛选歌单曲目'
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-          />
-        </div>
+      </div>
+      {/* 筛选表单 */}
+      <div className={styles['filterBar']} aria-label='曲目筛选'>
+        <SearchForm
+          options={searchFormOptions}
+          advancedOptions={searchFormAdvancedOptions}
+          onValuesChange={(_, allValues) => handleSearch(allValues)}
+          showSearchButton={false}
+          advancedSearchText='更多筛选'
+          onSearch={handleSearch}
+        />
       </div>
       <ul className={styles['list']}>
         {pageTracks.map((track, index) => {
@@ -457,11 +504,6 @@ const TrackList: React.FC<TrackListProps> = ({
                 {formatDuration((track.duration || 0) / 1000)}
               </span>
               <div className={styles['itemActions']}>
-                {/* {track.isPreviewOnly ? (
-                  <span className={styles['previewTag']}>
-                    试听 {(track.previewDuration || 30) / 1000}s
-                  </span>
-                ) : null} */}
                 {!parsed ? (
                   <button
                     className={classNames(
@@ -563,3 +605,59 @@ const TrackList: React.FC<TrackListProps> = ({
 };
 
 export default TrackList;
+
+export type BatchAction =
+  | 'parse'
+  | 'parseUnparsed'
+  | 'download'
+  | 'downloadUndownloaded'
+  | 'retry'
+  | 'lrc'
+  | 'txt'
+  | null;
+
+interface TrackListProps {
+  tracks: PlaylistMusicInfo[];
+  parsingIds: Set<string>;
+  downloadingIds: Set<string>;
+  /** 进行中实时成功数（解析 / 下载） */
+  liveSuccessCount: number;
+  /** 进行中实时失败数（解析 / 下载） */
+  liveFailCount: number;
+  /**
+   * 批量解析
+   * @example
+   * onBatchParse(tracks, { force: true }); // 全部解析
+   * onBatchParse(unparsedTracks);          // 仅未解析
+   */
+  onBatchParse: (
+    tracks: PlaylistMusicInfo[],
+    options?: { force?: boolean },
+  ) => Promise<void>;
+  /**
+   * 批量下载
+   * @example
+   * onBatchDownload(tracks, { clearStatus: true });           // 全部下载
+   * onBatchDownload(undownloadedTracks);                      // 下载未下载的
+   * onBatchDownload(failedTracks, { doneLabel: '重试完成' }); // 重试失败
+   */
+  onBatchDownload: (
+    tracks: PlaylistMusicInfo[],
+    options?: { clearStatus?: boolean; doneLabel?: string },
+  ) => Promise<void>;
+  onDownloadAllLyrics: (tracks: PlaylistMusicInfo[], mode: 'lrc' | 'txt') => Promise<void>;
+  onParse: (track: PlaylistMusicInfo, silent?: boolean, force?: boolean) => void;
+  onDownload: (track: PlaylistMusicInfo) => void;
+  onDownloadLyric: (track: PlaylistMusicInfo, mode: 'lrc' | 'txt') => void;
+}
+
+interface SearchParams {
+  title?: string[];
+  type?: string[];
+  artist?: string[];
+  album?: string[];
+  isParsed?: boolean;
+  isDownloaded?: boolean;
+  pageNum: number;
+  pageSize: number;
+}
