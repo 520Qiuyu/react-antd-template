@@ -43,8 +43,12 @@ const defaultSearchParams: SearchParams = {
 const CardSecret: React.FC = () => {
   const navigate = useNavigate();
   const formModalRef = useCompRef(CardSecretFormModal);
-  const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
-  const { isAdmin, isSuperAdmin } = useUser();
+  const { isAdmin, isSuperAdmin, userInfo } = useUser();
+  const { searchParams, setSearchParams } = useSearchParams({
+    ...defaultSearchParams,
+    createUserId: isAdmin || isSuperAdmin ? userInfo?.id : undefined,
+  });
+
   const usedSearchParams = useMemo(() => {
     const { sortOrder, ...rest } = searchParams;
     return {
