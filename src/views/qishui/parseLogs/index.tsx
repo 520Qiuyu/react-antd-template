@@ -183,6 +183,22 @@ const ParseLogs: React.FC = () => {
       sortOrder: searchParams.sortField === 'ip' ? searchParams.sortOrder : undefined,
     },
     {
+      title: 'UA',
+      dataIndex: 'ua',
+      width: 220,
+      ellipsis: { showTitle: false },
+      render: (val?: string | null) =>
+        val ? (
+          <Tooltip title={val}>
+            <span>
+              <CopyText text={val} />
+            </span>
+          </Tooltip>
+        ) : (
+          <span className={styles['emptyText']}>-</span>
+        ),
+    },
+    {
       title: '耗时',
       dataIndex: 'durationMs',
       width: 100,
@@ -249,7 +265,7 @@ const ParseLogs: React.FC = () => {
           dataSource={list}
           loading={loading}
           pagination={false}
-          scroll={{ x: 1780 }}
+          scroll={{ x: 2000 }}
           onChange={(_, __, sorter) => {
             const { field, order } = sorter as SorterResult<ParseLogListItem>;
             setSearchParams({

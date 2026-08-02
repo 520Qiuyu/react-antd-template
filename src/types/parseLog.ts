@@ -42,6 +42,8 @@ export interface ParseLogListItem {
   parseParams?: string | null;
   /** 耗时（毫秒） */
   durationMs: number;
+  /** User-Agent */
+  ua?: string | null;
   /** 创建时间 */
   ctime: string;
   /** 更新时间 */

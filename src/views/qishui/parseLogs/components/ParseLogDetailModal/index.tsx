@@ -202,6 +202,17 @@ function ParseLogDetailModal(_props: Props, ref: React.ForwardedRef<Ref<void, Pa
             <div className={styles['grid']}>
               <DetailItem label='请求 IP' value={record.ip} />
               <DetailItem label='请求方法' value={<Tag>{record.method}</Tag>} />
+              <DetailItem
+                label='User-Agent'
+                value={
+                  record.ua ? (
+                    <CopyText text={record.ua} />
+                  ) : (
+                    <span className={styles['muted']}>-</span>
+                  )
+                }
+                full
+              />
               <DetailItem label='请求路径' value={<CopyText text={record.path} />} full />
               <DetailItem label='耗时' value={`${record.durationMs} ms`} />
               <DetailItem
