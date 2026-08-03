@@ -17,6 +17,7 @@ import {
   EditOutlined,
   ExportOutlined,
   PlusOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { Card, Space, Switch, Table, Tag } from 'antd';
 import type { ColumnsType, TableProps } from 'antd/es/table';
@@ -25,6 +26,7 @@ import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import CardSecretFormModal from './components/CardSecretFormModal';
 import CardSecretStat from './components/CardSecretStat';
+import CopyTemplateModal from './components/CopyTemplateModal';
 import ExpireTimeCell from './components/ExpireTimeCell';
 import ExportModal from './components/ExportModal';
 import ParseUsageCell from './components/ParseUsageCell';
@@ -44,6 +46,7 @@ const defaultSearchParams: SearchParams = {
 const CardSecret: React.FC = () => {
   const navigate = useNavigate();
   const formModalRef = useCompRef(CardSecretFormModal);
+  const copyTemplateModalRef = useCompRef(CopyTemplateModal);
   const { isAdmin, isSuperAdmin, userInfo } = useUser();
   const { searchParams, setSearchParams } = useSearchParams({
     ...defaultSearchParams,
@@ -113,6 +116,11 @@ const CardSecret: React.FC = () => {
   /** 复制卡密发货文本 */
   const handleCopyCardSecretText = (record: CardSecretListItem) => {
     copyCardSecretText(record);
+  };
+
+  /** 打开卡密复制模板设置 */
+  const handleSetCopyTemplate = () => {
+    copyTemplateModalRef.current?.open();
   };
 
   /** 启用/禁用卡密 */
@@ -329,6 +337,13 @@ const CardSecret: React.FC = () => {
               onClick={handleExportCardSecret}>
               导出卡密
             </MyButton>
+            {/* 设置卡密复制模板 */}
+            <MyButton
+              type='primary'
+              icon={<SettingOutlined />}
+              onClick={() => handleSetCopyTemplate()}>
+              设置卡密复制模板
+            </MyButton>
           </Space>
         }>
         <div className={styles['toolbar']}>
@@ -376,6 +391,8 @@ const CardSecret: React.FC = () => {
           setSelectedRows([]);
         }}
       />
+
+      <CopyTemplateModal ref={copyTemplateModalRef} />
     </div>
   );
 };
