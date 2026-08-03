@@ -15,6 +15,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import { useMemo } from 'react';
+import { maskCardSecretMiddle } from '../cardSecret/utils/maskCardSecret';
 import ParseLogDetailModal from './components/ParseLogDetailModal';
 import ParseLogStat from './components/ParseLogStat';
 import {
@@ -114,7 +115,11 @@ const ParseLogs: React.FC = () => {
       sorter: true,
       sortOrder: searchParams.sortField === 'cardSecret' ? searchParams.sortOrder : undefined,
       render: (val?: string | null) =>
-        val ? <CopyText text={val} /> : <span className={styles['emptyText']}>-</span>,
+        val ? (
+          <CopyText text={val} showText={maskCardSecretMiddle(val)} />
+        ) : (
+          <span className={styles['emptyText']}>-</span>
+        ),
     },
     {
       title: '类型',

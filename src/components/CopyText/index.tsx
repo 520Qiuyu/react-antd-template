@@ -10,6 +10,10 @@ interface CopyTextProps extends React.HTMLAttributes<HTMLDivElement> {
    * 需要显示和复制的文本
    */
   text: string;
+  /**
+   * 要显示的文本，默认与text一致
+   */
+  showText?: string;
 }
 
 /**
@@ -21,7 +25,7 @@ interface CopyTextProps extends React.HTMLAttributes<HTMLDivElement> {
  * ```
  */
 export default function CopyText(props: CopyTextProps) {
-  const { text, className, ...rest } = props;
+  const { text,showText, className, ...rest } = props;
 
   const handleCopy = async () => {
     try {
@@ -36,7 +40,7 @@ export default function CopyText(props: CopyTextProps) {
   return (
     <div className={classNames(styles['copy-text'], className)} {...rest}>
       <TextOverflowShowTips
-        text={text}
+        text={showText || text}
         tooltipProps={{
           getPopupContainer: () => {
             return document.body;

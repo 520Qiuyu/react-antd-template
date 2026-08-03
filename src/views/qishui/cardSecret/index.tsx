@@ -35,6 +35,7 @@ import {
 } from './constants';
 import styles from './index.module.less';
 import { copyCardSecretText } from './utils/copyCardSecretText';
+import { maskCardSecretMiddle } from './utils/maskCardSecret';
 
 const defaultSearchParams: SearchParams = {
   pageNum: 1,
@@ -181,7 +182,7 @@ const CardSecret: React.FC = () => {
       fixed: 'left',
       sorter: true,
       sortOrder: searchParams.sortField === 'secret' ? searchParams.sortOrder : undefined,
-      render: (val: string) => <CopyText text={val} />,
+      render: (val: string) => <CopyText text={val} showText={maskCardSecretMiddle(val)} />,
     },
     {
       title: '创建者',
