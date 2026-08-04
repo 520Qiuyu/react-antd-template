@@ -1,7 +1,8 @@
 import { FFmpeg, type LogEventCallback, type ProgressEventCallback } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 
-const FFMPEG_CORE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+// const FFMPEG_CORE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+const FFMPEG_CORE_BASE_URL = 'https://cdn.qiuyu520.fun';
 
 /** 模块级单例：多处 useEmbedAudioMetadata 必须共享同一 FFmpeg 实例与加载 promise */
 let sharedFfmpeg: FFmpeg | null = null;
