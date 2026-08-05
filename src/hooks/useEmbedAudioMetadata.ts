@@ -1,11 +1,17 @@
 import { FFmpeg, type LogEventCallback, type ProgressEventCallback } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
+import CoreJsUrl from '@ffmpeg/core?url';
+
+console.log('CoreJsUrl',CoreJsUrl)
 
 const isProduction = import.meta.env.PROD;
 // const FFMPEG_CORE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
 const FFMPEG_CORE_BASE_URL = isProduction
-  ? 'https://cdn.qiuyu520.fun'
-  : 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+  // ? 'https://cdn.qiuyu520.fun' // 七牛云cdn
+  ? 'https://alicdn.qiuyu520.fun/npm/@ffmpeg/core@0.12.10/dist/esm'  // 阿里云cdn
+  : // : 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
+    'https://alicdn.qiuyu520.fun/npm/@ffmpeg/core@0.12.10/dist/esm';
+// 'https://cdn.qiuyu520.fun';
 
 /** 模块级单例：多处 useEmbedAudioMetadata 必须共享同一 FFmpeg 实例与加载 promise */
 let sharedFfmpeg: FFmpeg | null = null;
@@ -177,15 +183,11 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
           };
 
           const [coreURL, wasmURL] = await Promise.all([
-            fetchToBlobURL(
-              `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`,
-              'text/javascript',
-              ({ received, total }) => {
-                downloadState.jsReceived = received;
-                downloadState.jsTotal = total;
-                reportLoadProgress();
-              },
-            ),
+            fetchToBlobURL(CoreJsUrl, 'text/javascript', ({ received, total }) => {
+              downloadState.jsReceived = received;
+              downloadState.jsTotal = total;
+              reportLoadProgress();
+            }),
             fetchToBlobURL(
               `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`,
               'application/wasm',
