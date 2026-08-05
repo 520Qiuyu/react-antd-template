@@ -1,8 +1,11 @@
 import { FFmpeg, type LogEventCallback, type ProgressEventCallback } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 
+const isProduction = import.meta.env.PROD;
 // const FFMPEG_CORE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
-const FFMPEG_CORE_BASE_URL = 'https://cdn.qiuyu520.fun';
+const FFMPEG_CORE_BASE_URL = isProduction
+  ? 'https://cdn.qiuyu520.fun'
+  : 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
 
 /** 模块级单例：多处 useEmbedAudioMetadata 必须共享同一 FFmpeg 实例与加载 promise */
 let sharedFfmpeg: FFmpeg | null = null;
@@ -350,8 +353,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
             await resetSharedFfmpeg();
             continue;
           }
-          const processingError =
-            cause instanceof Error ? cause : new Error('音频元信息写入失败');
+          const processingError = cause instanceof Error ? cause : new Error('音频元信息写入失败');
           setSharedStatus('error', processingError);
           throw processingError;
         } finally {

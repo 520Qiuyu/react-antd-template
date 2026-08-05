@@ -6,7 +6,7 @@ import { msgError, msgSuccess } from '@/utils/modal';
 import { PLAYLIST_PARSE_CONCURRENCY } from '../../constants';
 import { downloadSongAudio, downloadSongLyric, runWithConcurrency } from '../../downloadSong';
 import { usePlaylistParseStore } from '../../store';
-import { isTrackParsed, pickDownloadUrl } from '../../utils';
+import { isTrackParsed, mockParseDelay, pickDownloadUrl } from '../../utils';
 import EngineStatus from '../EngineStatus';
 import PlaylistHero from './components/PlaylistHero';
 import TrackList from './components/TrackList';
@@ -345,6 +345,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
       try {
         downloadSongLyric(track.fullInfo, mode, resolvePlaylistIndex(track));
         success += 1;
+        await mockParseDelay(166);
       } catch {
         failed += 1;
       }
