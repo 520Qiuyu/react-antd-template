@@ -2,6 +2,7 @@ import {
   reqDeleteCardSecret,
   reqGetCreateUserOptions,
   reqListCardSecrets,
+  reqResetParseCount,
   reqUpdateCardSecretStatus,
 } from '@/apis/qishui/cardSecret';
 import { CopyText, MyButton, MyPagination, SearchForm } from '@/components';
@@ -14,12 +15,14 @@ import { confirm, msgError, msgSuccess } from '@/utils/modal';
 import {
   CopyOutlined,
   DeleteOutlined,
+  DownOutlined,
   EditOutlined,
   ExportOutlined,
   PlusOutlined,
+  RedoOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
-import { Card, Space, Switch, Table, Tag } from 'antd';
+import { Card, Dropdown, Space, Switch, Table, Tag } from 'antd';
 import type { ColumnsType, TableProps } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
@@ -106,6 +109,19 @@ const CardSecret: React.FC = () => {
       const res = await reqDeleteCardSecret(record.id);
       if (res.code === 200) {
         msgSuccess('删除成功');
+        setSearchParams({ ...searchParams });
+      }
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+  /** 重置次数 */
+  const handleResetParseCount = async (record: CardSecretListItem) => {
+    try {
+      await confirm(`确定要重置卡密「${record.secret}」的解析次数吗？`, '提示');
+      const res = await reqResetParseCount(record.id);
+      if (res.code === 200) {
+        msgSuccess('重置成功');
         setSearchParams({ ...searchParams });
       }
     } catch (error) {
@@ -274,7 +290,7 @@ const CardSecret: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 100,
+      width: 130,
       align: 'center',
       fixed: 'right',
       render: (_, record) => (
@@ -306,6 +322,29 @@ const CardSecret: React.FC = () => {
             toolTip='删除'
             onClick={() => handleDelete(record)}
           />
+          <Dropdown
+            arrow={true}
+            popupRender={() => (
+              <div className={styles['moreMenu']} role='menu' aria-label='更多操作'>
+                <MyButton
+                  variant='text'
+                  size='small'
+                  color='primary'
+                  icon={<RedoOutlined />}
+                  permissionCode='qishui_card_secret_update'
+                  onClick={() => handleResetParseCount(record)}>
+                  重置今日解析次数
+                </MyButton>
+              </div>
+            )}>
+            <MyButton
+              variant='text'
+              size='small'
+              color='primary'
+              icon={<DownOutlined />}
+              toolTip='更多'
+            />
+          </Dropdown>
         </Space>
       ),
     },

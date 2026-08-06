@@ -81,7 +81,10 @@ export const pickDownloadUrl = (
       return matched;
     }
   }
-  return undefined;
+  msgSuccess(
+    `当前没有找到${qualityLabel(preferredQuality)}音质，降级为${qualityLabel(urls[0]?.quality)}音质`,
+  );
+  return urls[0];
 };
 
 /** 从 fullInfo 取展示用标题 / 艺人 */

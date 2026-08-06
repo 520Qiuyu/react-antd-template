@@ -82,6 +82,16 @@ export const reqUpdateCardSecretStatus = (id: string, data: UpdateCardSecretStat
   put<CardSecretListItem>(`/qishui/card-secret/${id}/status`, data);
 
 /**
+ * 重置当日解析次数
+ * @example
+ * ```ts
+ * const res = await reqResetParseCount(id);
+ * ```
+ */
+export const reqResetParseCount = (id: string) =>
+  put<CardSecretListItem>(`/qishui/card-secret/${id}/reset-daily-parse-count`);
+
+/**
  * 删除卡密
  * @example
  * ```ts

@@ -43,3 +43,76 @@
   font-size: 12px;
   color: rgba(0, 0, 0, 0.45);
 }
+
+/* 操作列「更多」下拉面板 */
+.moreMenu {
+  --more-menu-radius: 10px;
+  --more-menu-pad: 6px;
+  --more-menu-bg: color-mix(in srgb, var(--ant-color-bg-elevated, #fff) 92%, transparent);
+  --more-menu-border: color-mix(
+    in srgb,
+    var(--ant-color-border-secondary, #f0f0f0) 85%,
+    var(--ant-color-primary, #1677ff) 15%
+  );
+  --more-menu-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ant-color-primary, #1677ff) 6%, transparent),
+    0 8px 24px -6px rgba(15, 23, 42, 0.14),
+    0 2px 6px rgba(15, 23, 42, 0.06);
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 168px;
+  padding: var(--more-menu-pad);
+  border: 1px solid var(--more-menu-border);
+  border-radius: var(--more-menu-radius);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--ant-color-primary-bg, #e6f4ff) 55%, transparent) 0%,
+      transparent 48%
+    ),
+    var(--more-menu-bg);
+  background-color: var(--ant-color-bg-elevated, #fff);
+  box-shadow: var(--more-menu-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: moreMenuIn 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+
+  :global {
+    .ant-btn {
+      justify-content: flex-start;
+      width: 100%;
+      height: 32px;
+      padding-inline: 10px;
+      border-radius: calc(var(--more-menu-radius) - 4px);
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      transition:
+        background-color 0.16s ease,
+        color 0.16s ease,
+        transform 0.16s ease;
+
+      &:hover {
+        background: var(--ant-color-primary-bg, #e6f4ff) !important;
+        transform: translateX(1px);
+      }
+
+      &:active {
+        transform: translateX(0);
+      }
+    }
+  }
+}
+
+@keyframes moreMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
