@@ -24,6 +24,8 @@ interface Config {
   downloadFormat: DownloadFormat;
   preferredQuality: (typeof DOWNLOAD_QUALITY_ORDER)[number];
   downloadNameFormat: string;
+  /** 歌单批量解析 / 下载并发数 */
+  downloadConcurrency: 1 | 2 | 3;
 }
 declare global {
   interface Window {
@@ -31,7 +33,8 @@ declare global {
   }
 }
 export const DEFAULT_CONFIG: Config = {
-  downloadFormat: 'm4a',
+  downloadFormat: 'mp3',
   preferredQuality: DOWNLOAD_QUALITY_ORDER[0],
   downloadNameFormat: '【歌名】-【歌手】',
+  downloadConcurrency: 2,
 };

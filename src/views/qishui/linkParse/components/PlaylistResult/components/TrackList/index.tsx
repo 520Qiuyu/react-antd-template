@@ -1,4 +1,7 @@
+import { SearchForm } from '@/components';
+import type { Option as SearchFormOption } from '@/components/SearchForm';
 import type { PlaylistMusicInfo } from '@/types/qishui';
+import { getOptions } from '@/utils';
 import {
   CheckCircleFilled,
   CloseCircleFilled,
@@ -15,9 +18,6 @@ import classNames from 'classnames';
 import { formatDuration, isTrackParsed } from '../../../../utils';
 import sharedStyles from '../shared.module.less';
 import styles from './index.module.less';
-import { SearchForm } from '@/components';
-import { getOptions, groupBy } from '@/utils';
-import type { Option as SearchFormOption } from '@/components/SearchForm';
 
 /** 每页最多曲目数 */
 const PAGE_SIZE = 100;
@@ -158,17 +158,6 @@ const TrackList: React.FC<TrackListProps> = ({
   }, [filteredTracks, currentPage]);
   const pageOffset = (currentPage - 1) * PAGE_SIZE;
 
-  /** 选中的歌曲 */
-  const [selectedTracks, setSelectedTracks] = useState<PlaylistMusicInfo[]>([]);
-  /** 添加选中的歌曲 */
-  const addSelectedTrack = (track: PlaylistMusicInfo) => {
-    setSelectedTracks((prev) => [...prev, track]);
-  };
-  /** 删除选中的歌曲 */
-  const removeSelectedTrack = (track: PlaylistMusicInfo) => {
-    setSelectedTracks((prev) => prev.filter((t) => t.id !== track.id));
-  };
-
   const [batchAction, setBatchAction] = useState<BatchAction>(null);
   const { downloadSuccessCount, downloadFailCount } = useMemo(() => {
     let success = 0;
@@ -289,7 +278,9 @@ const TrackList: React.FC<TrackListProps> = ({
                 {liveFailCount}
               </span>
             </>
-          ) : <span className={styles['btnCountPrimary']}>{filteredTracks.length}</span>}
+          ) : (
+            <span className={styles['btnCountPrimary']}>{filteredTracks.length}</span>
+          )}
         </button>
         <button
           className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
@@ -630,10 +621,7 @@ interface TrackListProps {
    * onBatchParse(tracks, { force: true }); // 全部解析
    * onBatchParse(unparsedTracks);          // 仅未解析
    */
-  onBatchParse: (
-    tracks: PlaylistMusicInfo[],
-    options?: { force?: boolean },
-  ) => Promise<void>;
+  onBatchParse: (tracks: PlaylistMusicInfo[], options?: { force?: boolean }) => Promise<void>;
   /**
    * 批量下载
    * @example

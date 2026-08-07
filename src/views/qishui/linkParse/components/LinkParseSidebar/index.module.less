@@ -149,6 +149,48 @@
   margin-top: 2px;
 }
 
+.radioRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.radio {
+  padding: 7px 0;
+  border: 1px solid rgba(var(--lp-soda-rgb), 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--lp-text-2);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    color 0.2s var(--lp-ease),
+    border-color 0.2s var(--lp-ease),
+    background 0.2s var(--lp-ease),
+    box-shadow 0.2s var(--lp-ease);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--lp-brand);
+    border-color: rgba(var(--lp-soda-rgb), 0.4);
+    background: var(--lp-brand-softer);
+    outline: none;
+  }
+
+  &.isActive {
+    color: var(--lp-brand);
+    border-color: rgba(var(--lp-soda-rgb), 0.45);
+    background: linear-gradient(
+      135deg,
+      rgba(var(--lp-soda-rgb), 0.14),
+      rgba(var(--lp-bubble-rgb), 0.1)
+    );
+    box-shadow: inset 0 0 0 1px rgba(var(--lp-soda-rgb), 0.12);
+  }
+}
+
 .token {
   padding: 2px 8px;
   border: 1px solid rgba(var(--lp-soda-rgb), 0.18);

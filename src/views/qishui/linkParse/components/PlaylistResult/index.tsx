@@ -1,9 +1,9 @@
 import { reqGetSongInfo, reqGetVideoInfo } from '@/apis';
 import { useEmbedAudioMetadata, useSearchParams } from '@/hooks';
+import { DEFAULT_CONFIG, useConfig } from '@/hooks/useConfig';
 import type { PlaylistInfo, PlaylistMusicInfo } from '@/types/qishui';
 import eventBus from '@/utils/eventBus';
 import { msgError, msgSuccess } from '@/utils/modal';
-import { PLAYLIST_PARSE_CONCURRENCY } from '../../constants';
 import { downloadSongAudio, downloadSongLyric, runWithConcurrency } from '../../downloadSong';
 import { usePlaylistParseStore } from '../../store';
 import { isTrackParsed, mockParseDelay, pickDownloadUrl } from '../../utils';
@@ -21,6 +21,8 @@ interface PlaylistResultProps {
  */
 const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
   const { searchParams } = useSearchParams();
+  const { config } = useConfig();
+  const downloadConcurrency = config?.downloadConcurrency ?? DEFAULT_CONFIG.downloadConcurrency;
   /** 更新歌曲完整信息 */
   const patchPlaylistTrackFullInfo = usePlaylistParseStore(
     (state) => state.patchPlaylistTrackFullInfo,
@@ -130,7 +132,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
       let success = 0;
       let failed = 0;
 
-      await runWithConcurrency(pending, PLAYLIST_PARSE_CONCURRENCY, async (track) => {
+      await runWithConcurrency(pending, downloadConcurrency, async (track) => {
         const ok = await parseTrack(track, true);
         if (ok) success += 1;
         else failed += 1;
@@ -138,7 +140,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
 
       return { success, failed, total: pending.length };
     },
-    [parseTrack],
+    [parseTrack, downloadConcurrency],
   );
 
   /**
@@ -155,7 +157,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
       let success = 0;
       let failed = 0;
 
-      await runWithConcurrency(pending, PLAYLIST_PARSE_CONCURRENCY, async (track) => {
+      await runWithConcurrency(pending, downloadConcurrency, async (track) => {
         const ok = await parseTrack(track, true, force);
         if (ok) success += 1;
         else failed += 1;
@@ -164,7 +166,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
 
       return { success, failed, total: pending.length };
     },
-    [parseTrack],
+    [parseTrack, downloadConcurrency],
   );
 
   /**
@@ -309,7 +311,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
   };
 
   /**
-   * 按列表并发「解析即下载」，最多 PLAYLIST_PARSE_CONCURRENCY 路
+   * 按列表并发「解析即下载」，最多 downloadConcurrency 路
    * @example
    * const { success, failed } = await downloadTrackList(tracks);
    */
@@ -317,7 +319,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     let success = 0;
     let failed = 0;
 
-    await runWithConcurrency(targetTracks, PLAYLIST_PARSE_CONCURRENCY, async (track) => {
+    await runWithConcurrency(targetTracks, downloadConcurrency, async (track) => {
       const ok = await downloadOneTrack(track);
       if (ok) success += 1;
       else failed += 1;

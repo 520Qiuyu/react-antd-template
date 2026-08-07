@@ -30,7 +30,7 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
   const sidebarOpen = useParseStore((state) => state.sidebarOpen);
   const setSidebarOpen = useParseStore((state) => state.setSidebarOpen);
   const { config, setConfig } = useConfig();
-  const { preferredQuality, downloadFormat, downloadNameFormat } = {
+  const { preferredQuality, downloadFormat, downloadNameFormat, downloadConcurrency } = {
     ...DEFAULT_CONFIG,
     ...config,
   };
@@ -153,6 +153,31 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
             aria-label='首选下载音质'
           />
         </label>
+
+        {/* 下载并发量 */}
+        <div className={styles['field']} role='radiogroup' aria-label='下载并发量'>
+          <span className={styles['fieldLabel']} id='download-concurrency-label'>
+            下载并发量
+          </span>
+          <div className={styles['radioRow']}>
+            {([1, 2, 3] as const).map((value) => {
+              const checked = downloadConcurrency === value;
+              return (
+                <button
+                  key={value}
+                  type='button'
+                  role='radio'
+                  aria-checked={checked}
+                  aria-labelledby='download-concurrency-label'
+                  className={classNames(styles['radio'], { [styles['isActive']]: checked })}
+                  tabIndex={checked ? 0 : -1}
+                  onClick={() => setConfig({ ...config!, downloadConcurrency: value })}>
+                  {value}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* 下载名称格式 */}
         <label className={styles['field']} htmlFor='download-name-format'>
