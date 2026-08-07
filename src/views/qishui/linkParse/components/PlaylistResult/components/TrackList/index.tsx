@@ -20,7 +20,7 @@ import { getOptions, groupBy } from '@/utils';
 import type { Option as SearchFormOption } from '@/components/SearchForm';
 
 /** 每页最多曲目数 */
-const PAGE_SIZE = 195;
+const PAGE_SIZE = 100;
 
 const defaultSearchParams: SearchParams = {
   pageNum: 1,

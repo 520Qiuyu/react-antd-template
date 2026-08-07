@@ -251,57 +251,83 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     }
   };
 
-  /** 按给定列表下载音频，并写回成功/失败状态到 tracks */
+  /**
+   * 单曲下载：已解析则直接下，否则先解析再下
+   * @example
+   * await downloadOneTrack(track); // true=成功
+   */
+  const downloadOneTrack = async (track: PlaylistMusicInfo): Promise<boolean> => {
+    const trackId = track.id;
+    if (!trackId) {
+      bumpBatchProgress(false);
+      return false;
+    }
+
+    let latest = getLatestTrack(trackId) || track;
+    if (!isTrackParsed(latest)) {
+      const ok = await parseTrack(latest, true);
+      if (!ok) {
+        setTrackDownloadStatus(trackId, 'error');
+        bumpBatchProgress(false);
+        return false;
+      }
+      latest = getLatestTrack(trackId) || latest;
+    }
+
+    const fullInfo = latest.fullInfo;
+    if (!fullInfo) {
+      setTrackDownloadStatus(trackId, 'error');
+      bumpBatchProgress(false);
+      return false;
+    }
+    const urlItem = pickDownloadUrl(fullInfo.urls);
+    if (!urlItem?.url) {
+      setTrackDownloadStatus(trackId, 'error');
+      bumpBatchProgress(false);
+      return false;
+    }
+
+    markDownloading(trackId, true);
+    try {
+      await downloadSongAudio({
+        data: fullInfo,
+        item: urlItem,
+        embedMetadata,
+        index: resolvePlaylistIndex(latest),
+      });
+      setTrackDownloadStatus(trackId, 'success');
+      bumpBatchProgress(true);
+      return true;
+    } catch (error) {
+      console.error(error);
+      setTrackDownloadStatus(trackId, 'error');
+      bumpBatchProgress(false);
+      return false;
+    } finally {
+      markDownloading(trackId, false);
+    }
+  };
+
+  /**
+   * 按列表并发「解析即下载」，最多 PLAYLIST_PARSE_CONCURRENCY 路
+   * @example
+   * const { success, failed } = await downloadTrackList(tracks);
+   */
   const downloadTrackList = async (targetTracks: PlaylistMusicInfo[]) => {
     let success = 0;
     let failed = 0;
-    const targetTrackIds = targetTracks.map((track) => track.id);
-    const latestTracks =
-      usePlaylistParseStore
-        .getState()
-        .playlistHasResult?.tracks.filter((track) => targetTrackIds.includes(track.id)) ||
-      targetTracks;
-    for (const track of latestTracks) {
-      if (!track.id || !isTrackParsed(track) || !track.fullInfo) {
-        if (track.id) setTrackDownloadStatus(track.id, 'error');
-        failed += 1;
-        bumpBatchProgress(false);
-        continue;
-      }
-      const urlItem = pickDownloadUrl(track.fullInfo.urls);
-      if (!urlItem?.url) {
-        setTrackDownloadStatus(track.id, 'error');
-        failed += 1;
-        bumpBatchProgress(false);
-        continue;
-      }
-      markDownloading(track.id, true);
-      try {
-        await downloadSongAudio({
-          data: track.fullInfo,
-          item: urlItem,
-          embedMetadata,
-          index: resolvePlaylistIndex(track),
-        });
-        setTrackDownloadStatus(track.id, 'success');
-        success += 1;
-        bumpBatchProgress(true);
-      } catch (error) {
-        console.error(error);
-        setTrackDownloadStatus(track.id, 'error');
-        failed += 1;
-        bumpBatchProgress(false);
-      } finally {
-        markDownloading(track.id, false);
-        // await mockParseDelay(500);
-      }
-    }
+
+    await runWithConcurrency(targetTracks, PLAYLIST_PARSE_CONCURRENCY, async (track) => {
+      const ok = await downloadOneTrack(track);
+      if (ok) success += 1;
+      else failed += 1;
+    });
 
     return { success, failed };
   };
 
   /**
-   * 批量下载（曲目由子组件筛选好后传入）
+   * 批量下载（曲目由子组件筛选好后传入；每首各自解析后立刻下载）
    * @example
    * await handleBatchDownload(filteredTracks, { clearStatus: true }); // 全部下载
    * await handleBatchDownload(undownloadedTracks);                    // 下载未下载的
@@ -315,7 +341,6 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     setBatchProgress({ success: 0, failed: 0 });
     if (options?.clearStatus) clearPlaylistDownloadStatus();
     try {
-      await ensureTracksParsed(targetTracks);
       const { success, failed } = await downloadTrackList(targetTracks);
       msgSuccess(`${options?.doneLabel ?? '下载完成'}：成功 ${success}，失败 ${failed}`);
     } catch (error) {

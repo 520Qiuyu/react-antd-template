@@ -41,12 +41,17 @@ export default function TestFfmpeg() {
   const [coverFileList, setCoverFileList] = useState<UploadFile[]>([]);
   const [outputFormat, setOutputFormat] = useState<EmbedOutputFormat>('mp3');
   const [ffmpegLog, setFfmpegLog] = useState('');
-  const { coreLoading, processing, loaded, loadStage, progress, loadFfmpeg, embedMetadata } =
+  const [embedding, setEmbedding] = useState(false);
+  const [embedProgress, setEmbedProgress] = useState(0);
+  const { coreLoading, loaded, loadStage, progress, loadFfmpeg, embedMetadata } =
     useEmbedAudioMetadata({
       onLog: (message, type) => {
         console.log('message', message);
         console.log('type', type);
         setFfmpegLog((prev) => `${prev}\n${message}`.trim());
+      },
+      onProgress: (percent) => {
+        setEmbedProgress(percent);
       },
     });
 
@@ -75,6 +80,8 @@ export default function TestFfmpeg() {
 
     const values = await form.validateFields();
 
+    setEmbedding(true);
+    setEmbedProgress(0);
     try {
       const outputBlob = await embedMetadata({
         audio: audioFile,
@@ -90,6 +97,8 @@ export default function TestFfmpeg() {
     } catch (error) {
       console.error(error);
       msgError(error instanceof Error ? error.message : '元信息写入失败');
+    } finally {
+      setEmbedding(false);
     }
   };
 
@@ -167,8 +176,9 @@ export default function TestFfmpeg() {
             {loaded ? 'FFmpeg 已就绪' : '预加载 FFmpeg'}
           </Button>
           <div style={{ fontSize: 12, color: '#666' }}>状态：{loadStage}</div>
-          {processing ? <Progress percent={progress} status='active' /> : null}
-          <Button type='primary' loading={processing} onClick={handleGenerate} block>
+          {coreLoading ? <Progress percent={progress} status='active' /> : null}
+          {embedding ? <Progress percent={embedProgress} status='active' /> : null}
+          <Button type='primary' loading={embedding} onClick={handleGenerate} block>
             生成并下载嵌入元信息后的文件
           </Button>
           {ffmpegLog ? (

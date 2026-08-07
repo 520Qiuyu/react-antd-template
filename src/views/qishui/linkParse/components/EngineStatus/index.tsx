@@ -6,8 +6,7 @@ import styles from './index.module.less';
  * 音频处理引擎（ffmpeg-wasm）加载状态提示
  *
  * @description
- * 内部复用 useEmbedAudioMetadata。FFmpeg 实例与加载 promise 均为模块级单例，
- * 多处使用会共享同一次加载与同一引擎状态。加载 / 处理进度通过 progress（0–100）展示。
+ * 只展示 WASM core 下载 / 就绪状态。内嵌封面歌词不写入共享状态，由下载流程自行处理。
  */
 const EngineStatus: React.FC = () => {
   const { status, loadStage, error, progress, loadFfmpeg } = useEmbedAudioMetadata();
@@ -31,16 +30,6 @@ const EngineStatus: React.FC = () => {
         desc: '下载时会自动写入封面、歌词等元信息',
         canRetry: false,
         showProgress: false,
-      };
-    }
-    if (status === 'processing') {
-      return {
-        tone: 'loading' as const,
-        icon: <LoadingOutlined spin />,
-        title: '正在写入音频元信息…',
-        desc: `${loadStage} ${progress}%`,
-        canRetry: false,
-        showProgress: true,
       };
     }
     return {
