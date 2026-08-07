@@ -13,7 +13,11 @@ import { useRef } from 'react';
 import type { SearchParams } from '../..';
 import type { DOWNLOAD_QUALITY_ORDER, LinkParseView } from '../../constants';
 import { useParseStore } from '../../store';
-import { DOWNLOAD_FORMAT_OPTIONS, DOWNLOAD_QUALITY_OPTIONS, type DownloadFormat } from '../../utils';
+import {
+  DOWNLOAD_FORMAT_OPTIONS,
+  DOWNLOAD_QUALITY_OPTIONS,
+  type DownloadFormat,
+} from '../../utils';
 import styles from './index.module.less';
 
 interface LinkParseSidebarProps {
@@ -50,7 +54,7 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
     setConfig({ ...config!, downloadNameFormat: value });
   };
 
-  console.log('render')
+  console.log('render');
 
   /**
    * 在输入框光标处插入占位符；无输入元素时追加到末尾
@@ -208,4 +212,4 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
   );
 };
 
-export default LinkParseSidebar;
+export default memo(LinkParseSidebar);

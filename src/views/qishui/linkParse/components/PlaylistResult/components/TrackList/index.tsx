@@ -15,12 +15,19 @@ import {
 } from '@ant-design/icons';
 import { Pagination } from 'antd';
 import classNames from 'classnames';
+import { usePlaylistParseStore } from '../../../../store';
 import { formatDuration, isTrackParsed } from '../../../../utils';
 import sharedStyles from '../shared.module.less';
 import styles from './index.module.less';
 
 /** 每页最多曲目数 */
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 70;
+
+const DOWNLOAD_PHASE_TEXT: Record<string, string> = {
+  downloading: '下载中',
+  decrypting: '解密中',
+  embedding: '元信息写入中',
+};
 
 const defaultSearchParams: SearchParams = {
   pageNum: 1,
@@ -29,7 +36,6 @@ const defaultSearchParams: SearchParams = {
 const TrackList: React.FC<TrackListProps> = ({
   tracks,
   parsingIds,
-  downloadingIds,
   liveSuccessCount,
   liveFailCount,
   onBatchParse,
@@ -39,6 +45,7 @@ const TrackList: React.FC<TrackListProps> = ({
   onDownload,
   onDownloadLyric,
 }) => {
+  const trackDownloadMap = usePlaylistParseStore((state) => state.trackDownloadMap);
   // REGION ========================= 筛选 =========================
   const [searchParams, setSearchParams] = useState<SearchParams>(defaultSearchParams);
   /** 筛选表单选项 */
@@ -132,11 +139,14 @@ const TrackList: React.FC<TrackListProps> = ({
       if (artist?.length && !artist.includes(track.artist!)) return false;
       if (album?.length && !album.includes(track.album!)) return false;
       if (isParsed !== undefined && !!track.fullInfo?.urls?.length !== isParsed) return false;
-      if (isDownloaded !== undefined && (track.downloadStatus === 'success') !== isDownloaded)
+      if (
+        isDownloaded !== undefined &&
+        (track.id ? trackDownloadMap[track.id]?.status === 'success' : false) !== isDownloaded
+      )
         return false;
       return true;
     });
-  }, [tracks, searchParams]);
+  }, [tracks, searchParams, trackDownloadMap]);
   // ENDREGION ========================= 筛选 =========================
 
   /** 当前筛选结果中尚未解析的曲目 */
@@ -146,8 +156,11 @@ const TrackList: React.FC<TrackListProps> = ({
   );
   /** 当前筛选结果中尚未成功下载的曲目 */
   const undownloadedTracks = useMemo(
-    () => filteredTracks.filter((track) => Boolean(track.id) && track.downloadStatus !== 'success'),
-    [filteredTracks],
+    () =>
+      filteredTracks.filter(
+        (track) => Boolean(track.id) && trackDownloadMap[track.id!]?.status !== 'success',
+      ),
+    [filteredTracks, trackDownloadMap],
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredTracks.length / PAGE_SIZE));
@@ -162,12 +175,12 @@ const TrackList: React.FC<TrackListProps> = ({
   const { downloadSuccessCount, downloadFailCount } = useMemo(() => {
     let success = 0;
     let failed = 0;
-    for (const track of tracks) {
-      if (track.downloadStatus === 'success') success += 1;
-      else if (track.downloadStatus === 'error') failed += 1;
+    for (const info of Object.values(trackDownloadMap)) {
+      if (info.status === 'success') success += 1;
+      else if (info.status === 'error') failed += 1;
     }
     return { downloadSuccessCount: success, downloadFailCount: failed };
-  }, [tracks]);
+  }, [trackDownloadMap]);
 
   /** 全部解析 */
   const handleParseAll = async () => {
@@ -215,7 +228,8 @@ const TrackList: React.FC<TrackListProps> = ({
     setBatchAction('retry');
     try {
       await onBatchDownload(
-        filteredTracks?.filter((track) => track.downloadStatus === 'error') || [],
+        filteredTracks?.filter((track) => track.id && trackDownloadMap[track.id]?.status === 'error') ||
+          [],
         { doneLabel: '重试完成' },
       );
     } finally {
@@ -448,8 +462,17 @@ const TrackList: React.FC<TrackListProps> = ({
           const hasPlayUrl = Boolean(track.fullInfo?.urls?.some((item) => item.url));
           const noPlayUrl = parsed && !hasPlayUrl;
           const parsing = Boolean(track.id && parsingIds.has(track.id));
-          const downloading = Boolean(track.id && downloadingIds.has(track.id));
-          const downloadStatus = track.downloadStatus;
+          const downloadInfo = track.id ? trackDownloadMap[track.id] : undefined;
+          const downloading = downloadInfo?.status === 'downloading';
+          const downloadStatus = downloadInfo?.status;
+          const downloadProgressText = (() => {
+            if (!downloading) return null;
+            const percent = downloadInfo?.progress ?? 0;
+            const phase = downloadInfo?.phase;
+            if (!phase || phase === 'downloading') return `${percent}%`;
+            const phaseLabel = DOWNLOAD_PHASE_TEXT[phase] || '处理中';
+            return phase === 'embedding' ? `${phaseLabel} ${percent}%` : phaseLabel;
+          })();
 
           return (
             <li
@@ -475,10 +498,12 @@ const TrackList: React.FC<TrackListProps> = ({
                 <p className={styles['itemArtist']}>
                   <span className={styles['itemArtistName']}>{track.artist || '未知艺人'}</span>
                   {downloading ? (
-                    <LoadingOutlined
-                      className={styles['downloadMarkLoading']}
-                      aria-label='下载中'
-                    />
+                    <span className={styles['downloadMarkLoading']} aria-label='下载中'>
+                      <LoadingOutlined />
+                      {downloadProgressText ? (
+                        <span className={styles['downloadProgressText']}>{downloadProgressText}</span>
+                      ) : null}
+                    </span>
                   ) : null}
                   {!downloading && downloadStatus === 'success' ? (
                     <CheckCircleFilled className={styles['downloadMarkOk']} aria-label='下载成功' />
@@ -610,7 +635,6 @@ export type BatchAction =
 interface TrackListProps {
   tracks: PlaylistMusicInfo[];
   parsingIds: Set<string>;
-  downloadingIds: Set<string>;
   /** 进行中实时成功数（解析 / 下载） */
   liveSuccessCount: number;
   /** 进行中实时失败数（解析 / 下载） */

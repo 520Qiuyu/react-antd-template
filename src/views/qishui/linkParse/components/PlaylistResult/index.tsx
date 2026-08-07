@@ -27,12 +27,10 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
   const patchPlaylistTrackFullInfo = usePlaylistParseStore(
     (state) => state.patchPlaylistTrackFullInfo,
   );
-  /** 设置歌曲下载状态 */
-  const setTrackDownloadStatus = usePlaylistParseStore((state) => state.setTrackDownloadStatus);
-  /** 清除歌曲下载状态 */
-  const clearPlaylistDownloadStatus = usePlaylistParseStore(
-    (state) => state.clearPlaylistDownloadStatus,
-  );
+  /** 合并更新单首下载信息 */
+  const setTrackDownload = usePlaylistParseStore((state) => state.setTrackDownload);
+  /** 清空全部下载态 */
+  const clearTrackDownloads = usePlaylistParseStore((state) => state.clearTrackDownloads);
   /** 内嵌音频元数据 */
   const { embedMetadata } = useEmbedAudioMetadata({
     onLog: (message, type) => {
@@ -44,7 +42,6 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
 
   const [batchProgress, setBatchProgress] = useState({ success: 0, failed: 0 });
   const [parsingIds, setParsingIds] = useState<Set<string>>(() => new Set());
-  const [downloadingIds, setDownloadingIds] = useState<Set<string>>(() => new Set());
 
   const tracks = data.tracks || [];
 
@@ -72,14 +69,19 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
       return next;
     });
   };
-  /** 标记下载中 */
-  const markDownloading = (trackId: string, active: boolean) => {
-    setDownloadingIds((prev) => {
-      const next = new Set(prev);
-      if (active) next.add(trackId);
-      else next.delete(trackId);
-      return next;
-    });
+
+  /**
+   * 将 downloadSong 的阶段进度写入 store（ratio 0–1 → percent）
+   * @example
+   * reportTrackDownloadProgress('id', 'downloading', 0.42)
+   */
+  const reportTrackDownloadProgress = (
+    trackId: string,
+    phase: 'downloading' | 'decrypting' | 'embedding',
+    ratio: number,
+  ) => {
+    const progress = Math.round(Math.min(1, Math.max(0, ratio)) * 100);
+    setTrackDownload(trackId, { status: 'downloading', phase, progress, errorMsg: null });
   };
 
   /** 解析单首；返回是否成功 silent=true 时只显示错误信息，不弹窗。force=true 时即使已解析也会重新请求 */
@@ -200,12 +202,18 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
       return;
     }
 
-    markDownloading(trackId, true);
+    setTrackDownload(trackId, {
+      status: 'downloading',
+      progress: 0,
+      phase: 'downloading',
+      errorMsg: null,
+    });
     try {
       let latest = getLatestTrack(trackId) || track;
       if (!isTrackParsed(latest)) {
         const ok = await parseTrack(latest, true);
         if (!ok) {
+          setTrackDownload(trackId, { status: 'error', errorMsg: '解析失败，无法下载' });
           msgError('解析失败，无法下载');
           return;
         }
@@ -214,13 +222,14 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
 
       const fullInfo = latest.fullInfo;
       if (!fullInfo) {
+        setTrackDownload(trackId, { status: 'error', errorMsg: '未解析到有效歌曲信息' });
         msgError('未解析到有效歌曲信息');
         return;
       }
       const urlItem = pickDownloadUrl(fullInfo.urls);
       if (!urlItem?.url) {
+        setTrackDownload(trackId, { status: 'error', errorMsg: '没有可下载的音质地址' });
         msgError('没有可下载的音质地址');
-        debugger;
         return;
       }
 
@@ -229,13 +238,20 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
         item: urlItem,
         embedMetadata,
         index: resolvePlaylistIndex(latest),
+        onProgress: (phase, ratio) => reportTrackDownloadProgress(trackId, phase, ratio),
+      });
+      setTrackDownload(trackId, {
+        status: 'success',
+        progress: 100,
+        phase: undefined,
+        errorMsg: null,
       });
       msgSuccess('下载成功');
     } catch (error) {
       console.error(error);
-      msgError(error instanceof Error ? error.message : '下载失败');
-    } finally {
-      markDownloading(trackId, false);
+      const errorMsg = error instanceof Error ? error.message : '下载失败';
+      setTrackDownload(trackId, { status: 'error', errorMsg, phase: undefined });
+      msgError(errorMsg);
     }
   };
 
@@ -269,7 +285,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     if (!isTrackParsed(latest)) {
       const ok = await parseTrack(latest, true);
       if (!ok) {
-        setTrackDownloadStatus(trackId, 'error');
+        setTrackDownload(trackId, { status: 'error', errorMsg: '解析失败' });
         bumpBatchProgress(false);
         return false;
       }
@@ -278,35 +294,48 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
 
     const fullInfo = latest.fullInfo;
     if (!fullInfo) {
-      setTrackDownloadStatus(trackId, 'error');
+      setTrackDownload(trackId, { status: 'error', errorMsg: '未解析到有效歌曲信息' });
       bumpBatchProgress(false);
       return false;
     }
     const urlItem = pickDownloadUrl(fullInfo.urls);
     if (!urlItem?.url) {
-      setTrackDownloadStatus(trackId, 'error');
+      setTrackDownload(trackId, { status: 'error', errorMsg: '没有可下载的音质地址' });
       bumpBatchProgress(false);
       return false;
     }
 
-    markDownloading(trackId, true);
+    setTrackDownload(trackId, {
+      status: 'downloading',
+      progress: 0,
+      phase: 'downloading',
+      errorMsg: null,
+    });
     try {
       await downloadSongAudio({
         data: fullInfo,
         item: urlItem,
         embedMetadata,
         index: resolvePlaylistIndex(latest),
+        onProgress: (phase, ratio) => reportTrackDownloadProgress(trackId, phase, ratio),
       });
-      setTrackDownloadStatus(trackId, 'success');
+      setTrackDownload(trackId, {
+        status: 'success',
+        progress: 100,
+        phase: undefined,
+        errorMsg: null,
+      });
       bumpBatchProgress(true);
       return true;
     } catch (error) {
       console.error(error);
-      setTrackDownloadStatus(trackId, 'error');
+      setTrackDownload(trackId, {
+        status: 'error',
+        errorMsg: error instanceof Error ? error.message : '下载失败',
+        phase: undefined,
+      });
       bumpBatchProgress(false);
       return false;
-    } finally {
-      markDownloading(trackId, false);
     }
   };
 
@@ -341,7 +370,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
   ) => {
     if (targetTracks.length === 0) return;
     setBatchProgress({ success: 0, failed: 0 });
-    if (options?.clearStatus) clearPlaylistDownloadStatus();
+    if (options?.clearStatus) clearTrackDownloads();
     try {
       const { success, failed } = await downloadTrackList(targetTracks);
       msgSuccess(`${options?.doneLabel ?? '下载完成'}：成功 ${success}，失败 ${failed}`);
@@ -388,7 +417,6 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
       <TrackList
         tracks={tracks}
         parsingIds={parsingIds}
-        downloadingIds={downloadingIds}
         liveSuccessCount={batchProgress.success}
         liveFailCount={batchProgress.failed}
         onBatchParse={handleBatchParse}

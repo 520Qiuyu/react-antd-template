@@ -228,6 +228,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
       coverName,
       metadata,
       outputFormat = 'mp3',
+      onProgress,
     }: EmbedAudioMetadataOptions) => {
       const inputExt = audioName.split('.').pop()?.toLowerCase();
       const rawCoverExt = coverName?.split('.').pop()?.toLowerCase()?.replace(/\?.*$/, '') || null;
@@ -241,7 +242,9 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
       }
 
       const reportEmbedProgress = (percent: number) => {
-        callbacksRef.current.onProgress?.(percent);
+        const next = Math.round(Math.min(100, Math.max(0, percent)));
+        onProgress?.(next);
+        callbacksRef.current.onProgress?.(next);
       };
 
       // OOM 时换新实例再试一次（每次循环本就会 new）
@@ -414,6 +417,8 @@ export interface EmbedAudioMetadataOptions {
   metadata: AudioMetadata;
   /** 输出格式，默认 mp3 */
   outputFormat?: EmbedOutputFormat;
+  /** 本次内嵌进度 0–100（ffmpeg.exec 过程） */
+  onProgress?: (progress: number) => void;
 }
 
 export interface UseEmbedAudioMetadataOptions {

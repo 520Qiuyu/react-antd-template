@@ -126,7 +126,7 @@ export const downloadSongAudio = async ({
     window.config.downloadFormat || DEFAULT_CONFIG.downloadFormat;
   if (embedMetadata) {
     try {
-      onProgress?.('embedding', 1);
+      onProgress?.('embedding', 0);
       const coverBlob = data.cover ? await getCoverBlob(data.cover) : null;
       resultBlob = await embedMetadata({
         audio: resultBlob,
@@ -142,7 +142,9 @@ export const downloadSongAudio = async ({
           lyrics: data.lrc,
           album: data.album,
         },
+        onProgress: (percent) => onProgress?.('embedding', percent / 100),
       });
+      onProgress?.('embedding', 1);
       embedded = true;
     } catch (error) {
       console.log('embedMetadata skipped', error);

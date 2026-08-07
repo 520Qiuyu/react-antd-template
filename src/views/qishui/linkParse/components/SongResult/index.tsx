@@ -146,6 +146,13 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
           }
           if (phase === 'decrypting') {
             patchDownloadState(index, { progress: 100, status: 'decrypting' });
+            return;
+          }
+          if (phase === 'embedding') {
+            patchDownloadState(index, {
+              progress: Math.round(Math.min(1, Math.max(0, progress)) * 100),
+              status: 'decrypting',
+            });
           }
         },
       });

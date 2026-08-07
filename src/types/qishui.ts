@@ -45,8 +45,6 @@ export interface PlaylistMusicInfo {
   shareCount?: number;
   /** 单曲详情解析结果（get-song-info） */
   fullInfo?: MusicInfo | null;
-  /** 音频下载状态 */
-  downloadStatus?: 'success' | 'error';
 }
 
 /** 歌单信息 */
