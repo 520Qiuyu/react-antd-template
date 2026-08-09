@@ -11,6 +11,7 @@ import {
 import classNames from 'classnames';
 import { useCallback } from 'react';
 import CardSecretModal, { maskCardSecret } from './components/CardSecretModal';
+import HelpFab from './components/HelpFab';
 import LinkParseSidebar from './components/LinkParseSidebar';
 import PageAside from './components/PageAside';
 import PlaylistParseView from './components/PlaylistParseView';
@@ -128,6 +129,7 @@ const LinkParse: React.FC = () => {
       </div>
 
       <CardSecretModal />
+      <HelpFab />
     </div>
   );
 };

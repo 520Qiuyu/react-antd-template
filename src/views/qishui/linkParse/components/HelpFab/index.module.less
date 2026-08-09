@@ -1,0 +1,225 @@
+.root {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+.panel {
+  width: min(280px, calc(100vw - 48px));
+  padding: 16px 16px 14px;
+  border-radius: calc(var(--lp-radius) + 2px);
+  background:
+    linear-gradient(145deg, rgba(var(--lp-soda-rgb), 0.1), rgba(var(--lp-bubble-rgb), 0.06)),
+    rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(20px) saturate(1.55);
+  -webkit-backdrop-filter: blur(20px) saturate(1.55);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow:
+    var(--lp-shadow-2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transform-origin: bottom right;
+  opacity: 0;
+  transform: translateY(10px) scale(0.94);
+  visibility: hidden;
+  transition:
+    opacity 0.28s var(--lp-ease),
+    transform 0.28s var(--lp-ease),
+    visibility 0.28s;
+  pointer-events: none;
+
+  &.isOpen {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+    pointer-events: auto;
+  }
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.panelTitle {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--lp-text-1);
+}
+
+.panelClose {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px -4px 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lp-text-3);
+  cursor: pointer;
+  transition:
+    background 0.2s var(--lp-ease),
+    color 0.2s var(--lp-ease);
+
+  &:hover {
+    background: var(--lp-brand-softer);
+    color: var(--lp-text-1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(var(--lp-soda-rgb), 0.45);
+    outline-offset: 2px;
+  }
+}
+
+.panelDesc {
+  margin: 0 0 14px;
+  color: var(--lp-text-2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.panelCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: var(--lp-radius-sm);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  background: var(--lp-gradient-btn);
+  box-shadow: 0 8px 22px rgba(var(--lp-soda-rgb), 0.32);
+  transition:
+    transform 0.22s var(--lp-ease),
+    box-shadow 0.22s var(--lp-ease),
+    filter 0.22s var(--lp-ease);
+
+  &:hover {
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgba(var(--lp-soda-rgb), 0.38);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(var(--lp-bubble-rgb), 0.55);
+    outline-offset: 2px;
+  }
+}
+
+.fab {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  background: var(--lp-gradient-btn);
+  box-shadow:
+    0 10px 28px rgba(var(--lp-soda-rgb), 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition:
+    transform 0.22s var(--lp-ease),
+    box-shadow 0.22s var(--lp-ease),
+    filter 0.22s var(--lp-ease);
+
+  &:hover {
+    transform: translateY(-2px) scale(1.04);
+    filter: brightness(1.05);
+    box-shadow:
+      0 14px 34px rgba(var(--lp-soda-rgb), 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(var(--lp-bubble-rgb), 0.6);
+    outline-offset: 3px;
+  }
+
+  &.isOpen {
+    box-shadow:
+      0 0 0 3px rgba(255, 255, 255, 0.55),
+      0 10px 28px rgba(var(--lp-soda-rgb), 0.38);
+  }
+
+  &.isPulse::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid rgba(var(--lp-soda-rgb), 0.45);
+    animation: helpPulse 1.8s var(--lp-ease) infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes helpPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 960px) {
+  .root {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .fab {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .panelCta,
+  .fab {
+    transition: none !important;
+  }
+
+  .fab.isPulse::before {
+    animation: none !important;
+  }
+}
