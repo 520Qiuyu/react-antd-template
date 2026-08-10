@@ -98,7 +98,7 @@ const Demo = () => {
 | --- | --- | --- | --- |
 | name | 表单项的name | string | - |
 | label | 表单项的label | string | - |
-| type | 表单项类型 | 'input' \| 'select' \| 'selectSearch' \| 'rangePicker' | 'input' |
+| type | 表单项类型 | 'input' \| 'select' \| 'selectSearch' \| 'rangePicker' \| 'rangeInput' | 'input' |
 | options | 静态选项数据 | { label: string, value: any }[] | - |
 | getOptionsApi | 动态获取选项数据的接口 | () => Promise<any> | - |
 | getOptionsApiAfter | 获取选项数据后的回调 | (data: any) => void | - |
@@ -122,6 +122,7 @@ const Demo = () => {
 - type="select": [SelectProps](https://ant.design/components/select-cn#api)
 - type="selectSearch": SelectSearchProps
 - type="rangePicker": RangePickerCustomProps
+- type="rangeInput": RangeInputProps（`value` 为 `[min, max]`，失焦时若 min > max 会自动纠正）
 
 ## 注意事项
 

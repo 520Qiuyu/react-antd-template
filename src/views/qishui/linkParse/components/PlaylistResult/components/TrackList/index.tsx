@@ -89,6 +89,14 @@ const TrackList: React.FC<TrackListProps> = ({
           options: getOptions(tracks, 'album'),
           type: 'select',
         },
+        // 区间选择
+        {
+          label: '区间选择',
+          name: 'range',
+          type: 'rangeInput',
+          placeholder: ['最小值', '最大值'],
+          trigger: 'onBlur',
+        },
         // 是否解析
         {
           label: '是否解析',
@@ -131,20 +139,27 @@ const TrackList: React.FC<TrackListProps> = ({
 
   /** 筛选之后的音乐 */
   const filteredTracks = useMemo(() => {
-    const { title, type, artist, album, isParsed, isDownloaded } = searchParams;
-    return tracks.filter((track) => {
-      if (title?.length && !title.includes(track.title!)) return false;
-      if (type?.length && !type.includes(track.type!)) return false;
-      if (artist?.length && !artist.includes(track.artist!)) return false;
-      if (album?.length && !album.includes(track.album!)) return false;
-      if (isParsed !== undefined && !!track.fullInfo?.urls?.length !== isParsed) return false;
-      if (
-        isDownloaded !== undefined &&
-        (track.id ? trackDownloadMap[track.id]?.status === 'success' : false) !== isDownloaded
-      )
-        return false;
-      return true;
-    });
+    const { title, type, artist, album, isParsed, isDownloaded, range } = searchParams;
+    console.log('searchParams', searchParams);
+    return tracks
+      ?.map((i, index) => ({ ...i, index }))
+      .filter((track) => {
+        if (title?.length && !title.includes(track.title!)) return false;
+        if (type?.length && !type.includes(track.type!)) return false;
+        if (artist?.length && !artist.includes(track.artist!)) return false;
+        if (album?.length && !album.includes(track.album!)) return false;
+        // 区间选择列表数据
+        const [min, max] = range || [null, null];
+        if (min !== null && track.index + 1 < min) return false;
+        if (max !== null && track.index + 1 >= max) return false;
+        if (isParsed !== undefined && !!track.fullInfo?.urls?.length !== isParsed) return false;
+        if (
+          isDownloaded !== undefined &&
+          (track.id ? trackDownloadMap[track.id]?.status === 'success' : false) !== isDownloaded
+        )
+          return false;
+        return true;
+      });
   }, [tracks, searchParams, trackDownloadMap]);
   // ENDREGION ========================= 筛选 =========================
 
@@ -227,8 +242,9 @@ const TrackList: React.FC<TrackListProps> = ({
     setBatchAction('retry');
     try {
       await onBatchDownload(
-        filteredTracks?.filter((track) => track.id && trackDownloadMap[track.id]?.status === 'error') ||
-          [],
+        filteredTracks?.filter(
+          (track) => track.id && trackDownloadMap[track.id]?.status === 'error',
+        ) || [],
         { doneLabel: '重试完成' },
       );
     } finally {
@@ -454,8 +470,8 @@ const TrackList: React.FC<TrackListProps> = ({
         />
       </div>
       <ul className={styles['list']}>
-        {pageTracks.map((track, index) => {
-          const globalIndex = pageOffset + index;
+        {pageTracks.map((track) => {
+          const globalIndex = track.index;
           const key = track.id || String(globalIndex);
           const parsed = isTrackParsed(track);
           const hasPlayUrl = Boolean(track.fullInfo?.urls?.some((item) => item.url));
@@ -500,7 +516,9 @@ const TrackList: React.FC<TrackListProps> = ({
                     <span className={styles['downloadMarkLoading']} aria-label='下载中'>
                       <LoadingOutlined />
                       {downloadProgressText ? (
-                        <span className={styles['downloadProgressText']}>{downloadProgressText}</span>
+                        <span className={styles['downloadProgressText']}>
+                          {downloadProgressText}
+                        </span>
                       ) : null}
                     </span>
                   ) : null}
@@ -663,6 +681,7 @@ interface TrackListProps {
 }
 
 interface SearchParams {
+  range?: [number | null, number | null];
   title?: string[];
   type?: string[];
   artist?: string[];
