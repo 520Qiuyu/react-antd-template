@@ -2,12 +2,26 @@ import { FFmpeg, type LogEventCallback, type ProgressEventCallback } from '@ffmp
 import { fetchFile } from '@ffmpeg/util';
 import CoreJsUrl from '@ffmpeg/core?url';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { getObjectFromSearch } from './useSearchParams';
 
 const isProduction = import.meta.env.PROD;
+// 默认
 const FFMPEG_CORE_BASE_URL = isProduction
   ? // ? 'https://cdn.qiuyu520.fun' // 七牛云cdn
     'https://alicdn.qiuyu520.fun/npm/@ffmpeg/core@0.12.10/dist/esm' // 阿里云cdn
   : 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm'; // jsdelivr
+
+const CDN_MAP = {
+  ali: 'https://alicdn.qiuyu520.fun/npm/@ffmpeg/core@0.12.10/dist/esm',
+  qiniu: 'https://cdn.qiuyu520.fun',
+  jsdelivr: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm',
+};
+// 自定义url
+const searchParams = getObjectFromSearch(window.location.hash) as { cdnType: keyof typeof CDN_MAP };
+const cdnType = searchParams?.cdnType as keyof typeof CDN_MAP;
+console.log('cdnType', cdnType);
+const cdnUrl = cdnType ? CDN_MAP[cdnType as keyof typeof CDN_MAP] : FFMPEG_CORE_BASE_URL;
+console.log('cdnUrl', cdnUrl);
 
 /** 仅共享 core / wasm blob URL，避免每次内嵌重复下载 ~30MB */
 let cachedCoreURL: string | null = null;
@@ -107,7 +121,7 @@ const ensureCoreAssets = async (onProgress?: (percent: number) => void) => {
           reportLoadProgress();
         }),
         fetchToBlobURL(
-          `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`,
+          `${cdnUrl || FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`,
           'application/wasm',
           ({ received, total }) => {
             downloadState.wasmReceived = received;
