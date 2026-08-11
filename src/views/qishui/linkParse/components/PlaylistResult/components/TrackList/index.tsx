@@ -21,7 +21,7 @@ import sharedStyles from '../shared.module.less';
 import styles from './index.module.less';
 
 /** 每页最多曲目数 */
-const PAGE_SIZE = 70;
+const PAGE_SIZE = 50;
 
 const DOWNLOAD_PHASE_TEXT: Record<string, string> = {
   downloading: '下载中',
@@ -291,48 +291,48 @@ const TrackList: React.FC<TrackListProps> = ({
   return (
     <>
       <div className={styles['batchBar']} role='toolbar' aria-label='歌单批量操作'>
+        {/* <button */}
+        {/* className={classNames(sharedStyles['btn'], sharedStyles['btnPrimary'])} */}
+        {/* type='button' */}
+        {/* disabled={filteredTracks.length === 0 || batchBusy} */}
+        {/* onClick={handleParseAll}> */}
+        {/* {batchAction === 'parse' ? <LoadingOutlined /> : <ThunderboltOutlined />} */}
+        {/* 全部解析 */}
+        {/* {showParseAllLive ? ( */}
+        {/* <> */}
+        {/* <span className={classNames(styles['btnCount'], styles['btnCountOk'])}> */}
+        {/* {liveSuccessCount} */}
+        {/* </span> */}
+        {/* <span className={classNames(styles['btnCount'], styles['btnCountFail'])}> */}
+        {/* {liveFailCount} */}
+        {/* </span> */}
+        {/* </> */}
+        {/* ) : ( */}
+        {/* <span className={styles['btnCountPrimary']}>{filteredTracks.length}</span> */}
+        {/* )} */}
+        {/* </button> */}
+        {/* <button */}
+        {/* className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])} */}
+        {/* type='button' */}
+        {/* disabled={unparsedTracks.length === 0 || batchBusy} */}
+        {/* onClick={handleParseUnparsed}> */}
+        {/* {batchAction === 'parseUnparsed' ? <LoadingOutlined /> : <ThunderboltOutlined />} */}
+        {/* 解析未解析的 */}
+        {/* {showParseUnparsedLive ? ( */}
+        {/* <> */}
+        {/* <span className={classNames(styles['btnCount'], styles['btnCountOk'])}> */}
+        {/* {liveSuccessCount} */}
+        {/* </span> */}
+        {/* <span className={classNames(styles['btnCount'], styles['btnCountFail'])}> */}
+        {/* {liveFailCount} */}
+        {/* </span> */}
+        {/* </> */}
+        {/* ) : ( */}
+        {/* <span className={styles['btnCount']}>{unparsedTracks.length}</span> */}
+        {/* )} */}
+        {/* </button> */}
         <button
           className={classNames(sharedStyles['btn'], sharedStyles['btnPrimary'])}
-          type='button'
-          disabled={filteredTracks.length === 0 || batchBusy}
-          onClick={handleParseAll}>
-          {batchAction === 'parse' ? <LoadingOutlined /> : <ThunderboltOutlined />}
-          全部解析
-          {showParseAllLive ? (
-            <>
-              <span className={classNames(styles['btnCount'], styles['btnCountOk'])}>
-                {liveSuccessCount}
-              </span>
-              <span className={classNames(styles['btnCount'], styles['btnCountFail'])}>
-                {liveFailCount}
-              </span>
-            </>
-          ) : (
-            <span className={styles['btnCountPrimary']}>{filteredTracks.length}</span>
-          )}
-        </button>
-        <button
-          className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
-          type='button'
-          disabled={unparsedTracks.length === 0 || batchBusy}
-          onClick={handleParseUnparsed}>
-          {batchAction === 'parseUnparsed' ? <LoadingOutlined /> : <ThunderboltOutlined />}
-          解析未解析的
-          {showParseUnparsedLive ? (
-            <>
-              <span className={classNames(styles['btnCount'], styles['btnCountOk'])}>
-                {liveSuccessCount}
-              </span>
-              <span className={classNames(styles['btnCount'], styles['btnCountFail'])}>
-                {liveFailCount}
-              </span>
-            </>
-          ) : (
-            <span className={styles['btnCount']}>{unparsedTracks.length}</span>
-          )}
-        </button>
-        <button
-          className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
           type='button'
           disabled={filteredTracks.length === 0 || batchBusy}
           onClick={handleDownloadAll}>
@@ -348,7 +348,7 @@ const TrackList: React.FC<TrackListProps> = ({
               </span>
             </>
           ) : (
-            <span className={styles['btnCount']}>{filteredTracks.length}</span>
+            <span className={styles['btnCountPrimary']}>{filteredTracks.length}</span>
           )}
         </button>
         <button
