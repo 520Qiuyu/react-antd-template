@@ -1,7 +1,7 @@
 import { SearchForm } from '@/components';
 import type { Option as SearchFormOption } from '@/components/SearchForm';
 import type { PlaylistMusicInfo } from '@/types/qishui';
-import { getOptions } from '@/utils';
+import { getOptions, isDev } from '@/utils';
 import {
   CheckCircleFilled,
   CloseCircleFilled,
@@ -22,6 +22,7 @@ import styles from './index.module.less';
 
 /** 每页最多曲目数 */
 const PAGE_SIZE = 50;
+const DEBUGGER_MODE = window.location.search.includes('debugger');
 
 const DOWNLOAD_PHASE_TEXT: Record<string, string> = {
   downloading: '下载中',
@@ -41,6 +42,7 @@ const TrackList: React.FC<TrackListProps> = ({
   onBatchParse,
   onBatchDownload,
   onDownloadAllLyrics,
+  onDownloadAllJson,
   onParse,
   onDownload,
   onDownloadLyric,
@@ -151,7 +153,7 @@ const TrackList: React.FC<TrackListProps> = ({
         // 区间选择列表数据
         const [min, max] = range || [null, null];
         if (min !== null && track.index + 1 < min) return false;
-        if (max !== null && track.index + 1 >= max) return false;
+        if (max !== null && track.index + 1 > max) return false;
         if (isParsed !== undefined && !!track.fullInfo?.urls?.length !== isParsed) return false;
         if (
           isDownloaded !== undefined &&
@@ -196,26 +198,6 @@ const TrackList: React.FC<TrackListProps> = ({
     return { downloadSuccessCount: success, downloadFailCount: failed };
   }, [trackDownloadMap]);
 
-  /** 全部解析 */
-  const handleParseAll = async () => {
-    if (batchAction) return;
-    setBatchAction('parse');
-    try {
-      await onBatchParse(filteredTracks, { force: true });
-    } finally {
-      setBatchAction(null);
-    }
-  };
-  /** 仅解析当前筛选结果中尚未解析的曲目 */
-  const handleParseUnparsed = async () => {
-    if (batchAction) return;
-    setBatchAction('parseUnparsed');
-    try {
-      await onBatchParse(unparsedTracks);
-    } finally {
-      setBatchAction(null);
-    }
-  };
   /** 全部下载 */
   const handleDownloadAll = async () => {
     if (batchAction) return;
@@ -261,13 +243,24 @@ const TrackList: React.FC<TrackListProps> = ({
       setBatchAction(null);
     }
   };
+  /** 全部解析后下载歌单 JSON */
+  const handleDownloadAllJson = async () => {
+    if (batchAction) return;
+    setBatchAction('downloadJson');
+    try {
+      await onDownloadAllJson(filteredTracks);
+    } finally {
+      setBatchAction(null);
+    }
+  };
 
   const handlePageChange = (nextPage: number) => {
     setSearchParams({ ...searchParams, pageNum: nextPage });
   };
 
   // 状态
-  const isParseBatch = batchAction === 'parse' || batchAction === 'parseUnparsed';
+  const isParseBatch =
+    batchAction === 'parse' || batchAction === 'parseUnparsed' || batchAction === 'downloadJson';
   const isDownloadBatch =
     batchAction === 'download' || batchAction === 'downloadUndownloaded' || batchAction === 'retry';
   const statKind: 'parse' | 'download' | null = isParseBatch
@@ -282,55 +275,14 @@ const TrackList: React.FC<TrackListProps> = ({
   const successLabel = statKind === 'parse' ? '解析成功' : '下载成功';
   const failLabel = statKind === 'parse' ? '解析失败' : '下载失败';
   const batchBusy = batchAction !== null;
-  const showParseAllLive = batchAction === 'parse';
-  const showParseUnparsedLive = batchAction === 'parseUnparsed';
   const showDownloadLive = batchAction === 'download' || batchAction === 'retry';
   const showDownloadUndownloadedLive = batchAction === 'downloadUndownloaded';
+  const showDownloadJsonLive = batchAction === 'downloadJson';
   const showPagination = filteredTracks.length > PAGE_SIZE;
 
   return (
     <>
       <div className={styles['batchBar']} role='toolbar' aria-label='歌单批量操作'>
-        {/* <button */}
-        {/* className={classNames(sharedStyles['btn'], sharedStyles['btnPrimary'])} */}
-        {/* type='button' */}
-        {/* disabled={filteredTracks.length === 0 || batchBusy} */}
-        {/* onClick={handleParseAll}> */}
-        {/* {batchAction === 'parse' ? <LoadingOutlined /> : <ThunderboltOutlined />} */}
-        {/* 全部解析 */}
-        {/* {showParseAllLive ? ( */}
-        {/* <> */}
-        {/* <span className={classNames(styles['btnCount'], styles['btnCountOk'])}> */}
-        {/* {liveSuccessCount} */}
-        {/* </span> */}
-        {/* <span className={classNames(styles['btnCount'], styles['btnCountFail'])}> */}
-        {/* {liveFailCount} */}
-        {/* </span> */}
-        {/* </> */}
-        {/* ) : ( */}
-        {/* <span className={styles['btnCountPrimary']}>{filteredTracks.length}</span> */}
-        {/* )} */}
-        {/* </button> */}
-        {/* <button */}
-        {/* className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])} */}
-        {/* type='button' */}
-        {/* disabled={unparsedTracks.length === 0 || batchBusy} */}
-        {/* onClick={handleParseUnparsed}> */}
-        {/* {batchAction === 'parseUnparsed' ? <LoadingOutlined /> : <ThunderboltOutlined />} */}
-        {/* 解析未解析的 */}
-        {/* {showParseUnparsedLive ? ( */}
-        {/* <> */}
-        {/* <span className={classNames(styles['btnCount'], styles['btnCountOk'])}> */}
-        {/* {liveSuccessCount} */}
-        {/* </span> */}
-        {/* <span className={classNames(styles['btnCount'], styles['btnCountFail'])}> */}
-        {/* {liveFailCount} */}
-        {/* </span> */}
-        {/* </> */}
-        {/* ) : ( */}
-        {/* <span className={styles['btnCount']}>{unparsedTracks.length}</span> */}
-        {/* )} */}
-        {/* </button> */}
         <button
           className={classNames(sharedStyles['btn'], sharedStyles['btnPrimary'])}
           type='button'
@@ -351,6 +303,28 @@ const TrackList: React.FC<TrackListProps> = ({
             <span className={styles['btnCountPrimary']}>{filteredTracks.length}</span>
           )}
         </button>
+        {isDev || DEBUGGER_MODE ? (
+          <button
+            className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
+            type='button'
+            disabled={filteredTracks.length === 0 || batchBusy}
+            onClick={handleDownloadAllJson}>
+            {batchAction === 'downloadJson' ? <LoadingOutlined /> : <CloudDownloadOutlined />}
+            下载JSON
+            {showDownloadJsonLive ? (
+              <>
+                <span className={classNames(styles['btnCount'], styles['btnCountOk'])}>
+                  {liveSuccessCount}
+                </span>
+                <span className={classNames(styles['btnCount'], styles['btnCountFail'])}>
+                  {liveFailCount}
+                </span>
+              </>
+            ) : (
+              <span className={styles['btnCount']}>{filteredTracks.length}</span>
+            )}
+          </button>
+        ) : null}
         <button
           className={classNames(sharedStyles['btn'], sharedStyles['btnGhost'])}
           type='button'
@@ -644,6 +618,7 @@ export type BatchAction =
   | 'parseUnparsed'
   | 'download'
   | 'downloadUndownloaded'
+  | 'downloadJson'
   | 'retry'
   | 'lrc'
   | 'txt'
@@ -675,6 +650,12 @@ interface TrackListProps {
     options?: { clearStatus?: boolean; doneLabel?: string },
   ) => Promise<void>;
   onDownloadAllLyrics: (tracks: PlaylistMusicInfo[], mode: 'lrc' | 'txt') => Promise<void>;
+  /**
+   * 批量解析后下载歌单 JSON
+   * @example
+   * onDownloadAllJson(filteredTracks);
+   */
+  onDownloadAllJson: (tracks: PlaylistMusicInfo[]) => Promise<void>;
   onParse: (track: PlaylistMusicInfo, silent?: boolean, force?: boolean) => void;
   onDownload: (track: PlaylistMusicInfo) => void;
   onDownloadLyric: (track: PlaylistMusicInfo, mode: 'lrc' | 'txt') => void;

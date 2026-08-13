@@ -10,7 +10,8 @@
     "format": "prettier --write \"./src/**/*.{js,jsx,ts,tsx,json,css,scss,md,less}\"",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate-exports": "node ./scripts/generate-exports.js"
+    "generate-exports": "node ./scripts/generate-exports.js",
+    "download": "tsx scripts/download/index.ts"
   },
   "packageManager": "pnpm@9.8.0",
   "dependencies": {
@@ -48,11 +49,13 @@
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
+    "ffmpeg-static": "^5.3.0",
     "globals": "^16.0.0",
     "less": "^4.3.0",
     "prettier": "^3.5.3",
     "sharp": "^0.34.1",
     "svgo": "^3.3.2",
+    "tsx": "^4.23.12",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
     "unplugin-auto-import": "^19.2.0",

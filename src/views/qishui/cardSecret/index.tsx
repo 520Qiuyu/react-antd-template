@@ -18,6 +18,7 @@ import {
   DownOutlined,
   EditOutlined,
   ExportOutlined,
+  LinkOutlined,
   PlusOutlined,
   RedoOutlined,
   SettingOutlined,
@@ -40,6 +41,7 @@ import {
 } from './constants';
 import styles from './index.module.less';
 import { copyCardSecretText } from './utils/copyCardSecretText';
+import { buildCardSecretParseUrl } from './utils/copyTemplate';
 import { maskCardSecretMiddle } from './utils/maskCardSecret';
 
 const defaultSearchParams: SearchParams = {
@@ -163,6 +165,12 @@ const CardSecret: React.FC = () => {
       keyword: record.secret,
     });
     navigate(`/qishui/logs?${search}`);
+  };
+
+  /** 直接使用：新标签打开该卡密的下载解析链接 */
+  const handleDirectlyUse = (record: CardSecretListItem) => {
+    const url = buildCardSecretParseUrl(record.secret);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // 勾选
@@ -334,6 +342,16 @@ const CardSecret: React.FC = () => {
                   permissionCode='qishui_card_secret_update'
                   onClick={() => handleResetParseCount(record)}>
                   重置今日解析次数
+                </MyButton>
+                {/* 直接使用 直接打开下载解析链接 */}
+                <MyButton
+                  variant='text'
+                  size='small'
+                  color='primary'
+                  icon={<LinkOutlined />}
+                  permissionCode='qishui_card_secret_update'
+                  onClick={() => handleDirectlyUse(record)}>
+                  直接使用
                 </MyButton>
               </div>
             )}>

@@ -2,6 +2,7 @@ import { reqGetSongInfo, reqGetVideoInfo } from '@/apis';
 import { useEmbedAudioMetadata, useSearchParams } from '@/hooks';
 import { DEFAULT_CONFIG, useConfig } from '@/hooks/useConfig';
 import type { PlaylistInfo, PlaylistMusicInfo } from '@/types/qishui';
+import { downloadAsJson } from '@/utils/download';
 import eventBus from '@/utils/eventBus';
 import { msgError, msgSuccess } from '@/utils/modal';
 import { downloadSongAudio, downloadSongLyric, runWithConcurrency } from '../../downloadSong';
@@ -379,6 +380,64 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     }
   };
 
+  /**
+   * 批量解析后导出歌单 JSON
+   * @example
+   * await handleDownloadAllJson(filteredTracks);
+   */
+  const handleDownloadAllJson = async (targetTracks: PlaylistMusicInfo[]) => {
+    if (targetTracks.length === 0) return;
+
+    setBatchProgress({ success: 0, failed: 0 });
+    try {
+      const { success, failed, total } = await parseTracksBatch(targetTracks, false);
+
+      const trackIdSet = new Set(targetTracks.map((track) => track.id).filter(Boolean));
+      const latestById = new Map(
+        (usePlaylistParseStore.getState().playlistHasResult?.tracks || [])
+          .filter((track) => track.id && trackIdSet.has(track.id))
+          .map((track) => [track.id!, track] as const),
+      );
+
+      const list = targetTracks.map((track) => {
+        const latest = (track.id && latestById.get(track.id)) || track;
+        const fullInfo = latest.fullInfo;
+        return {
+          id: latest.id,
+          title: fullInfo?.title ?? latest.title,
+          artist: fullInfo?.artist ?? latest.artist,
+          album: fullInfo?.album ?? latest.album,
+          cover: fullInfo?.cover ?? latest.cover,
+          duration: latest.duration,
+          type: latest.type,
+          urls: fullInfo?.urls ?? [],
+          lrc: fullInfo?.lrc ?? '',
+          lrcText: fullInfo?.lrcText ?? '',
+        };
+      });
+
+      const playlistTitle = data.title?.trim() || '歌单';
+      const safeFilename = playlistTitle.replace(/[\\/:*?"<>|]/g, '_');
+
+      downloadAsJson(
+        {
+          歌单名: playlistTitle,
+          list,
+        },
+        safeFilename,
+      );
+
+      if (total === 0) {
+        msgSuccess(`JSON 已导出：共 ${list.length} 首`);
+      } else {
+        msgSuccess(`JSON 已导出：解析成功 ${success}，失败 ${failed}`);
+      }
+    } catch (error) {
+      console.log('handleDownloadAllJson error', error);
+      msgError(error instanceof Error ? error.message : 'JSON 导出失败');
+    }
+  };
+
   const handleDownloadAllLyrics = async (
     targetTracks: PlaylistMusicInfo[],
     mode: 'lrc' | 'txt',
@@ -422,6 +481,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
         onBatchParse={handleBatchParse}
         onBatchDownload={handleBatchDownload}
         onDownloadAllLyrics={handleDownloadAllLyrics}
+        onDownloadAllJson={handleDownloadAllJson}
         onParse={parseTrack}
         onDownload={handleDownload}
         onDownloadLyric={handleDownloadLyric}
