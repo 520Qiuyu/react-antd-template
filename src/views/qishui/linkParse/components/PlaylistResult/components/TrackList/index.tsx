@@ -22,7 +22,6 @@ import styles from './index.module.less';
 
 /** 每页最多曲目数 */
 const PAGE_SIZE = 50;
-const DEBUGGER_MODE = window.location.search.includes('debugger');
 
 const DOWNLOAD_PHASE_TEXT: Record<string, string> = {
   downloading: '下载中',
@@ -50,6 +49,7 @@ const TrackList: React.FC<TrackListProps> = ({
   const trackDownloadMap = usePlaylistParseStore((state) => state.trackDownloadMap);
   // REGION ========================= 筛选 =========================
   const [searchParams, setSearchParams] = useState<SearchParams>(defaultSearchParams);
+  const DEBUGGER_MODE = searchParams.debugger || false;
   /** 筛选表单选项 */
   const searchFormOptions = useMemo(
     () =>
@@ -671,4 +671,5 @@ interface SearchParams {
   isDownloaded?: boolean;
   pageNum: number;
   pageSize: number;
+  debugger?: boolean;
 }
