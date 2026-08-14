@@ -1,6 +1,6 @@
 import { reqParseSongShareLink } from '@/apis';
 import { useSearchParams } from '@/hooks';
-import { msgError } from '@/utils/modal';
+import { confirm, msgError } from '@/utils/modal';
 import { CustomerServiceOutlined, StarOutlined } from '@ant-design/icons';
 import type { SearchParams } from '../..';
 import { DEFAULT_SONG_LINK } from '../../constants';
@@ -18,7 +18,7 @@ interface SongParseViewProps {}
  * 歌曲解析视图
  */
 const SongParseView: React.FC<SongParseViewProps> = () => {
-  const { searchParams } = useSearchParams<SearchParams>();
+  const { searchParams, setSearchParams } = useSearchParams<SearchParams>();
   const setSongHasResult = useSongParseStore((state) => state.setSongHasResult);
   const songHasResult = useSongParseStore((state) => state.songHasResult);
   const setTocSections = useParseStore((state) => state.setTocSections);
@@ -34,6 +34,28 @@ const SongParseView: React.FC<SongParseViewProps> = () => {
       setError('请先粘贴歌曲分享链接');
       setSongHasResult(null);
       return;
+    }
+
+    // 判断歌单
+    if (link.includes('歌单')) {
+      try {
+        await confirm(`检测到当前链接为【歌单链接】，是否继续解析？`, '提示', {
+          okText: '前往歌单解析',
+          cancelText: '继续解析',
+          wrapClassName: styles['confirmWrap'],
+          okButtonProps: {
+            type: 'primary',
+            className: styles['confirmOk'],
+          },
+          cancelButtonProps: {
+            type: 'default',
+            className: styles['confirmCancel'],
+          },
+        });
+        return setSearchParams({ ...searchParams, currentView: 'playlist' });
+      } catch (error) {
+        console.log('error', error);
+      }
     }
 
     setLoading(true);
