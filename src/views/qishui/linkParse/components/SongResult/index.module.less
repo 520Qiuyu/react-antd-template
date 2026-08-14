@@ -21,6 +21,11 @@
   overflow: hidden;
 }
 
+.songCardVideo {
+  grid-template-columns: 148px minmax(0, 1fr);
+  align-items: stretch;
+}
+
 .coverWrap {
   position: relative;
 }
@@ -70,12 +75,33 @@
   font-weight: 500;
 }
 
+.videoTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--lp-gradient-btn);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(var(--lp-soda-rgb), 0.3);
+
+  :global(.anticon) {
+    font-size: 12px;
+  }
+}
+
 .title {
   margin: 0;
   font-size: 1.7rem;
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.035em;
+  .ellipsis(2);
 }
 
 .artist {
@@ -424,6 +450,11 @@
 @media (max-width: 960px) {
   .songCard {
     grid-template-columns: 1fr;
+  }
+
+  .songCardVideo .coverWrap {
+    max-width: 148px;
+    margin: 0 auto;
   }
 
   .infoGrid {

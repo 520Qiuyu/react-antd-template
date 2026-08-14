@@ -18,6 +18,8 @@ export interface MusicArtist {
 
 /** 歌曲信息 */
 export interface MusicInfo {
+  /** 媒体类型：歌曲分享页 / ugc 视频分享页 */
+  type?: 'track' | 'video';
   trackId?: string;
   title?: string;
   artist?: string;

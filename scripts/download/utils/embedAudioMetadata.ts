@@ -15,10 +15,11 @@
  * await writeFile('out.mp3', buffer);
  */
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import ffmpegPath from 'ffmpeg-static';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /** 支持写入元信息后的输出容器格式 */
 export type EmbedOutputFormat = 'mp3' | 'm4a' | 'flac';
@@ -88,11 +89,29 @@ const normalizeCoverExt = (ext: string | null) => {
   return ext;
 };
 
+const FFMPEG_EXE = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
+
+/**
+ * 解析 ffmpeg 路径：FFMPEG_PATH → node_modules/ffmpeg-static → PATH 上的 ffmpeg。
+ * 不 import ffmpeg-static，避免 Perry 把其 CommonJS 当 JS runtime 拉进来。
+ *
+ * @example
+ * resolveFfmpegPath() // '.../node_modules/ffmpeg-static/ffmpeg.exe' 或 'ffmpeg'
+ */
 const resolveFfmpegPath = () => {
-  if (!ffmpegPath) {
-    throw new Error('未找到 ffmpeg-static 可执行文件');
+  const fromEnv = process.env.FFMPEG_PATH?.trim();
+  if (fromEnv) return fromEnv;
+
+  let dir = dirname(fileURLToPath(import.meta.url));
+  for (let i = 0; i < 8; i += 1) {
+    const candidate = join(dir, 'node_modules', 'ffmpeg-static', FFMPEG_EXE);
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
-  return ffmpegPath;
+
+  return 'ffmpeg';
 };
 
 /**

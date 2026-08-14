@@ -8,12 +8,14 @@ import {
   DownloadOutlined,
   LoadingOutlined,
   SaveOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames';
 import { downloadSongAudio, downloadSongLyric } from '../../downloadSong';
 import { formatSize, qualityLabel } from '../../utils';
 import EngineStatus from '../EngineStatus';
 import SongPlayer from '../SongPlayer';
+import VideoPlayer from '../VideoPlayer';
 import styles from './index.module.less';
 
 interface SongCardProps {
@@ -38,18 +40,36 @@ export const SongCard: React.FC<SongCardProps> = ({ data }) => {
     }
   };
 
-  return (
-    <article className={styles['songCard']}>
+  const isVideo = data.type === 'video';
+
+  const card = (
+    <article
+      className={classNames(styles['songCard'], {
+        [styles['songCardVideo']]: isVideo,
+      })}>
       <div
         className={classNames(styles['coverWrap'], {
           [styles['coverWrapPlaying']]: isPlaying,
         })}>
         <div className={styles['coverGlow']} aria-hidden='true' />
-        <img className={styles['cover']} src={data.cover} alt='专辑封面' />
+        {isVideo ? (
+          <VideoPlayer.Stage />
+        ) : (
+          <img className={styles['cover']} src={data.cover} alt='专辑封面' />
+        )}
       </div>
       <div className={styles['meta']}>
-        <span className={styles['album']}>{data.album || '未知专辑'}</span>
-        <h3 className={styles['title']}>{data.title || '未知歌曲'}</h3>
+        {isVideo ? (
+          <span className={styles['videoTag']} aria-label='视频'>
+            <VideoCameraOutlined />
+            视频
+          </span>
+        ) : (
+          <span className={styles['album']}>{data.album || '未知专辑'}</span>
+        )}
+        <h3 className={styles['title']} title={data.title || '未知歌曲'}>
+          {data.title || '未知歌曲'}
+        </h3>
         <div className={styles['artist']}>
           {avatar ? <img className={styles['avatar']} src={avatar} alt='' /> : null}
           <span>{data.artist || '未知歌手'}</span>
@@ -63,11 +83,25 @@ export const SongCard: React.FC<SongCardProps> = ({ data }) => {
           )}
         </code>
         <div className={styles['actions']}>
-          <SongPlayer data={data} onPlayingChange={setIsPlaying} />
+          {isVideo ? (
+            <VideoPlayer.Bar />
+          ) : (
+            <SongPlayer data={data} onPlayingChange={setIsPlaying} />
+          )}
         </div>
       </div>
     </article>
   );
+
+  if (isVideo) {
+    return (
+      <VideoPlayer data={data} onPlayingChange={setIsPlaying}>
+        {card}
+      </VideoPlayer>
+    );
+  }
+
+  return card;
 };
 
 /** 歌曲信息摘要 */

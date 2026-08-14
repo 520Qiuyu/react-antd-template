@@ -17,6 +17,7 @@ export const extractUrl = (text = '') => {
 
 /** 格式化文件大小 */
 export const formatSize = (bytes = 0) => {
+  if (bytes === 0) return '未知大小';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
