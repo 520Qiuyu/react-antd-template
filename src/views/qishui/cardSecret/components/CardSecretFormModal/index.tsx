@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 import { forwardRef, useState } from 'react';
 import { CARD_SECRET_TYPE_OPTIONS } from '../../constants';
 import styles from './index.module.less';
+import { getCardSecretValidDays } from '../../utils/cardSecretTime';
 
 const DEFAULT_CREATE_COUNT = 1;
 const DEFAULT_PARSE_LIMIT = 100;
@@ -52,11 +53,12 @@ function CardSecretFormModal(
         if (record) {
           console.log('record', record);
           const { expireTime, parseLimit, dailyParseLimit, validDays } = record;
-          const hasConfiguredValidDays = validDays != null && validDays > 0;
+          const isCount = record.type === 'count';
+          const validDaysValue = getCardSecretValidDays(record);
           formRef.setFieldsValue({
             ...record,
             expireTime: expireTime ? dayjs(expireTime) : undefined,
-            validDays: record.validDays ?? undefined,
+            validDays: isCount ? undefined : validDaysValue,
             parseLimit: parseLimit || DEFAULT_PARSE_LIMIT,
             dailyParseLimit: dailyParseLimit == null ? undefined : dailyParseLimit,
           });
