@@ -141,8 +141,39 @@ export const getCardSecretExpireTime = (record: CardSecretListItem) => {
   if (isTime) {
     if (hasConfiguredValidDays && !enableTime) return null;
     else if (hasConfiguredValidDays && enableTime) {
-      return getValidDaysExpireAt(ctime, validDays!);
+      return getValidDaysExpireAt(enableTime, validDays!);
     }
     return expireTime ? dayjs(expireTime) : null;
   }
+};
+
+/**
+ * 获取卡密剩余有效天数
+ * @example
+ * ```ts
+ * getCardSecretRemainValidDays({ expireTime: '2026-08-01T12:00:00', type: 'time' }); // 30
+ * getCardSecretRemainValidDays({ expireTime: '2026-08-01T12:00:00', type: 'count' }); // null
+ * getCardSecretRemainValidDays({ expireTime: '2026-08-01T12:00:00', type: 'time' }); // 30
+ * ```
+ */
+export const getCardSecretRemainValidDays = (record: CardSecretListItem) => {
+  const { expireTime, type, validDays, ctime, enableTime } = record;
+  const hasConfiguredValidDays = validDays != null && validDays > 0;
+  if (hasConfiguredValidDays) {
+    // 已经启用，计算剩余有效天数
+    if (enableTime) {
+      const expireAt = getValidDaysExpireAt(enableTime, validDays!)!;
+      console.log('expireAt', expireAt.format('YYYY-MM-DD HH:mm:ss'));
+      // 已过期 返回0
+      if (dayjs().isAfter(expireAt)) {
+        return 0;
+      }
+      return Math.ceil(expireAt.diff(dayjs(), 'day', true));
+    } else {
+      // 未启用，返回配置的有效天数
+      return validDays;
+    }
+  }
+
+  return Math.max(0, Math.ceil(dayjs(expireTime).diff(dayjs(), 'day', true)));
 };

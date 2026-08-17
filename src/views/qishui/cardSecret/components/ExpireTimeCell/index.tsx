@@ -1,13 +1,12 @@
 import type { CardSecretListItem } from '@/types/cardSecret';
 import classNames from 'classnames';
 import dayjs from 'dayjs';
-import styles from './index.module.less';
 import {
   cardSecretIsEnabled,
   getCardSecretExpireTime,
-  getCardSecretFirstUseTime,
-  getValidDaysExpireAt,
+  getCardSecretFirstUseTime
 } from '../../utils/cardSecretTime';
+import styles from './index.module.less';
 
 /**
  * 卡密过期时间单元格：剩余时间为主，日期为辅，附寿命进度
