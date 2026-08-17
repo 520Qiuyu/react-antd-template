@@ -3,6 +3,9 @@ import { Status } from '@/constants';
 import type { CardSecretListItem, CardSecretType } from '@/types/cardSecret';
 import { CARD_SECRET_TYPE_TEXT_MAP } from '@/views/qishui/cardSecret/constants';
 import {
+  getCardSecretExpireTime,
+  getCardSecretFirstUseTime,
+  getCardSecretValidDays,
   getLegacyValidDays,
   getValidDaysExpireAt,
 } from '@/views/qishui/cardSecret/utils/cardSecretTime';
@@ -56,16 +59,21 @@ const CardSecretMobileItem: React.FC<Props> = ({
     parseLimit,
     parsedCount,
   } = record;
-  /** 是否配置了有效天数 新字段 */
-  const hasConfiguredValidDays = validDays != null && validDays > 0;
   /** 启用时间 */
-  const enableAt = hasConfiguredValidDays ? dayjs(enableTime) : dayjs(record.ctime);
+  const enableAt = getCardSecretFirstUseTime(record);
   /** 过期时间 */
-  const expireAt = hasConfiguredValidDays
-    ? getValidDaysExpireAt(enableTime, validDays)
-    : dayjs(expireTime);
+  const expireAt = getCardSecretExpireTime(record);
   /** 可使用天数 */
-  const calcValidDays = hasConfiguredValidDays ? validDays : getLegacyValidDays(ctime, expireTime);
+  const calcValidDays = getCardSecretValidDays(record);
+  console.log(
+    'calcValidDays',
+    expireAt,
+    (dayjs().isAfter(expireAt) ? dayjs(expireAt) : dayjs()).format('YYYY-MM-DD HH:mm'),
+  );
+  /** 已使用天数 */
+  const usedDays = enableAt
+    ? Math.ceil((dayjs().isAfter(expireAt) ? dayjs(expireAt) : dayjs()).diff(enableAt, 'day', true))
+    : 0;
 
   /** 是否限制每日用量 */
   const hasDailyLimit = dailyParseLimit != null && dailyParseLimit > 0;
@@ -236,7 +244,7 @@ const CardSecretMobileItem: React.FC<Props> = ({
         <div className={styles['row']}>
           <span className={styles['label']}>有效期</span>
           <span className={styles['value']}>
-            {calcValidDays != null ? `${calcValidDays} 天` : '-'}
+            {usedDays} / {calcValidDays ? `${calcValidDays} 天` : '-'}
           </span>
         </div>
 

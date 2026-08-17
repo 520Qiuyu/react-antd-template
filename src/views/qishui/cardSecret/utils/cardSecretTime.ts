@@ -55,7 +55,7 @@ export const cardSecretIsEnabled = (record: CardSecretListItem) => {
   /** 是否是时间卡 */
   const isTime = type === 'time';
   /** 是否配置了有效天数 */
-  const hasConfiguredValidDays = validDays != null && validDays > 0;
+  const hasConfiguredValidDays = isTime && validDays != null && validDays > 0;
 
   if (enableTime) return true;
   if (isCount) return !!enableTime;
@@ -84,7 +84,7 @@ export const getCardSecretFirstUseTime = (record: CardSecretListItem) => {
   /** 是否是时间卡 */
   const isTime = type === 'time';
   /** 是否配置了有效天数 */
-  const hasConfiguredValidDays = isTime && validDays != null && validDays > 0;
+  const hasConfiguredValidDays = validDays != null && validDays > 0;
 
   /** 首次使用时间 */
   if (enableTime) return dayjs(enableTime);
@@ -112,10 +112,37 @@ export const getCardSecretValidDays = (record: CardSecretListItem) => {
   /** 是否是时间卡 */
   const isTime = type === 'time';
   /** 是否配置了有效天数 */
-  const hasConfiguredValidDays = isTime && validDays != null && validDays > 0;
+  const hasConfiguredValidDays = validDays != null && validDays > 0;
   if (isCount) return '不限时间';
   if (isTime) {
     if (hasConfiguredValidDays) return validDays;
     return getLegacyValidDays(ctime, expireTime!);
+  }
+};
+
+/**
+ * 获取卡密过期时间
+ * @example
+ * ```ts
+ * getCardSecretExpireTime({ expireTime: '2026-08-01T12:00:00', type: 'time' }); // '2026-08-01T12:00:00'
+ * getCardSecretExpireTime({ expireTime: '2026-08-01T12:00:00', type: 'count' }); // null
+ * getCardSecretExpireTime({ expireTime: '2026-08-01T12:00:00', type: 'time' }); // '2026-08-01T12:00:00'
+ * ```
+ */
+export const getCardSecretExpireTime = (record: CardSecretListItem) => {
+  const { expireTime, type, validDays, ctime, enableTime } = record;
+  /** 是否是数量卡 */
+  const isCount = type === 'count';
+  /** 是否是时间卡 */
+  const isTime = type === 'time';
+  /** 是否配置了有效天数 */
+  const hasConfiguredValidDays = validDays != null && validDays > 0;
+  if (isCount) return null;
+  if (isTime) {
+    if (hasConfiguredValidDays && !enableTime) return null;
+    else if (hasConfiguredValidDays && enableTime) {
+      return getValidDaysExpireAt(ctime, validDays!);
+    }
+    return expireTime ? dayjs(expireTime) : null;
   }
 };

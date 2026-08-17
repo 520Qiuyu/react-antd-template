@@ -2,7 +2,12 @@ import type { CardSecretListItem } from '@/types/cardSecret';
 import classNames from 'classnames';
 import dayjs from 'dayjs';
 import styles from './index.module.less';
-import { cardSecretIsEnabled, getValidDaysExpireAt } from '../../utils/cardSecretTime';
+import {
+  cardSecretIsEnabled,
+  getCardSecretExpireTime,
+  getCardSecretFirstUseTime,
+  getValidDaysExpireAt,
+} from '../../utils/cardSecretTime';
 
 /**
  * 卡密过期时间单元格：剩余时间为主，日期为辅，附寿命进度
@@ -32,12 +37,10 @@ const ExpireTimeCell: React.FC<Props> = ({ record }) => {
 
   const now = dayjs();
   /** 启用时间 */
-  const enableAt = hasConfiguredValidDays ? dayjs(enableTime) : dayjs(ctime);
+  const enableAt = getCardSecretFirstUseTime(record);
   /** 过期时间 */
-  const expireAt = hasConfiguredValidDays
-    ? getValidDaysExpireAt(enableTime, validDays)!
-    : dayjs(expireTime);
-  if (!expireAt.isValid()) {
+  const expireAt = getCardSecretExpireTime(record)!;
+  if (!expireAt || !expireAt.isValid()) {
     return <span className={styles['unlimited']}>-</span>;
   }
   /** 是否已过期 */
