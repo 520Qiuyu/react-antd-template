@@ -1,0 +1,153 @@
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 128px;
+  max-width: 180px;
+  padding: 2px 0;
+}
+
+.primary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  line-height: 1.25;
+
+  strong {
+    flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: rgba(0, 0, 0, 0.9);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  b {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  strong.warn {
+    color: #ff9f0a;
+  }
+
+  strong.danger {
+    color: #ff3b30;
+  }
+}
+
+.date {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: rgba(0, 0, 0, 0.35);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  b {
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.55);
+  }
+}
+
+.led {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.isDormant {
+  .led {
+    border: 1.5px solid rgba(60, 60, 67, 0.35);
+    background: transparent;
+    animation: dormantBreathe 2.4s ease-in-out infinite;
+  }
+
+  strong {
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.38);
+  }
+
+  .date {
+    color: rgba(0, 0, 0, 0.28);
+  }
+}
+
+.isLive {
+  .led {
+    background: @primary-color;
+    box-shadow: 0 0 0 3px fade(@primary-color, 18%);
+  }
+
+  .ledWarn {
+    background: #ff9f0a;
+    box-shadow: 0 0 0 3px fade(#ff9f0a, 20%);
+  }
+
+  .ledDanger {
+    background: #ff3b30;
+    box-shadow: 0 0 0 3px fade(#ff3b30, 18%);
+  }
+}
+
+.track {
+  position: relative;
+  height: 2px;
+  margin-top: 1px;
+  overflow: hidden;
+  background: rgba(60, 60, 67, 0.1);
+  border-radius: 999px;
+}
+
+.dash {
+  height: 100%;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(60, 60, 67, 0.28) 0,
+    rgba(60, 60, 67, 0.28) 3px,
+    transparent 3px,
+    transparent 7px
+  );
+}
+
+.fill {
+  height: 100%;
+  background: @primary-color;
+  border-radius: inherit;
+  transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fillWarn {
+  background: #ff9f0a;
+}
+
+.fillDanger {
+  background: #ff3b30;
+}
+
+@keyframes dormantBreathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .led {
+    animation: none !important;
+  }
+
+  .fill {
+    transition: none !important;
+  }
+}

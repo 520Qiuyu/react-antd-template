@@ -43,6 +43,10 @@ const PLACEHOLDER_MAP = {
   '【类型】': (record: CardSecretListItem) => CARD_SECRET_TYPE_TEXT_MAP[record.type] ?? '',
   '【过期时间】': (record: CardSecretListItem) =>
     record.expireTime ? dayjs(record.expireTime).format('YYYY-MM-DD HH:mm:ss') : '',
+  '【启用时间】': (record: CardSecretListItem) =>
+    record.enableTime ? dayjs(record.enableTime).format('YYYY-MM-DD HH:mm:ss') : '未启用',
+  '【有效期】': (record: CardSecretListItem) =>
+    record.validDays != null ? `${record.validDays}天` : '',
   '【总次数】': (record: CardSecretListItem) =>
     record.parseLimit != null ? String(record.parseLimit) : '',
   '【每日上限】': (record: CardSecretListItem) =>

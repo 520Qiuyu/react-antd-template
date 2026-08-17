@@ -21,6 +21,10 @@ export interface CardSecretDetail {
   type: CardSecretType;
   /** 过期时间（按时间） */
   expireTime?: string | null;
+  /** 启用时间（首次成功解析后写入） */
+  enableTime?: string | null;
+  /** 有效期（天） */
+  validDays?: number | null;
   /** 可解析数量（按数量） */
   parseLimit: number;
   /** 已解析数量 */
@@ -59,6 +63,10 @@ export interface CardSecretListItem {
   type: CardSecretType;
   /** 过期时间 / 结束时间 */
   expireTime?: string | null;
+  /** 启用时间（首次成功解析后写入） */
+  enableTime?: string | null;
+  /** 有效期（天） */
+  validDays?: number | null;
   /** 可解析数量 */
   parseLimit: number;
   /** 已解析数量 */
@@ -102,6 +110,10 @@ export interface CreateCardSecretParams {
   type: CardSecretType;
   /** 结束时间（按时间） */
   expireTime?: string | null;
+  /** 启用时间（按时长；留空则首次成功解析时写入） */
+  enableTime?: string | null;
+  /** 有效期天数（按时长） */
+  validDays?: number | null;
   /** 可解析数量（按数量） */
   parseLimit?: number;
   /** 每日最多解析数量（按时长；null 表示不限制） */
@@ -115,6 +127,8 @@ export interface CreateCardSecretParams {
 export interface UpdateCardSecretParams {
   type?: CardSecretType;
   expireTime?: string | null;
+  enableTime?: string | null;
+  validDays?: number | null;
   parseLimit?: number;
   /** 每日最多解析数量（按时长；null 表示不限制） */
   dailyParseLimit?: number | null;
@@ -135,6 +149,10 @@ export interface CardSecretFormValues {
   type: CardSecretType;
   /** 结束时间（按时间） */
   expireTime?: string | null;
+  /** 启用时间（按时长） */
+  enableTime?: string | null;
+  /** 有效期天数（按时长） */
+  validDays?: number | null;
   /** 可解析数量（按数量） */
   parseLimit?: number;
   /** 每日最多解析数量（按时长；null 表示不限制） */

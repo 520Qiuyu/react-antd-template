@@ -23,6 +23,8 @@ const SAMPLE_RECORD: CardSecretListItem = {
   secret: 'QSDEMO123456',
   type: 'time',
   expireTime: '2026-12-31 23:59:59',
+  enableTime: null,
+  validDays: 30,
   parseLimit: 0,
   parsedCount: 0,
   unparsedCount: 0,

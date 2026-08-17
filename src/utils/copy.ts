@@ -70,7 +70,6 @@ const fallbackCopyText = (text: string) => {
  */
 export const copy = async (text: string, options: CopyOptions = {}): Promise<void> => {
   const content = text ?? '';
-  debugger;
 
   // 安全上下文才走 Clipboard API；失败后再降级（保留用户手势内的同步降级）
   if (navigator.clipboard && window.isSecureContext) {

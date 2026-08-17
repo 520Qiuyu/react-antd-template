@@ -2,9 +2,13 @@ import { CopyText } from '@/components';
 import { Status } from '@/constants';
 import type { CardSecretListItem, CardSecretType } from '@/types/cardSecret';
 import { CARD_SECRET_TYPE_TEXT_MAP } from '@/views/qishui/cardSecret/constants';
+import {
+  getLegacyValidDays,
+  getValidDaysExpireAt,
+} from '@/views/qishui/cardSecret/utils/cardSecretTime';
 import { Switch } from 'antd';
 import classNames from 'classnames';
-import dayjs from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import styles from './index.module.less';
 
 interface Props {
@@ -16,7 +20,7 @@ interface Props {
   onStatusChange: (record: CardSecretListItem, checked: boolean) => void;
 }
 
-const formatTime = (val?: string | null) =>
+const formatTime = (val?: string | null | Dayjs) =>
   val ? dayjs(val).format('YYYY-MM-DD HH:mm') : '-';
 
 /**
@@ -41,19 +45,49 @@ const CardSecretMobileItem: React.FC<Props> = ({
   onDelete,
   onStatusChange,
 }) => {
-  const type = record.type as CardSecretType;
-  const hasDailyLimit = record.dailyParseLimit != null && record.dailyParseLimit > 0;
-  const dailyUsed = record.dailyParsedCount ?? 0;
-  const dailyLimit = record.dailyParseLimit || 0;
+  const {
+    validDays,
+    enableTime,
+    expireTime,
+    ctime,
+    type,
+    dailyParseLimit,
+    dailyParsedCount,
+    parseLimit,
+    parsedCount,
+  } = record;
+  /** 是否配置了有效天数 新字段 */
+  const hasConfiguredValidDays = validDays != null && validDays > 0;
+  /** 启用时间 */
+  const enableAt = hasConfiguredValidDays ? dayjs(enableTime) : dayjs(record.ctime);
+  /** 过期时间 */
+  const expireAt = hasConfiguredValidDays
+    ? getValidDaysExpireAt(enableTime, validDays)
+    : dayjs(expireTime);
+  /** 可使用天数 */
+  const calcValidDays = hasConfiguredValidDays ? validDays : getLegacyValidDays(ctime, expireTime);
+
+  /** 是否限制每日用量 */
+  const hasDailyLimit = dailyParseLimit != null && dailyParseLimit > 0;
+  /** 每日用量 */
+  const dailyUsed = dailyParsedCount ?? 0;
+  /** 每日用量限制 */
+  const dailyLimit = dailyParseLimit || 0;
+  /** 每日用量百分比 */
   const dailyPercent = hasDailyLimit
     ? Math.min(100, Math.round((dailyUsed / dailyLimit) * 1000) / 10)
     : 0;
+  /** 每日用量剩余 */
   const dailyRemain = hasDailyLimit ? Math.max(0, dailyLimit - dailyUsed) : null;
-
-  const hasTotalLimit = type === 'count' && (record.parseLimit || 0) > 0;
-  const totalUsed = record.parsedCount || 0;
-  const totalLimit = record.parseLimit || 0;
+  /** 是否限制总用量 */
+  const hasTotalLimit = type === 'count' && (parseLimit || 0) > 0;
+  /** 总用量 */
+  const totalUsed = parsedCount || 0;
+  /** 总用量限制 */
+  const totalLimit = parseLimit || 0;
+  /** 总用量剩余 */
   const totalRemain = hasTotalLimit ? Math.max(0, totalLimit - totalUsed) : null;
+  /** 总用量百分比 */
   const totalPercent = hasTotalLimit
     ? Math.min(100, Math.round((totalUsed / totalLimit) * 1000) / 10)
     : 0;
@@ -154,9 +188,7 @@ const CardSecretMobileItem: React.FC<Props> = ({
           </div>
           <div className={styles['usageValue']}>
             <strong>{totalUsed}</strong>
-            {hasTotalLimit ? (
-              <span className={styles['usageDenom']}>/ {totalLimit}</span>
-            ) : null}
+            {hasTotalLimit ? <span className={styles['usageDenom']}>/ {totalLimit}</span> : null}
           </div>
           {hasTotalLimit ? (
             <div
@@ -192,8 +224,20 @@ const CardSecretMobileItem: React.FC<Props> = ({
         </div>
 
         <div className={styles['row']}>
+          <span className={styles['label']}>首次使用时间</span>
+          <span className={styles['value']}>{enableAt ? formatTime(enableAt) : '未启用'}</span>
+        </div>
+
+        <div className={styles['row']}>
           <span className={styles['label']}>过期时间</span>
-          <span className={styles['value']}>{formatTime(record.expireTime)}</span>
+          <span className={styles['value']}>{expireAt ? formatTime(expireAt) : '未启用'}</span>
+        </div>
+
+        <div className={styles['row']}>
+          <span className={styles['label']}>有效期</span>
+          <span className={styles['value']}>
+            {calcValidDays != null ? `${calcValidDays} 天` : '-'}
+          </span>
         </div>
 
         <div className={styles['row']}>
@@ -242,7 +286,11 @@ const CardSecretMobileItem: React.FC<Props> = ({
           aria-label='复制卡密发货文本'>
           复制文本
         </button>
-        <button type='button' className={styles['actionBtn']} onClick={handleEdit} aria-label='编辑此卡密'>
+        <button
+          type='button'
+          className={styles['actionBtn']}
+          onClick={handleEdit}
+          aria-label='编辑此卡密'>
           编辑
         </button>
         <button

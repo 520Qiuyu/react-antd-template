@@ -31,6 +31,7 @@ import { useNavigate } from 'react-router-dom';
 import CardSecretFormModal from './components/CardSecretFormModal';
 import CardSecretStat from './components/CardSecretStat';
 import CopyTemplateModal from './components/CopyTemplateModal';
+import EnableTimeCell from './components/EnableTimeCell';
 import ExpireTimeCell from './components/ExpireTimeCell';
 import ExportModal from './components/ExportModal';
 import ParseUsageCell from './components/ParseUsageCell';
@@ -233,6 +234,14 @@ const CardSecret: React.FC = () => {
       render: (type: CardSecretType) => (
         <Tag color={CARD_SECRET_TYPE_COLOR_MAP[type]}>{CARD_SECRET_TYPE_TEXT_MAP[type]}</Tag>
       ),
+    },
+    {
+      title: '首次使用时间',
+      dataIndex: 'enableTime',
+      width: 180,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'enableTime' ? searchParams.sortOrder : undefined,
+      render: (_, record) => <EnableTimeCell record={record} />,
     },
     {
       title: '过期时间',

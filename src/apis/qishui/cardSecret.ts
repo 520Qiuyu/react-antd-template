@@ -55,7 +55,7 @@ export const reqGetCardSecretById = (id: string) =>
  * 创建卡密
  * @example
  * ```ts
- * const res = await reqCreateCardSecret({ type: 'time', expireTime: '...', createCount: 5 });
+ * const res = await reqCreateCardSecret({ type: 'time', validDays: 30, createCount: 5 });
  * ```
  */
 export const reqCreateCardSecret = (data: CreateCardSecretParams) =>

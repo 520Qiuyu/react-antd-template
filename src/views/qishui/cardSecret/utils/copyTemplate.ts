@@ -1,6 +1,7 @@
 import type { CardSecretListItem } from '@/types/cardSecret';
 import dayjs from 'dayjs';
 import { CARD_SECRET_TYPE_TEXT_MAP } from '../constants';
+import { getValidDaysExpireAt } from './cardSecretTime';
 
 /** 卡密发货复制模板 localStorage key */
 export const COPY_TEMPLATE_STORAGE_KEY = 'qishuiCardSecretCopyTemplate';
@@ -34,9 +35,13 @@ export const buildCardSecretParseUrl = (secret: string) => {
  * ```
  */
 export const buildPackageText = (record: CardSecretListItem) => {
-  const { type, expireTime, parseLimit, dailyParseLimit } = record;
+  const { type, expireTime, enableTime, validDays, parseLimit, dailyParseLimit } = record;
   const isCount = type === 'count';
-  const expireTimeText = expireTime ? dayjs(expireTime).format('YYYY-MM-DD HH:mm:ss') : '-';
+  const hasConfiguredValidDays = validDays != null && validDays > 0;
+  const expireAt = hasConfiguredValidDays
+    ? getValidDaysExpireAt(enableTime, validDays)
+    : dayjs(expireTime);
+  const expireTimeText = expireAt ? expireAt.format('YYYY-MM-DD HH:mm:ss') : '等待更新';
   const parseLimitText = parseLimit ? `${parseLimit}次` : '-';
   const dailyLimitText =
     dailyParseLimit != null && dailyParseLimit > 0
@@ -46,7 +51,10 @@ export const buildPackageText = (record: CardSecretListItem) => {
   if (isCount) {
     return `按次付费，总次数 ${parseLimitText}`;
   }
-  return `过期时间：${expireTimeText}，${dailyLimitText}`;
+  const validDaysText = hasConfiguredValidDays
+    ? `有效期 ${validDays} 天${enableTime ? '' : '（首次使用后起算）'}`
+    : null;
+  return [`过期时间：${expireTimeText}`, validDaysText, dailyLimitText].filter(Boolean).join('，');
 };
 
 type PlaceholderResolver = (record: CardSecretListItem) => string;
@@ -82,6 +90,17 @@ export const COPY_TEMPLATE_PLACEHOLDERS: {
     label: '过期时间',
     resolve: (record) =>
       record.expireTime ? dayjs(record.expireTime).format('YYYY-MM-DD HH:mm:ss') : '-',
+  },
+  {
+    key: '【启用时间】',
+    label: '启用时间',
+    resolve: (record) =>
+      record.enableTime ? dayjs(record.enableTime).format('YYYY-MM-DD HH:mm:ss') : '未启用',
+  },
+  {
+    key: '【有效期】',
+    label: '有效期',
+    resolve: (record) => (record.validDays != null ? `${record.validDays}天` : '-'),
   },
   {
     key: '【总次数】',

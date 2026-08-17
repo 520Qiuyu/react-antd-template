@@ -2,6 +2,7 @@ import type { CardSecretListItem } from '@/types/cardSecret';
 import classNames from 'classnames';
 import dayjs from 'dayjs';
 import styles from './index.module.less';
+import { cardSecretIsEnabled, getValidDaysExpireAt } from '../../utils/cardSecretTime';
 
 /**
  * 卡密过期时间单元格：剩余时间为主，日期为辅，附寿命进度
@@ -11,21 +12,43 @@ import styles from './index.module.less';
  * ```
  */
 const ExpireTimeCell: React.FC<Props> = ({ record }) => {
-  if (!record.expireTime) {
+  const { validDays, expireTime, ctime, enableTime, type } = record;
+  /** 是否是数量卡 */
+  const isCount = type === 'count';
+  /** 是否是时间卡 */
+  const isTime = type === 'time';
+  /** 是否配置了有效天数 */
+  const hasConfiguredValidDays = isTime && validDays != null && validDays > 0;
+  /** 是否启用 */
+  const isEnabled = cardSecretIsEnabled(record);
+  // 未启用
+  if (!isEnabled) {
+    return <span className={styles['unlimited']}>未启用</span>;
+  }
+  // 没有配置有效天数且没有过期时间
+  if (isCount || (isTime && !hasConfiguredValidDays && !expireTime)) {
     return <span className={styles['unlimited']}>不限期</span>;
   }
 
   const now = dayjs();
-  const expireAt = dayjs(record.expireTime);
+  /** 启用时间 */
+  const enableAt = hasConfiguredValidDays ? dayjs(enableTime) : dayjs(ctime);
+  /** 过期时间 */
+  const expireAt = hasConfiguredValidDays
+    ? getValidDaysExpireAt(enableTime, validDays)!
+    : dayjs(expireTime);
   if (!expireAt.isValid()) {
     return <span className={styles['unlimited']}>-</span>;
   }
-
-  const createdAt = record.ctime ? dayjs(record.ctime) : null;
+  /** 是否已过期 */
   const isExpired = !expireAt.isAfter(now);
+  /** 剩余毫秒 */
   const msRemain = expireAt.diff(now);
+  /** 剩余小时 */
   const hoursRemain = expireAt.diff(now, 'hour');
+  /** 剩余天数（向上取整） */
   const daysRemainCeil = Math.ceil(expireAt.diff(now, 'day', true));
+  /** 已过期天数（向上取整） */
   const daysExpiredCeil = Math.ceil(now.diff(expireAt, 'day', true));
 
   let primaryText = '';
@@ -50,9 +73,9 @@ const ExpireTimeCell: React.FC<Props> = ({ record }) => {
   }
 
   let lifePercent: number | null = null;
-  if (createdAt?.isValid() && expireAt.isAfter(createdAt)) {
-    const totalMs = expireAt.diff(createdAt);
-    const elapsedMs = now.diff(createdAt);
+  if (enableAt?.isValid() && expireAt.isAfter(enableAt)) {
+    const totalMs = expireAt.diff(enableAt);
+    const elapsedMs = now.diff(enableAt);
     lifePercent = isExpired
       ? 100
       : Math.min(100, Math.max(0, Math.round((elapsedMs / totalMs) * 1000) / 10));

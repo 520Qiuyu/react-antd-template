@@ -5,15 +5,27 @@ import { useUser, useVisible } from '@/hooks';
 import type { Ref } from '@/hooks/useVisible';
 import type { CardSecretFormValues, CardSecretListItem, CardSecretType } from '@/types/cardSecret';
 import { msgError, msgSuccess } from '@/utils/modal';
-import { DatePicker, Form, InputNumber, Radio, Slider } from 'antd';
+import { Form, InputNumber, Radio, Slider } from 'antd';
+import classNames from 'classnames';
 import dayjs from 'dayjs';
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import { CARD_SECRET_TYPE_OPTIONS } from '../../constants';
 import styles from './index.module.less';
 
 const DEFAULT_CREATE_COUNT = 1;
 const DEFAULT_PARSE_LIMIT = 100;
+const DEFAULT_VALID_DAYS = 30;
 const CREATE_COUNT_MARKS = { 1: '1', 25: '25', 50: '50', 75: '75', 100: '100' };
+
+/** 有效期快捷档位，与结束时间预设对齐 */
+const VALID_DAYS_PRESETS = [
+  { label: '1天', days: 1 },
+  { label: '7天', days: 7 },
+  { label: '1个月', days: 30 },
+  { label: '3个月', days: 90 },
+  { label: '半年', days: 180 },
+  { label: '1年', days: 365 },
+] as const;
 
 const normalizeOptionalText = (value?: string) => {
   const text = value?.trim();
@@ -30,6 +42,7 @@ function CardSecretFormModal(
   const [editingRecord, setEditingRecord] = useState<CardSecretListItem | null>(null);
   const isEdit = !!editingRecord;
   const cardType = Form.useWatch('type', formRef) as CardSecretType | undefined;
+  const expireTimeValue = Form.useWatch('expireTime', formRef);
   const DEFAULT_DAILY_PARSE_LIMIT = isSuperAdmin ? 999999 : isAdmin ? 2000 : 500;
 
   const { visible, close } = useVisible(
@@ -38,11 +51,12 @@ function CardSecretFormModal(
         setEditingRecord(record ?? null);
         if (record) {
           console.log('record', record);
-          const { type, expireTime, parseLimit, dailyParseLimit, authInfo } = record;
-          const { deviceId, cookie, xHelios, xMedusa } = authInfo ?? {};
+          const { expireTime, parseLimit, dailyParseLimit, validDays } = record;
+          const hasConfiguredValidDays = validDays != null && validDays > 0;
           formRef.setFieldsValue({
             ...record,
             expireTime: expireTime ? dayjs(expireTime) : undefined,
+            validDays: record.validDays ?? undefined,
             parseLimit: parseLimit || DEFAULT_PARSE_LIMIT,
             dailyParseLimit: dailyParseLimit == null ? undefined : dailyParseLimit,
           });
@@ -52,6 +66,7 @@ function CardSecretFormModal(
             type: 'time',
             parseLimit: DEFAULT_PARSE_LIMIT,
             dailyParseLimit: DEFAULT_DAILY_PARSE_LIMIT,
+            validDays: DEFAULT_VALID_DAYS,
           });
         }
       },
@@ -100,6 +115,7 @@ function CardSecretFormModal(
         createCount: isEdit ? 1 : values.createCount,
         type: values.type,
         expireTime: values.type === 'time' ? (values.expireTime?.toISOString() ?? null) : null,
+        validDays: values.type === 'time' ? (values.validDays ?? null) : null,
         parseLimit:
           values.type === 'count' ? (values.parseLimit ?? DEFAULT_PARSE_LIMIT) : undefined,
         dailyParseLimit:
@@ -115,6 +131,7 @@ function CardSecretFormModal(
         const res = await reqUpdateCardSecret(editingRecord!.id, {
           type: payload.type,
           expireTime: payload.expireTime,
+          validDays: payload.validDays,
           parseLimit: payload.parseLimit,
           dailyParseLimit: payload.dailyParseLimit,
           // null 表示清空认证信息；有对象则更新
@@ -128,6 +145,7 @@ function CardSecretFormModal(
           createCount: payload.createCount,
           type: payload.type,
           expireTime: payload.expireTime,
+          validDays: payload.validDays,
           parseLimit: payload.parseLimit,
           dailyParseLimit: payload.dailyParseLimit,
           authInfo: payload.authInfo,
@@ -187,63 +205,40 @@ function CardSecretFormModal(
             {cardType === 'time' ? (
               <>
                 <Form.Item
-                  label='结束时间'
-                  name='expireTime'
-                  initialValue={dayjs().add(1, 'day')}
+                  label='有效期（天）'
+                  name='validDays'
+                  tooltip='首次成功解析后开始计算；修改天数不会改写结束时间'
+                  dependencies={['expireTime']}
                   rules={[
-                    { required: true, message: '请选择结束时间' },
-                    // 只能改大不能改小
+                    {
+                      validator: (_, value) => {
+                        const hasExpireTime = Boolean(expireTimeValue);
+                        const hasValidDays = value != null && value >= 1;
+                        if (!hasExpireTime && !hasValidDays) {
+                          return Promise.reject(new Error('请设置结束时间或有效期天数'));
+                        }
+                        return Promise.resolve();
+                      },
+                    },
                     {
                       validator: (_, value) => {
                         if (isSuperAdmin) {
                           return Promise.resolve();
                         }
-                        // 编辑的时候，不能小于上次时间
-                        if (isEdit && value && value.isBefore(editingRecord?.expireTime)) {
-                          return Promise.reject(new Error('结束时间不能小于上次时间'));
+                        if (
+                          isEdit &&
+                          value &&
+                          editingRecord?.validDays &&
+                          value < editingRecord.validDays
+                        ) {
+                          return Promise.reject(new Error('有效期天数不能小于上次天数'));
                         }
                         return Promise.resolve();
                       },
                     },
                   ]}>
-                  <DatePicker
-                    style={{ width: '100%' }}
-                    placeholder='例如：2026-12-31 23:59:59'
-                    disabledDate={(current) => {
-                      if (current && current.isBefore(dayjs().startOf('day'))) return true;
-                      if (isProxy && isEdit && current.isBefore(editingRecord?.expireTime))
-                        return true;
-                      return false;
-                    }}
-                    format='YYYY-MM-DD HH:mm:ss'
-                    showTime={false}
-                    // 快捷方式，一天，七天，一个月，半年
-                    presets={[
-                      {
-                        label: '一天',
-                        value: dayjs().add(1, 'day'),
-                      },
-                      {
-                        label: '七天',
-                        value: dayjs().add(7, 'day'),
-                      },
-                      {
-                        label: '一个月',
-                        value: dayjs().add(1, 'month'),
-                      },
-                      {
-                        label: '三个月',
-                        value: dayjs().add(3, 'month'),
-                      },
-                      {
-                        label: '半年',
-                        value: dayjs().add(6, 'month'),
-                      },
-                      {
-                        label: '一年',
-                        value: dayjs().add(1, 'year'),
-                      },
-                    ]}
+                  <ValidDaysField
+                    minDays={isSuperAdmin ? 1 : isEdit ? editingRecord?.validDays : 1}
                   />
                 </Form.Item>
                 <Form.Item
@@ -363,3 +358,63 @@ export default forwardRef(CardSecretFormModal);
 interface Props {
   onSuccess?: () => unknown | Promise<unknown>;
 }
+
+interface ValidDaysFieldProps {
+  value?: number | null;
+  onChange?: (value: number | null) => void;
+  minDays?: number | null;
+}
+
+/**
+ * 有效期输入：数字框 + 快捷档位
+ * @example
+ * ```tsx
+ * <Form.Item name='validDays'><ValidDaysField minDays={30} /></Form.Item>
+ * ```
+ */
+const ValidDaysField: React.FC<ValidDaysFieldProps> = ({ value, onChange, minDays = 1 }) => {
+  const handleNumberChange = (next: number | string | null) => {
+    if (typeof next === 'number') {
+      onChange?.(next);
+      return;
+    }
+    onChange?.(null);
+  };
+
+  const handlePresetClick = (days: number) => {
+    onChange?.(days);
+  };
+
+  return (
+    <div className={styles['validDaysField']}>
+      <InputNumber
+        min={1}
+        max={3650}
+        value={value ?? undefined}
+        onChange={handleNumberChange}
+        style={{ width: '100%' }}
+        placeholder='例如：30'
+        addonAfter='天'
+        aria-label='有效期天数'
+      />
+      <div className={styles['presets']} role='group' aria-label='有效期快捷选择'>
+        {VALID_DAYS_PRESETS.map((item) => {
+          const disabled = minDays != null && item.days < minDays;
+          const isActive = value === item.days;
+          return (
+            <button
+              key={item.days}
+              type='button'
+              className={classNames(styles['preset'], { [styles['isActive']]: isActive })}
+              disabled={disabled}
+              aria-pressed={isActive}
+              aria-label={`设为 ${item.label}`}
+              onClick={() => handlePresetClick(item.days)}>
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};

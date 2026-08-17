@@ -8,6 +8,7 @@ import { useParseStore } from '../../store';
 import { maskCardSecret } from '../CardSecretModal';
 import styles from './index.module.less';
 import { useSearchParams } from '@/hooks/useSearchParams';
+import { getValidDaysExpireAt } from '@/views/qishui/cardSecret/utils/cardSecretTime';
 
 /**
  * 侧栏卡密信息卡片（直接读取 parseStore）
@@ -89,15 +90,19 @@ const CardSecretPanel: React.FC = () => {
   let cardBody: React.ReactNode;
 
   if (isTime) {
-    const expire = cardSecret.expireTime ? dayjs(cardSecret.expireTime) : null;
+    const { validDays, expireTime, enableTime } = cardSecret;
+    const hasConfiguredValidDays = validDays != null && validDays > 0;
+    const expireAt = hasConfiguredValidDays
+      ? getValidDaysExpireAt(enableTime, validDays)
+      : dayjs(expireTime);
     const now = dayjs();
-    const isExpired = expire ? expire.isBefore(now) : false;
-    const remainDays = expire ? Math.max(0, expire.diff(now, 'day')) : null;
-    const remainHours = expire && remainDays === 0 ? Math.max(0, expire.diff(now, 'hour')) : null;
+    const isExpired = expireAt ? expireAt.isBefore(now) : false;
+    const remainDays = expireAt ? Math.max(0, expireAt.diff(now, 'day')) : null;
+    const remainHours =
+      expireAt && remainDays === 0 ? Math.max(0, expireAt.diff(now, 'hour')) : null;
     const dailyLimit = cardSecret.dailyParseLimit;
     const dailyUsed = cardSecret.dailyParsedCount ?? 0;
-    const dailyExhausted =
-      dailyLimit != null && dailyLimit > 0 && dailyUsed >= dailyLimit;
+    const dailyExhausted = dailyLimit != null && dailyLimit > 0 && dailyUsed >= dailyLimit;
     const stateLabel = !isNormal
       ? '已禁用'
       : isExpired
@@ -146,7 +151,7 @@ const CardSecretPanel: React.FC = () => {
         <div className={styles['metricBlock']}>
           <div className={styles['metricLabel']}>到期时间</div>
           <div className={styles['metricValue']}>
-            {expire ? expire.format('YYYY-MM-DD HH:mm') : '未设置'}
+            {expireAt ? expireAt.format('YYYY-MM-DD HH:mm') : '未启用'}
           </div>
         </div>
 
@@ -159,11 +164,11 @@ const CardSecretPanel: React.FC = () => {
           </div>
         ) : null}
 
-        {expire && (
+        {expireAt && (
           <div className={styles['timeBar']} aria-hidden>
             <div
               className={`${styles['timeBarFill']} ${isExpired ? styles['isFull'] : ''}`}
-              style={{ width: `${isExpired ? 100 : calcTimeProgress(expire)}%` }}
+              style={{ width: `${isExpired ? 100 : calcTimeProgress(expireAt)}%` }}
             />
           </div>
         )}
