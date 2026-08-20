@@ -4,6 +4,7 @@ export interface PlaylistUrlItem {
   quality?: string;
   size?: number;
   format?: string;
+  codec?: string;
   encryptionMethod?: string;
   playAuth?: string;
   playAuthID?: string;

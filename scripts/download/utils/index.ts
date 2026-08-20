@@ -1,7 +1,7 @@
 /**
  * download 脚本工具聚合导出。
  */
-export type { EmbedOutputFormat } from './embedAudioMetadata.ts';
+export type { EmbedOutputFormat, EmbedSourceCodec } from './embedAudioMetadata.ts';
 export { embedMetadata } from './embedAudioMetadata.ts';
 export {
   downloadAudioBuffer,

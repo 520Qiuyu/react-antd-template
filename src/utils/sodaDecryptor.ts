@@ -6,20 +6,41 @@ export interface Mp4Box {
   data: Uint8Array;
 }
 
+export type SodaCodec = "mp4a" | "fLaC";
+
 export interface DecryptDataResult {
   data: Uint8Array;
   decrypted: boolean;
   reason: string;
+  codec?: SodaCodec;
 }
 
 export interface DecryptBlobResult {
   blob: Blob;
   decrypted: boolean;
   reason: string;
+  codec?: SodaCodec;
+}
+
+interface ParsedBox {
+  type: string;
+  start: number;
+  size: number;
+  header: number;
+  dataStart: number;
+  dataEnd: number;
+}
+
+interface SampleRef {
+  off: number;
+  size: number;
+  iv?: Uint8Array;
 }
 
 const ENCA_BYTES = new TextEncoder().encode("enca");
 const MP4A_BYTES = new TextEncoder().encode("mp4a");
+const FLAC_BYTES = new TextEncoder().encode("fLaC");
+const DFLA_BYTES = new TextEncoder().encode("dfLa");
 const SPADE_PREFIX = new Uint8Array([0xfa, 0x55]);
 
 const concatBytes = (...parts: Uint8Array[]) => {
@@ -41,7 +62,14 @@ const readUInt16BE = (data: Uint8Array, offset: number) =>
 const readUInt32BE = (data: Uint8Array, offset: number) =>
   new DataView(data.buffer, data.byteOffset + offset, 4).getUint32(0, false);
 
-const bytesToAscii = (data: Uint8Array) => String.fromCharCode(...data);
+const readInt32BE = (data: Uint8Array, offset: number) =>
+  new DataView(data.buffer, data.byteOffset + offset, 4).getInt32(0, false);
+
+const readBigUInt64BE = (data: Uint8Array, offset: number) =>
+  new DataView(data.buffer, data.byteOffset + offset, 8).getBigUint64(0, false);
+
+const bytesToAscii = (data: Uint8Array) =>
+  String.fromCharCode(data[0], data[1], data[2], data[3]);
 
 const base64ToBytes = (value: string) => {
   const binary = atob(value);
@@ -85,6 +113,373 @@ const indexOfBytes = (haystack: Uint8Array, needle: Uint8Array) => {
 
 const decryptAesCtr = (data: Uint8Array, keyBytes: Uint8Array, iv: Uint8Array) =>
   ctr(keyBytes, iv).decrypt(data);
+
+/**
+ * 读取一段字节流中的所有 box（支持 size=1 的 64 位扩展、size=0 延伸到 end）。
+ */
+const readBoxes = (buf: Uint8Array, start: number, end: number): ParsedBox[] => {
+  const boxes: ParsedBox[] = [];
+  let position = start;
+
+  while (position + 8 <= end) {
+    let size = readUInt32BE(buf, position);
+    const type = bytesToAscii(buf.subarray(position + 4, position + 8));
+    let header = 8;
+
+    if (size === 1) {
+      if (position + 16 > end) break;
+      size = Number(readBigUInt64BE(buf, position + 8));
+      header = 16;
+    } else if (size === 0) {
+      size = end - position;
+    }
+
+    if (size < 8 || position + size > end) break;
+
+    boxes.push({
+      type,
+      start: position,
+      size,
+      header,
+      dataStart: position + header,
+      dataEnd: position + size,
+    });
+    position += size;
+  }
+
+  return boxes;
+};
+
+const findParsedBox = (boxes: ParsedBox[], type: string) =>
+  boxes.find((box) => box.type === type) ?? null;
+
+const findAllParsedBoxes = (boxes: ParsedBox[], type: string) =>
+  boxes.filter((box) => box.type === type);
+
+const getChildBox = (buf: Uint8Array, parent: ParsedBox, type: string) =>
+  findParsedBox(readBoxes(buf, parent.dataStart, parent.dataEnd), type);
+
+const getStbl = (buf: Uint8Array, trak: ParsedBox) => {
+  const mdia = getChildBox(buf, trak, "mdia");
+  if (!mdia) return null;
+  const minf = getChildBox(buf, mdia, "minf");
+  if (!minf) return null;
+  return getChildBox(buf, minf, "stbl");
+};
+
+const parseSampleSizes = (buf: Uint8Array, stsz: ParsedBox) => {
+  const sampleSizeFixed = readUInt32BE(buf, stsz.dataStart + 4);
+  const sampleCount = readUInt32BE(buf, stsz.dataStart + 8);
+
+  if (sampleSizeFixed) {
+    return Array.from({ length: sampleCount }, () => sampleSizeFixed);
+  }
+
+  return Array.from({ length: sampleCount }, (_, index) =>
+    readUInt32BE(buf, stsz.dataStart + 12 + index * 4),
+  );
+};
+
+const parseChunkOffsets = (buf: Uint8Array, offsetBox: ParsedBox) => {
+  const is64 = offsetBox.type === "co64";
+  const chunkCount = readUInt32BE(buf, offsetBox.dataStart + 4);
+  const offsets: number[] = [];
+  let pointer = offsetBox.dataStart + 8;
+
+  for (let index = 0; index < chunkCount; index += 1) {
+    if (is64) {
+      offsets.push(Number(readBigUInt64BE(buf, pointer)));
+      pointer += 8;
+    } else {
+      offsets.push(readUInt32BE(buf, pointer));
+      pointer += 4;
+    }
+  }
+
+  return offsets;
+};
+
+const parseStscEntries = (buf: Uint8Array, stsc: ParsedBox) => {
+  const entryCount = readUInt32BE(buf, stsc.dataStart + 4);
+  const entries: Array<{ firstChunk: number; spc: number }> = [];
+  let pointer = stsc.dataStart + 8;
+
+  for (let index = 0; index < entryCount; index += 1) {
+    entries.push({
+      firstChunk: readUInt32BE(buf, pointer),
+      spc: readUInt32BE(buf, pointer + 4),
+    });
+    pointer += 12;
+  }
+
+  return entries;
+};
+
+const samplesPerChunk = (
+  entries: Array<{ firstChunk: number; spc: number }>,
+  chunkIndex1: number,
+) => {
+  let spc = entries[0]?.spc ?? 1;
+  for (const entry of entries) {
+    if (chunkIndex1 >= entry.firstChunk) spc = entry.spc;
+  }
+  return spc;
+};
+
+const buildSamples = (
+  sizes: number[],
+  chunkOffsets: number[],
+  stscEntries: Array<{ firstChunk: number; spc: number }>,
+) => {
+  const samples: SampleRef[] = [];
+  let sampleIndex = 0;
+
+  for (let chunkIndex = 0; chunkIndex < chunkOffsets.length; chunkIndex += 1) {
+    const spc = samplesPerChunk(stscEntries, chunkIndex + 1);
+    let offset = chunkOffsets[chunkIndex];
+
+    for (let index = 0; index < spc && sampleIndex < sizes.length; index += 1) {
+      samples.push({ off: offset, size: sizes[sampleIndex] });
+      offset += sizes[sampleIndex];
+      sampleIndex += 1;
+    }
+  }
+
+  return { samples, mappedCount: sampleIndex };
+};
+
+const parseSencIvs = (buf: Uint8Array, senc: ParsedBox) => {
+  const ivs: Uint8Array[] = [];
+  let pointer = senc.dataStart;
+  const versionFlags = readUInt32BE(buf, pointer);
+  const flags = versionFlags & 0xffffff;
+  const sampleCount = readUInt32BE(buf, pointer + 4);
+  pointer += 8;
+  const ivSize = versionFlags >>> 24 === 1 ? 16 : 8;
+
+  for (let index = 0; index < sampleCount; index += 1) {
+    ivs.push(buf.subarray(pointer, pointer + ivSize));
+    pointer += ivSize;
+
+    if ((flags & 0x02) !== 0) {
+      const subCount = readUInt16BE(buf, pointer);
+      pointer += 2 + subCount * 6;
+    }
+  }
+
+  return ivs;
+};
+
+const decryptSample = (buf: Uint8Array, sample: SampleRef, keyBytes: Uint8Array) => {
+  const counter = new Uint8Array(16);
+  if (sample.iv) {
+    counter.set(sample.iv.subarray(0, Math.min(sample.iv.length, 16)));
+  }
+  return decryptAesCtr(buf.subarray(sample.off, sample.off + sample.size), keyBytes, counter);
+};
+
+/**
+ * 把 stsd 的 `enca` sample entry 补丁回真实 codec：
+ * 内层含 `dfLa` → `fLaC`（lossless FLAC-in-MP4），否则 `mp4a`。
+ */
+const patchSampleEntry = (
+  output: Uint8Array,
+  data: Uint8Array,
+  stsd: ParsedBox,
+): SodaCodec => {
+  const region = data.subarray(stsd.dataStart, stsd.dataEnd);
+  const encaIndex = indexOfBytes(region, ENCA_BYTES);
+  if (encaIndex < 0) return "mp4a";
+
+  const inner = region.subarray(encaIndex + 8);
+  const codec: SodaCodec = indexOfBytes(inner, DFLA_BYTES) >= 0 ? "fLaC" : "mp4a";
+  output.set(codec === "fLaC" ? FLAC_BYTES : MP4A_BYTES, stsd.dataStart + encaIndex);
+  return codec;
+};
+
+const pickEncryptedTrak = (buf: Uint8Array, traks: ParsedBox[]) => {
+  for (const trak of traks) {
+    const stbl = getStbl(buf, trak);
+    if (!stbl) continue;
+    const stsd = getChildBox(buf, stbl, "stsd");
+    if (!stsd) continue;
+    if (indexOfBytes(buf.subarray(stsd.dataStart, stsd.dataEnd), ENCA_BYTES) >= 0) {
+      return trak;
+    }
+  }
+  return traks[0] ?? null;
+};
+
+const decryptNonFragmented = (
+  data: Uint8Array,
+  output: Uint8Array,
+  keyBytes: Uint8Array,
+  moov: ParsedBox,
+): DecryptDataResult => {
+  const traks = findAllParsedBoxes(readBoxes(data, moov.dataStart, moov.dataEnd), "trak");
+  const trak = pickEncryptedTrak(data, traks);
+  if (!trak) return { data, decrypted: false, reason: "trak box not found" };
+
+  const stbl = getStbl(data, trak);
+  if (!stbl) return { data, decrypted: false, reason: "stbl box not found" };
+
+  const stblBoxes = readBoxes(data, stbl.dataStart, stbl.dataEnd);
+  const stsz = findParsedBox(stblBoxes, "stsz");
+  const stco = findParsedBox(stblBoxes, "stco");
+  const co64 = findParsedBox(stblBoxes, "co64");
+  const stsc = findParsedBox(stblBoxes, "stsc");
+  const stsd = findParsedBox(stblBoxes, "stsd");
+  const senc = findParsedBox(stblBoxes, "senc");
+  const offsetBox = stco ?? co64;
+
+  if (!stsz || !offsetBox || !stsc) {
+    return { data, decrypted: false, reason: "missing sample tables (stsz/stco/stsc)" };
+  }
+  if (!senc) return { data, decrypted: false, reason: "senc box not found" };
+
+  const sizes = parseSampleSizes(data, stsz);
+  const chunkOffsets = parseChunkOffsets(data, offsetBox);
+  const stscEntries = parseStscEntries(data, stsc);
+  const { samples, mappedCount } = buildSamples(sizes, chunkOffsets, stscEntries);
+
+  if (mappedCount !== sizes.length) {
+    return {
+      data,
+      decrypted: false,
+      reason: `sample count mismatch: ${mappedCount} != ${sizes.length}`,
+    };
+  }
+
+  const ivs = parseSencIvs(data, senc);
+  if (ivs.length !== samples.length) {
+    return {
+      data,
+      decrypted: false,
+      reason: `senc iv count ${ivs.length} != samples ${samples.length}`,
+    };
+  }
+
+  for (let index = 0; index < samples.length; index += 1) {
+    samples[index].iv = ivs[index];
+  }
+
+  for (const sample of samples) {
+    if (sample.off + sample.size > data.length) {
+      return { data, decrypted: false, reason: "sample offset out of range" };
+    }
+    output.set(decryptSample(data, sample, keyBytes), sample.off);
+  }
+
+  const codec = stsd ? patchSampleEntry(output, data, stsd) : "mp4a";
+  return { data: output, decrypted: true, reason: "decrypted", codec };
+};
+
+const decryptFragmented = (
+  data: Uint8Array,
+  output: Uint8Array,
+  keyBytes: Uint8Array,
+  top: ParsedBox[],
+  moov: ParsedBox,
+): DecryptDataResult => {
+  let codec: SodaCodec = "mp4a";
+
+  for (let boxIndex = 0; boxIndex < top.length; boxIndex += 1) {
+    const current = top[boxIndex];
+    if (current.type !== "moof") continue;
+
+    const mdatRegions: ParsedBox[] = [];
+    for (let nextIndex = boxIndex + 1; nextIndex < top.length; nextIndex += 1) {
+      if (top[nextIndex].type === "moof") break;
+      if (top[nextIndex].type === "mdat") mdatRegions.push(top[nextIndex]);
+    }
+
+    const traf = getChildBox(data, current, "traf");
+    if (!traf) return { data, decrypted: false, reason: "fragmented: missing traf" };
+
+    const tfhd = getChildBox(data, traf, "tfhd");
+    const trun = getChildBox(data, traf, "trun");
+    const senc = getChildBox(data, traf, "senc");
+    if (!tfhd || !trun) {
+      return { data, decrypted: false, reason: "fragmented: missing tfhd/trun" };
+    }
+
+    let pointer = tfhd.dataStart;
+    const tfFlags = readUInt32BE(data, pointer) & 0xffffff;
+    pointer += 8;
+
+    let baseDataOffset = current.dataEnd;
+    if (tfFlags & 0x000001) {
+      baseDataOffset = Number(readBigUInt64BE(data, pointer));
+      pointer += 8;
+    } else if (tfFlags & 0x000010) {
+      baseDataOffset = Number(readBigUInt64BE(data, pointer));
+      pointer += 8;
+    }
+
+    let trunPointer = trun.dataStart;
+    const trFlags = readUInt32BE(data, trunPointer) & 0xffffff;
+    const sampleCount = readUInt32BE(data, trunPointer + 4);
+    trunPointer += 8;
+
+    let dataOffset = 0;
+    if (trFlags & 0x000001) {
+      dataOffset = readInt32BE(data, trunPointer);
+      trunPointer += 4;
+    }
+
+    const sampleSizes: number[] = [];
+    for (let index = 0; index < sampleCount; index += 1) {
+      if (trFlags & 0x000100) {
+        sampleSizes.push(readUInt32BE(data, trunPointer));
+        trunPointer += 4;
+      }
+      if (trFlags & 0x000200) trunPointer += 4;
+      if (trFlags & 0x000800) trunPointer += 4;
+      if (trFlags & 0x001000) trunPointer += 4;
+      if (!(trFlags & 0x000100)) sampleSizes.push(0);
+    }
+
+    const ivs = senc ? parseSencIvs(data, senc) : [];
+    let offset = baseDataOffset + dataOffset;
+    const dataStart = mdatRegions[0]?.dataStart ?? 0;
+    if (offset < dataStart) offset = dataStart + offset;
+
+    for (let index = 0; index < sampleCount; index += 1) {
+      const size = sampleSizes[index];
+      const iv = ivs[index];
+      if (!iv) return { data, decrypted: false, reason: "fragmented: no IV for sample" };
+
+      if (offset + size <= data.length) {
+        output.set(decryptSample(data, { off: offset, size, iv }, keyBytes), offset);
+      }
+      offset += size;
+    }
+  }
+
+  const moovBoxes = readBoxes(data, moov.dataStart, moov.dataEnd);
+  for (const trak of findAllParsedBoxes(moovBoxes, "trak")) {
+    const stbl = getStbl(data, trak);
+    const stsd = stbl ? getChildBox(data, stbl, "stsd") : null;
+    if (stsd) codec = patchSampleEntry(output, data, stsd);
+  }
+
+  return { data: output, decrypted: true, reason: "decrypted", codec };
+};
+
+const decryptCenc = (fileData: Uint8Array, keyBytes: Uint8Array): DecryptDataResult => {
+  const top = readBoxes(fileData, 0, fileData.length);
+  const moov = findParsedBox(top, "moov");
+  if (!moov) return { data: fileData, decrypted: false, reason: "moov box not found" };
+
+  const output = new Uint8Array(fileData);
+  const isFragmented = findAllParsedBoxes(top, "moof").length > 0;
+
+  if (isFragmented) {
+    return decryptFragmented(fileData, output, keyBytes, top, moov);
+  }
+
+  return decryptNonFragmented(fileData, output, keyBytes, moov);
+};
 
 class SpadeDecryptor {
   private static bitCount(value: number) {
@@ -139,25 +534,14 @@ class SpadeDecryptor {
  */
 export class SodaAudioDecryptor {
   static findBox(data: Uint8Array, boxType: string, start = 0, end = data.length): Mp4Box | null {
-    let position = start;
+    const found = findParsedBox(readBoxes(data, start, end), boxType);
+    if (!found) return null;
 
-    while (position + 8 <= end) {
-      const size = readUInt32BE(data, position);
-      if (size < 8 || position + size > data.length) break;
-
-      const currentType = bytesToAscii(data.subarray(position + 4, position + 8));
-      if (currentType === boxType) {
-        return {
-          offset: position,
-          size,
-          data: data.subarray(position + 8, position + size),
-        };
-      }
-
-      position += size;
-    }
-
-    return null;
+    return {
+      offset: found.start,
+      size: found.size,
+      data: data.subarray(found.dataStart, found.dataEnd),
+    };
   }
 
   static async decryptData(fileData: Uint8Array, playAuth: string): Promise<DecryptDataResult> {
@@ -166,86 +550,7 @@ export class SodaAudioDecryptor {
       return { data: fileData, decrypted: false, reason: "playAuth key extraction failed" };
     }
 
-    const moov = SodaAudioDecryptor.findBox(fileData, "moov");
-    if (!moov) return { data: fileData, decrypted: false, reason: "moov box not found" };
-
-    let senc = SodaAudioDecryptor.findBox(fileData, "senc", moov.offset + 8, moov.offset + moov.size);
-    const trak = SodaAudioDecryptor.findBox(fileData, "trak", moov.offset + 8, moov.offset + moov.size);
-    if (!trak) return { data: fileData, decrypted: false, reason: "trak box not found" };
-
-    const mdia = SodaAudioDecryptor.findBox(fileData, "mdia", trak.offset + 8, trak.offset + trak.size);
-    if (!mdia) return { data: fileData, decrypted: false, reason: "mdia box not found" };
-
-    const minf = SodaAudioDecryptor.findBox(fileData, "minf", mdia.offset + 8, mdia.offset + mdia.size);
-    if (!minf) return { data: fileData, decrypted: false, reason: "minf box not found" };
-
-    const stbl = SodaAudioDecryptor.findBox(fileData, "stbl", minf.offset + 8, minf.offset + minf.size);
-    if (!stbl) return { data: fileData, decrypted: false, reason: "stbl box not found" };
-
-    const stsz = SodaAudioDecryptor.findBox(fileData, "stsz", stbl.offset + 8, stbl.offset + stbl.size);
-    if (!stsz) return { data: fileData, decrypted: false, reason: "stsz box not found" };
-
-    const stszData = stsz.data;
-    const sampleSizeFixed = readUInt32BE(stszData, 4);
-    const sampleCount = readUInt32BE(stszData, 8);
-    const sampleSizes = sampleSizeFixed
-      ? Array.from({ length: sampleCount }, () => sampleSizeFixed)
-      : Array.from({ length: sampleCount }, (_, index) => readUInt32BE(stszData, 12 + index * 4));
-
-    if (!senc) {
-      senc = SodaAudioDecryptor.findBox(fileData, "senc", stbl.offset + 8, stbl.offset + stbl.size);
-      if (!senc) return { data: fileData, decrypted: false, reason: "senc box not found" };
-    }
-
-    const sencData = senc.data;
-    const sencFlags = readUInt32BE(sencData, 0) & 0x00ffffff;
-    const sencSampleCount = readUInt32BE(sencData, 4);
-    const ivs: Uint8Array[] = [];
-    let sencPtr = 8;
-
-    for (let index = 0; index < sencSampleCount; index += 1) {
-      ivs.push(concatBytes(sencData.subarray(sencPtr, sencPtr + 8), new Uint8Array(8)));
-      sencPtr += 8;
-
-      if ((sencFlags & 0x02) !== 0) {
-        const subCount = readUInt16BE(sencData, sencPtr);
-        sencPtr += 2 + subCount * 6;
-      }
-    }
-
-    const mdat = SodaAudioDecryptor.findBox(fileData, "mdat");
-    if (!mdat) return { data: fileData, decrypted: false, reason: "mdat box not found" };
-
-    const output = new Uint8Array(fileData);
-    const keyBytes = hexToBytes(hexKey);
-    const decryptedMdatParts: Uint8Array[] = [];
-    let readPtr = mdat.offset + 8;
-
-    for (let index = 0; index < sampleSizes.length; index += 1) {
-      const sample = fileData.subarray(readPtr, readPtr + sampleSizes[index]);
-      if (index < ivs.length) {
-        decryptedMdatParts.push(decryptAesCtr(sample, keyBytes, ivs[index]));
-      } else {
-        decryptedMdatParts.push(sample);
-      }
-      readPtr += sampleSizes[index];
-    }
-
-    const decryptedMdat = concatBytes(...decryptedMdatParts);
-    if (decryptedMdat.length === mdat.size - 8) {
-      output.set(decryptedMdat, mdat.offset + 8);
-    }
-
-    const stsd = SodaAudioDecryptor.findBox(output, "stsd", stbl.offset + 8, stbl.offset + stbl.size);
-    if (stsd) {
-      const originalStsd = output.subarray(stsd.offset, stsd.offset + stsd.size);
-      const encaIndex = indexOfBytes(originalStsd, ENCA_BYTES);
-      if (encaIndex >= 0) {
-        output.set(MP4A_BYTES, stsd.offset + encaIndex);
-      }
-    }
-
-    return { data: output, decrypted: true, reason: "decrypted" };
+    return decryptCenc(fileData, hexToBytes(hexKey));
   }
 
   /**
@@ -262,6 +567,7 @@ export class SodaAudioDecryptor {
       blob: new Blob([new Uint8Array(result.data)], { type: blob.type || "audio/mp4" }),
       decrypted: result.decrypted,
       reason: result.reason,
+      codec: result.codec,
     };
   }
 }

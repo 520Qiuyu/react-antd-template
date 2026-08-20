@@ -136,6 +136,7 @@ export const downloadSongAudio = async ({
           ? `cover.${data.cover?.split('?')[0].split('.').pop()?.toLowerCase() || 'jpg'}`
           : undefined,
         outputFormat,
+        sourceCodec: item.codec,
         metadata: {
           title: data.title,
           artist: data.artist,

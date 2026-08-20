@@ -16,13 +16,16 @@
  */
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, open, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** 支持写入元信息后的输出容器格式 */
 export type EmbedOutputFormat = 'mp3' | 'm4a' | 'flac';
+
+/** 后端返回的音轨 codec，如 aac / flac */
+export type EmbedSourceCodec = string;
 
 /** 音频元信息字段 */
 export interface AudioMetadata {
@@ -52,6 +55,10 @@ export interface EmbedAudioMetadataOptions {
   metadata: AudioMetadata;
   /** 输出格式，默认 mp3 */
   outputFormat?: EmbedOutputFormat;
+  /**
+   * 后端返回的音轨 codec（如 aac / flac）。FLAC-in-MP4 不能 copy 进 m4a。
+   */
+  sourceCodec?: EmbedSourceCodec;
   /** 若传入则同时写入该路径 */
   outputPath?: string;
   /** ffmpeg stderr 日志 */
@@ -74,6 +81,56 @@ const OUTPUT_MIME: Record<EmbedOutputFormat, string> = {
 const VIDEO_CONTAINER_EXTS = new Set(['mp4', 'mov', 'm4v', 'webm', 'mkv', 'avi']);
 
 const isVideoContainerExt = (ext: string) => VIDEO_CONTAINER_EXTS.has(ext);
+
+const FLAC_FOURCC = Buffer.from('fLaC');
+
+/**
+ * 在 MP4 头部查找 fLaC sample entry（lossless 为 FLAC-in-MP4）。
+ * @example
+ * sniffFlacInMp4(Buffer.from('....fLaC....')) // true
+ */
+const sniffFlacInMp4 = (bytes: Uint8Array) => {
+  const limit = Math.min(bytes.length, 256 * 1024);
+  const window = bytes.subarray(0, limit);
+  return Buffer.from(window.buffer, window.byteOffset, window.byteLength).includes(FLAC_FOURCC);
+};
+
+/**
+ * 视频/MP4 抽轨 copy 的目标扩展名：FLAC 只能进 .flac，AAC 进 .m4a。
+ * @example
+ * resolveCopyExtractExt('flac', new Uint8Array()) // 'flac'
+ * resolveCopyExtractExt('aac', new Uint8Array()) // 'm4a'
+ */
+const resolveCopyExtractExt = (
+  sourceCodec: EmbedSourceCodec | undefined,
+  headBytes: Uint8Array,
+): 'flac' | 'm4a' => {
+  const normalized = sourceCodec?.trim().toLowerCase();
+  if (normalized?.includes('flac')) return 'flac';
+  if (normalized) return 'm4a';
+  return sniffFlacInMp4(headBytes) ? 'flac' : 'm4a';
+};
+
+/**
+ * 读取输入前 256KB，用于判断是否为 FLAC-in-MP4。
+ * @example
+ * const head = await readMediaHead(buf);
+ */
+const readMediaHead = async (input: MediaInput): Promise<Uint8Array> => {
+  if (typeof input === 'string') {
+    const handle = await open(input, 'r');
+    try {
+      const buf = Buffer.alloc(256 * 1024);
+      const { bytesRead } = await handle.read(buf, 0, buf.length, 0);
+      return buf.subarray(0, bytesRead);
+    } finally {
+      await handle.close();
+    }
+  }
+  return input instanceof Uint8Array
+    ? input.subarray(0, 256 * 1024)
+    : Buffer.from(input).subarray(0, 256 * 1024);
+};
 
 /** jpeg 系封面可直接 copy，避免再编码 */
 const JPEG_COVER_EXTS = new Set(['jpg', 'jpeg', 'jpe', 'jfif', 'mjpeg']);
@@ -287,6 +344,7 @@ export const embedMetadata = async ({
   coverName,
   metadata,
   outputFormat = 'mp3',
+  sourceCodec,
   outputPath,
   onLog,
 }: EmbedAudioMetadataOptions): Promise<EmbedAudioMetadataResult> => {
@@ -303,6 +361,9 @@ export const embedMetadata = async ({
 
   const workDir = await mkdtemp(join(tmpdir(), 'qishui-embed-'));
   try {
+    const sourceHead = await readMediaHead(audio);
+    const copyExtractExt = resolveCopyExtractExt(sourceCodec, sourceHead);
+
     const sourceName = `input.${inputExt}`;
     let audioInputPath = await materializeInput(audio, workDir, sourceName);
     let audioInputExt = inputExt;
@@ -312,12 +373,13 @@ export const embedMetadata = async ({
       coverPath = await materializeInput(cover, workDir, `cover.${coverExt}`);
     }
 
-    // 视频容器：有封面时先抽纯音轨再嵌封面；无封面且目标 m4a 时可一步完成
+    // 视频/MP4 容器：先按音轨 codec 抽到可 copy 的容器（AAC→m4a，FLAC→flac）
     if (isVideoContainerExt(inputExt)) {
-      const canFinishInOnePass = !coverExt && outputFormat === 'm4a';
+      const canCopyToOutput = outputFormat === copyExtractExt;
+      const canFinishInOnePass = !coverExt && canCopyToOutput;
       const extractedPath = join(
         workDir,
-        canFinishInOnePass ? `output.${outputFormat}` : 'extracted.m4a',
+        canFinishInOnePass ? `output.${outputFormat}` : `extracted.${copyExtractExt}`,
       );
 
       const extractArgs = [
@@ -342,7 +404,7 @@ export const embedMetadata = async ({
       }
 
       audioInputPath = extractedPath;
-      audioInputExt = 'm4a';
+      audioInputExt = copyExtractExt;
     }
 
     const finalOutputPath = join(workDir, `output.${outputFormat}`);

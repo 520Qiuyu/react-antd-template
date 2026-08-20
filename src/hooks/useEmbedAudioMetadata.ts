@@ -242,6 +242,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
       coverName,
       metadata,
       outputFormat = 'mp3',
+      sourceCodec,
       onProgress,
     }: EmbedAudioMetadataOptions) => {
       const inputExt = audioName.split('.').pop()?.toLowerCase();
@@ -254,6 +255,9 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
       if (cover && !coverExt) {
         throw new Error('专辑封面文件名无效');
       }
+
+      const sourceHead = new Uint8Array(await audio.slice(0, 256 * 1024).arrayBuffer());
+      const copyExtractExt = resolveCopyExtractExt(sourceCodec, sourceHead);
 
       const reportEmbedProgress = (percent: number) => {
         const next = Math.round(Math.min(100, Math.max(0, percent)));
@@ -290,14 +294,17 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
             await ffmpeg.writeFile(`cover.${coverExt}`, await fetchFile(cover));
           }
 
-          // 视频容器：有封面时先抽纯音轨再嵌封面；无封面且目标 m4a 时可一步完成
+          // 视频/MP4 容器：先按音轨 codec 抽到可 copy 的容器（AAC→m4a，FLAC→flac）
           let audioInputName = sourceName;
           let audioInputExt = inputExt;
           const isVideoInput = isVideoContainerExt(inputExt);
 
           if (isVideoInput) {
-            const canFinishInOnePass = !coverExt && outputFormat === 'm4a';
-            const extractedName = canFinishInOnePass ? `output.${outputFormat}` : 'extracted.m4a';
+            const canCopyToOutput = outputFormat === copyExtractExt;
+            const canFinishInOnePass = !coverExt && canCopyToOutput;
+            const extractedName = canFinishInOnePass
+              ? `output.${outputFormat}`
+              : `extracted.${copyExtractExt}`;
             temporaryFiles.push(extractedName);
 
             const extractArgs = [
@@ -329,7 +336,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
             }
 
             audioInputName = extractedName;
-            audioInputExt = 'm4a';
+            audioInputExt = copyExtractExt;
           }
 
           const { args, outputName, mimeType } = buildFfmpegArgs(
@@ -406,6 +413,9 @@ export type FFmpegStatus = 'idle' | 'loading' | 'ready' | 'error';
 /** 支持写入元信息后的输出容器格式 */
 export type EmbedOutputFormat = 'mp3' | 'm4a' | 'flac';
 
+/** 后端返回的音轨 codec，如 aac / flac */
+export type EmbedSourceCodec = string;
+
 /** 音频元信息字段 */
 export interface AudioMetadata {
   title?: string;
@@ -431,6 +441,10 @@ export interface EmbedAudioMetadataOptions {
   metadata: AudioMetadata;
   /** 输出格式，默认 mp3 */
   outputFormat?: EmbedOutputFormat;
+  /**
+   * 后端返回的音轨 codec（如 aac / flac）。FLAC-in-MP4 不能 copy 进 m4a。
+   */
+  sourceCodec?: EmbedSourceCodec;
   /** 本次内嵌进度 0–100（ffmpeg.exec 过程） */
   onProgress?: (progress: number) => void;
 }
@@ -454,6 +468,44 @@ const OUTPUT_MIME: Record<EmbedOutputFormat, string> = {
 const VIDEO_CONTAINER_EXTS = new Set(['mp4', 'mov', 'm4v', 'webm', 'mkv', 'avi']);
 
 const isVideoContainerExt = (ext: string) => VIDEO_CONTAINER_EXTS.has(ext);
+
+const FLAC_FOURCC = new TextEncoder().encode('fLaC');
+
+/**
+ * 在 MP4 头部查找 fLaC sample entry（lossless 为 FLAC-in-MP4）。
+ * @example
+ * sniffFlacInMp4(new Uint8Array([0x66, 0x4c, 0x61, 0x43])) // true
+ */
+const sniffFlacInMp4 = (bytes: Uint8Array) => {
+  const limit = Math.min(bytes.length, 256 * 1024) - 3;
+  for (let index = 0; index < limit; index += 1) {
+    if (
+      bytes[index] === FLAC_FOURCC[0] &&
+      bytes[index + 1] === FLAC_FOURCC[1] &&
+      bytes[index + 2] === FLAC_FOURCC[2] &&
+      bytes[index + 3] === FLAC_FOURCC[3]
+    ) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * 视频/MP4 抽轨 copy 的目标扩展名：FLAC 只能进 .flac，AAC 进 .m4a。
+ * @example
+ * resolveCopyExtractExt('flac', new Uint8Array()) // 'flac'
+ * resolveCopyExtractExt('aac', new Uint8Array()) // 'm4a'
+ */
+const resolveCopyExtractExt = (
+  sourceCodec: EmbedSourceCodec | undefined,
+  headBytes: Uint8Array,
+): 'flac' | 'm4a' => {
+  const normalized = sourceCodec?.trim().toLowerCase();
+  if (normalized?.includes('flac')) return 'flac';
+  if (normalized) return 'm4a';
+  return sniffFlacInMp4(headBytes) ? 'flac' : 'm4a';
+};
 
 /** jpeg 系封面可直接 copy，避免 wasm 再编码卡住 */
 const JPEG_COVER_EXTS = new Set(['jpg', 'jpeg', 'jpe', 'jfif', 'mjpeg']);

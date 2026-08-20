@@ -136,6 +136,7 @@ export const processTrack = async (
         cover: coverBuffer,
         coverName: coverBuffer ? `cover.${coverExt}` : undefined,
         outputFormat: config.downloadFormat,
+        sourceCodec: urlItem.codec,
         metadata: {
           title: track.title,
           artist: track.artist,
