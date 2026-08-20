@@ -101,7 +101,7 @@ export const downloadSongAudio = async ({
     onProgress: (progress) => {
       const ratio =
         progress.contentLength > 0 ? progress.receivedLength / progress.contentLength : 0;
-      onProgress?.('downloading', ratio);
+      onProgress?.('downloading', ratio * 100);
     },
   });
   if (!fileBlob) {
