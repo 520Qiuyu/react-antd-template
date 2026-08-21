@@ -93,7 +93,7 @@ const PlaylistParseView: React.FC = () => {
           歌单解析 <em>Playlist</em>
         </h1>
         <p className={styles['lead']}>
-          解析汽水歌单分享链接，展示歌单封面、创建者、曲目数量与完整歌曲列表，支持关键字快速筛选。
+          解析汽水歌单/专辑分享链接，展示歌单封面、创建者、曲目数量与完整歌曲列表，支持关键字快速筛选。
         </p>
       </header>
 
@@ -103,7 +103,7 @@ const PlaylistParseView: React.FC = () => {
           hint='请使用歌单分享链接；歌曲链接请切换到「歌曲解析」栏目。'
           label='分享链接'
           inputId='playlistLink'
-          placeholder='粘贴汽水音乐歌单分享链接…'
+          placeholder='粘贴汽水音乐歌单/专辑分享链接…'
           value={link!}
           loading={loading}
           submitLabel='解析歌单'
