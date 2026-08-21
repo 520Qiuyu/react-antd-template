@@ -11,7 +11,7 @@ import { Input, Select } from 'antd';
 import classNames from 'classnames';
 import { useRef } from 'react';
 import type { SearchParams } from '../..';
-import type { DOWNLOAD_QUALITY_ORDER, LinkParseView } from '../../constants';
+import type { DOWNLOAD_QUALITY_ORDER, DownloadQuality, LinkParseView } from '../../constants';
 import { useParseStore } from '../../store';
 import {
   DOWNLOAD_FORMAT_OPTIONS,
@@ -150,7 +150,7 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
             onChange={(value) =>
               setConfig({
                 ...config!,
-                preferredQuality: value as (typeof DOWNLOAD_QUALITY_ORDER)[number],
+                preferredQuality: value,
               })
             }
             popupMatchSelectWidth

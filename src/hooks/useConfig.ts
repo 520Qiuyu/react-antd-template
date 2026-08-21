@@ -1,4 +1,4 @@
-import { DOWNLOAD_QUALITY_ORDER } from '@/views/qishui/linkParse/constants';
+import { DOWNLOAD_QUALITY_ORDER, type DownloadQuality } from '@/views/qishui/linkParse/constants';
 import type { DownloadFormat } from '@/views/qishui/linkParse/utils';
 
 const CONFIG_KEY = 'config';
@@ -22,7 +22,7 @@ export const useConfig = () => {
 
 interface Config {
   downloadFormat: DownloadFormat;
-  preferredQuality: (typeof DOWNLOAD_QUALITY_ORDER)[number];
+  preferredQuality: DownloadQuality;
   downloadNameFormat: string;
   /** 歌单批量解析 / 下载并发数 */
   downloadConcurrency: 1 | 2 | 3;

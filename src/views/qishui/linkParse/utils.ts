@@ -1,6 +1,6 @@
 import type { MusicInfo, PlaylistMusicInfo, QishuiUrl } from '@/types/qishui';
 import { msgSuccess } from '@/utils/modal';
-import { DOWNLOAD_QUALITY_ORDER } from './constants';
+import { DOWNLOAD_QUALITY_ORDER, type DownloadQuality } from './constants';
 
 /**
  * 从分享文案中提取 URL
@@ -31,15 +31,14 @@ export const formatDuration = (sec = 0) => {
 };
 
 /** 音质标签文案 */
-export const QUALITY_LABEL_MAP: Record<string, string> = {
+export const QUALITY_LABEL_MAP: Record<DownloadQuality, string> = {
   spatial: '空间音频',
   hi_res: 'Hi-Res',
   highest: '极高',
   higher: '较高',
   medium: '标准',
-  lossless: '无损',
-  hq: 'HQ',
   standard: '标准',
+  lossless: '无损',
 };
 
 export const qualityLabel = (quality: string) => QUALITY_LABEL_MAP[quality] || quality;
@@ -68,7 +67,7 @@ export const isTrackParsed = (track: PlaylistMusicInfo | null | undefined) =>
  */
 export const pickDownloadUrl = (
   urls: QishuiUrl[] = [],
-  preferredQuality: (typeof DOWNLOAD_QUALITY_ORDER)[number] = window.config.preferredQuality,
+  preferredQuality: DownloadQuality = window.config.preferredQuality,
 ): QishuiUrl | undefined => {
   const index = DOWNLOAD_QUALITY_ORDER.indexOf(preferredQuality);
   for (let i = index; i < DOWNLOAD_QUALITY_ORDER.length; i++) {
