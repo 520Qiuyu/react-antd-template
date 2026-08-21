@@ -58,6 +58,8 @@ export interface PlaylistInfo {
   owner: string;
   countTracks: number;
   tracks: PlaylistMusicInfo[];
+  /** 分享页来源：歌单 / 专辑 */
+  source?: 'playlist' | 'album';
 }
 
 /** 分享链接解析查询参数 */
