@@ -22,6 +22,5 @@ export const DOWNLOAD_QUALITY_ORDER = [
   'highest',
   'higher',
   'medium',
-  'standard',
 ] as const;
 export type DownloadQuality = (typeof DOWNLOAD_QUALITY_ORDER)[number];

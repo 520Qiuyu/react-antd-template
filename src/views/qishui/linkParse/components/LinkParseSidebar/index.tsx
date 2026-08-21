@@ -11,7 +11,7 @@ import { Input, Select } from 'antd';
 import classNames from 'classnames';
 import { useRef } from 'react';
 import type { SearchParams } from '../..';
-import type { DOWNLOAD_QUALITY_ORDER, DownloadQuality, LinkParseView } from '../../constants';
+import type { LinkParseView } from '../../constants';
 import { useParseStore } from '../../store';
 import {
   DOWNLOAD_FORMAT_OPTIONS,

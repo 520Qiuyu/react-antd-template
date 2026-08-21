@@ -37,7 +37,6 @@ export const QUALITY_LABEL_MAP: Record<DownloadQuality, string> = {
   highest: '极高',
   higher: '较高',
   medium: '标准',
-  standard: '标准',
   lossless: '无损',
 };
 
