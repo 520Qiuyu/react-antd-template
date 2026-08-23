@@ -1,7 +1,7 @@
 import { SearchForm } from '@/components';
 import type { Option as SearchFormOption } from '@/components/SearchForm';
 import type { PlaylistMusicInfo } from '@/types/qishui';
-import { getOptions, isDev } from '@/utils';
+import { getOptions, isDebugging, isDev } from '@/utils';
 import {
   CheckCircleFilled,
   CloseCircleFilled,
@@ -22,7 +22,7 @@ import styles from './index.module.less';
 
 /** 每页最多曲目数 */
 const PAGE_SIZE = 50;
-const DEBUGGER_MODE = window.location.href.includes('debugger');
+const DEBUGGER_MODE = isDebugging();
 
 const DOWNLOAD_PHASE_TEXT: Record<string, string> = {
   downloading: '下载中',

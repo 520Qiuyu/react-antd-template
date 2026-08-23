@@ -20,6 +20,7 @@ import {
 } from '../../utils';
 import styles from './index.module.less';
 import { confirm } from '@/utils/modal';
+import { isDebugging } from '@/utils';
 
 interface LinkParseSidebarProps {
   onGuideClick: () => void;
@@ -190,22 +191,24 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
             下载并发量
           </span>
           <div className={styles['radioRow']}>
-            {([1, 2, 3, 4, 5] as const).map((value) => {
-              const checked = downloadConcurrency === value;
-              return (
-                <button
-                  key={value}
-                  type='button'
-                  role='radio'
-                  aria-checked={checked}
-                  aria-labelledby='download-concurrency-label'
-                  className={classNames(styles['radio'], { [styles['isActive']]: checked })}
-                  tabIndex={checked ? 0 : -1}
-                  onClick={() => handleDownloadConcurrencyChange(value)}>
-                  {value}
-                </button>
-              );
-            })}
+            {isDebugging()
+              ? ([1, 2, 3, 4, 5] as const)
+              : ([1, 2, 3] as const).map((value) => {
+                  const checked = downloadConcurrency === value;
+                  return (
+                    <button
+                      key={value}
+                      type='button'
+                      role='radio'
+                      aria-checked={checked}
+                      aria-labelledby='download-concurrency-label'
+                      className={classNames(styles['radio'], { [styles['isActive']]: checked })}
+                      tabIndex={checked ? 0 : -1}
+                      onClick={() => handleDownloadConcurrencyChange(value)}>
+                      {value}
+                    </button>
+                  );
+                })}
           </div>
         </div>
 

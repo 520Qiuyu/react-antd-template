@@ -20,3 +20,5 @@ export const getOptions = <T>(array: T[], key: keyof T) => {
     value,
   }));
 };
+
+export const isDebugging = () => window.location.href.includes('debugger');
