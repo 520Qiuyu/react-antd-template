@@ -42,14 +42,14 @@ const SongParseView: React.FC<SongParseViewProps> = () => {
         await confirm(`检测到当前链接为【歌单链接】，是否继续解析？`, '提示', {
           okText: '前往歌单解析',
           cancelText: '继续解析',
-          wrapClassName: styles['confirmWrap'],
+          wrapClassName: 'confirmWrap',
           okButtonProps: {
             type: 'primary',
-            className: styles['confirmOk'],
+            className: 'confirmOk',
           },
           cancelButtonProps: {
             type: 'default',
-            className: styles['confirmCancel'],
+            className: 'confirmCancel',
           },
         });
         return setSearchParams({ ...searchParams, currentView: 'playlist' });

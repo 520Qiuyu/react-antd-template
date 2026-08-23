@@ -25,7 +25,7 @@ interface Config {
   preferredQuality: DownloadQuality;
   downloadNameFormat: string;
   /** 歌单批量解析 / 下载并发数 */
-  downloadConcurrency: 1 | 2 | 3;
+  downloadConcurrency: 1 | 2 | 3 | 4 | 5;
 }
 declare global {
   interface Window {

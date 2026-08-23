@@ -19,6 +19,7 @@ import {
   type DownloadFormat,
 } from '../../utils';
 import styles from './index.module.less';
+import { confirm } from '@/utils/modal';
 
 interface LinkParseSidebarProps {
   onGuideClick: () => void;
@@ -82,6 +83,31 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
   const siderBarRef = useClickOutside(() => {
     setSidebarOpen(false);
   });
+
+  const handleDownloadConcurrencyChange = async (value: 1 | 2 | 3 | 4 | 5) => {
+    try {
+      if (value >= 3) {
+        await confirm(
+          '下载并发量大于3时，可能会导致电脑负载过高，是否继续？对电脑性能、内存有自信的可以尝试！',
+          '温馨提示',
+          {
+            wrapClassName: 'confirmWrap',
+            okButtonProps: {
+              type: 'primary',
+              className: 'confirmOk',
+            },
+            cancelButtonProps: {
+              type: 'default',
+              className: 'confirmCancel',
+            },
+          },
+        );
+      }
+      setConfig({ ...config!, downloadConcurrency: value });
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
 
   return (
     <aside
@@ -164,7 +190,7 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
             下载并发量
           </span>
           <div className={styles['radioRow']}>
-            {([1, 2, 3] as const).map((value) => {
+            {([1, 2, 3, 4, 5] as const).map((value) => {
               const checked = downloadConcurrency === value;
               return (
                 <button
@@ -175,7 +201,7 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
                   aria-labelledby='download-concurrency-label'
                   className={classNames(styles['radio'], { [styles['isActive']]: checked })}
                   tabIndex={checked ? 0 : -1}
-                  onClick={() => setConfig({ ...config!, downloadConcurrency: value })}>
+                  onClick={() => handleDownloadConcurrencyChange(value)}>
                   {value}
                 </button>
               );
