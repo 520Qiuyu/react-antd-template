@@ -31,11 +31,15 @@ const sanitizeFilenamePart = (value: string) => value.replace(/[\\/:*?"<>|]/g, '
  * @example
  * resolveDownloadBasename({ title: '晴天', artist: '周杰伦' })
  * // 默认模板 → '晴天-周杰伦'
- * resolveDownloadBasename({ index: 1, title: '晴天', artist: '周杰伦' })
- * // 若模板为【序号】-【歌名】-【歌手】 → '1-晴天-周杰伦'
+ * resolveDownloadBasename({ index: 1, title: '晴天', artist: '周杰伦' }, '【序号】-【歌名】-【歌手】')
+ * // → '1-晴天-周杰伦'
  */
-export const resolveDownloadBasename = (parts: DownloadNameParts): string => {
+export const resolveDownloadBasename = (
+  parts: DownloadNameParts,
+  nameFormat?: string,
+): string => {
   const format =
+    nameFormat?.trim() ||
     (typeof window !== 'undefined' && window.config?.downloadNameFormat?.trim()) ||
     DEFAULT_CONFIG.downloadNameFormat ||
     DEFAULT_DOWNLOAD_NAME_FORMAT;

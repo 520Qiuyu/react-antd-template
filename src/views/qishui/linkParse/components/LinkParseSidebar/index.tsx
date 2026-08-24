@@ -13,6 +13,7 @@ import { useRef } from 'react';
 import type { SearchParams } from '../..';
 import type { LinkParseView } from '../../constants';
 import { useParseStore } from '../../store';
+import { resolveDownloadBasename, type DownloadNameParts } from '../../downloadSong';
 import {
   DOWNLOAD_FORMAT_OPTIONS,
   DOWNLOAD_QUALITY_OPTIONS,
@@ -27,6 +28,42 @@ interface LinkParseSidebarProps {
 }
 
 const NAME_FORMAT_TOKENS = ['【序号】', '【歌名】', '【专辑名】', '【歌手】'] as const;
+
+/** 名称格式预览用的样例曲目 */
+const SAMPLE_DOWNLOAD_PARTS: DownloadNameParts = {
+  index: 1,
+  title: '晴天',
+  album: '叶惠美',
+  artist: '周杰伦',
+};
+
+const SAMPLE_TOKEN_TEXT: Record<(typeof NAME_FORMAT_TOKENS)[number], string> = {
+  '【序号】': '1',
+  '【歌名】': '晴天',
+  '【专辑名】': '叶惠美',
+  '【歌手】': '周杰伦',
+};
+
+const NAME_FORMAT_SPLIT_RE = /(【(?:序号|歌名|专辑名|歌手)】)/g;
+
+/**
+ * 将下载名称格式拆成可高亮的示例片段
+ * @example
+ * getNameFormatPreviewSegments('【歌名】-【歌手】')
+ */
+const getNameFormatPreviewSegments = (format?: string) => {
+  const template = format?.trim() || DEFAULT_CONFIG.downloadNameFormat;
+  return template
+    .split(NAME_FORMAT_SPLIT_RE)
+    .filter(Boolean)
+    .map((part) => {
+      const sample = SAMPLE_TOKEN_TEXT[part as keyof typeof SAMPLE_TOKEN_TEXT];
+      return {
+        text: sample ?? part,
+        isToken: Boolean(sample),
+      };
+    });
+};
 
 /**
  * 链接解析侧边栏
@@ -80,6 +117,16 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
       el.setSelectionRange(pos, pos);
     });
   };
+
+  const nameFormatPreviewSegments = useMemo(
+    () => getNameFormatPreviewSegments(downloadNameFormat),
+    [downloadNameFormat],
+  );
+  const nameFormatPreviewText = useMemo(
+    () =>
+      `${resolveDownloadBasename(SAMPLE_DOWNLOAD_PARTS, downloadNameFormat)}.${downloadFormat}`,
+    [downloadNameFormat, downloadFormat],
+  );
 
   const siderBarRef = useClickOutside(() => {
     setSidebarOpen(false);
@@ -233,6 +280,29 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
               </button>
             ))}
           </div>
+          <output
+            className={styles['preview']}
+            htmlFor='download-name-format'
+            aria-live='polite'>
+            <span className={styles['previewLabel']}>示例 · 晴天 / 周杰伦</span>
+            <span
+              key={nameFormatPreviewText}
+              className={styles['previewName']}
+              title={nameFormatPreviewText}>
+              {nameFormatPreviewSegments.map((segment, index) =>
+                segment.isToken ? (
+                  <em key={`${segment.text}-${index}`} className={styles['previewToken']}>
+                    {segment.text}
+                  </em>
+                ) : (
+                  <span key={`${segment.text}-${index}`} className={styles['previewSep']}>
+                    {segment.text}
+                  </span>
+                ),
+              )}
+              <span className={styles['previewExt']}>.{downloadFormat}</span>
+            </span>
+          </output>
         </label>
       </div>
     </aside>
