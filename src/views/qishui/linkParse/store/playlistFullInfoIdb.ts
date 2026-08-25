@@ -8,9 +8,10 @@ const META_PLAYLIST_ID_KEY = 'playlistId';
 
 /** IndexedDB 串行队列，避免换歌单 clear 与单曲 put 交叉 */
 let idbChain: Promise<void> = Promise.resolve();
-
+/** 数据库连接 Promise */
 let dbPromise: Promise<IDBDatabase> | null = null;
 
+/** 串行队列，避免换歌单 clear 与单曲 put 交叉 */
 const enqueue = <T>(task: () => Promise<T>): Promise<T> => {
   const run = idbChain.then(task, task);
   idbChain = run.then(
@@ -19,13 +20,13 @@ const enqueue = <T>(task: () => Promise<T>): Promise<T> => {
   );
   return run;
 };
-
+/** 把 IDBRequest 转换为 Promise */
 const requestToPromise = <T>(request: IDBRequest<T>) =>
   new Promise<T>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
-
+/** 等待事务完成 */
 const waitTx = (tx: IDBTransaction) =>
   new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
@@ -33,9 +34,11 @@ const waitTx = (tx: IDBTransaction) =>
     tx.onabort = () => reject(tx.error);
   });
 
+/** 检查 IndexedDB 是否可用 */
 const isIndexedDbAvailable = () =>
   typeof indexedDB !== 'undefined' && typeof window !== 'undefined';
 
+/** 打开数据库 */
 const openDb = () => {
   if (!isIndexedDbAvailable()) {
     return Promise.reject(new Error('IndexedDB unavailable'));
@@ -43,6 +46,7 @@ const openDb = () => {
   if (!dbPromise) {
     dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
+      // 数据库升级时创建对象存储
       request.onupgradeneeded = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains(STORE_FULL_INFO)) {
@@ -52,6 +56,7 @@ const openDb = () => {
           db.createObjectStore(STORE_META);
         }
       };
+      // 数据库打开成功时设置版本变化监听和关闭监听
       request.onsuccess = () => {
         const db = request.result;
         db.onversionchange = () => {
@@ -63,6 +68,7 @@ const openDb = () => {
         };
         resolve(db);
       };
+      // 数据库打开失败时设置连接为 null 并拒绝 Promise
       request.onerror = () => {
         dbPromise = null;
         reject(request.error);
@@ -72,6 +78,7 @@ const openDb = () => {
   return dbPromise;
 };
 
+/** 获取歌单 ID */
 const getMetaPlaylistId = async (db: IDBDatabase) => {
   const tx = db.transaction(STORE_META, 'readonly');
   const value = await requestToPromise(
@@ -80,6 +87,7 @@ const getMetaPlaylistId = async (db: IDBDatabase) => {
   return typeof value === 'string' ? value : null;
 };
 
+/** 设置歌单 ID */
 const setMetaPlaylistId = (db: IDBDatabase, playlistId: string | null) => {
   const tx = db.transaction(STORE_META, 'readwrite');
   const store = tx.objectStore(STORE_META);
@@ -91,12 +99,14 @@ const setMetaPlaylistId = (db: IDBDatabase, playlistId: string | null) => {
   return waitTx(tx);
 };
 
+/** 清空 fullInfo 存储 */
 const clearFullInfoStore = (db: IDBDatabase) => {
   const tx = db.transaction(STORE_FULL_INFO, 'readwrite');
   tx.objectStore(STORE_FULL_INFO).clear();
   return waitTx(tx);
 };
 
+/** 打印 IndexedDB 错误 */
 const warnIdb = (error: unknown) => {
   console.warn('[playlistFullInfoIdb]', error);
 };
@@ -111,7 +121,7 @@ export const resolvePlaylistPersistId = (playlist: PlaylistInfo | null) => {
   if (playlist.id) return playlist.id;
   return `fallback:${playlist.source ?? 'playlist'}:${playlist.title}:${playlist.owner}`;
 };
-
+/** 关闭缓存的数据库连接 */
 const closeCachedDb = async () => {
   if (!dbPromise) return;
   const pending = dbPromise;
