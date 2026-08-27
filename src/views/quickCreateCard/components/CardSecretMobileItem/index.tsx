@@ -1,14 +1,12 @@
 import { CopyText } from '@/components';
 import { Status } from '@/constants';
-import type { CardSecretListItem, CardSecretType } from '@/types/cardSecret';
-import { CARD_SECRET_TYPE_TEXT_MAP } from '@/views/qishui/cardSecret/constants';
+import type { CardSecretListItem } from '@/types/cardSecret';
+import { CARD_SECRET_TYPE_TEXT_MAP } from '@/views/cardSecret/constants';
 import {
   getCardSecretExpireTime,
   getCardSecretFirstUseTime,
-  getCardSecretValidDays,
-  getLegacyValidDays,
-  getValidDaysExpireAt,
-} from '@/views/qishui/cardSecret/utils/cardSecretTime';
+  getCardSecretValidDays
+} from '@/views/cardSecret/utils/cardSecretTime';
 import { Switch } from 'antd';
 import classNames from 'classnames';
 import dayjs, { type Dayjs } from 'dayjs';

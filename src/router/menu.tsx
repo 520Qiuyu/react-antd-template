@@ -4,38 +4,62 @@ const isDev = import.meta.env.MODE === 'development';
 
 // 此处配置的是layout中的路由 非layout中的路由请前往App.tsx中配置
 export const routes: IMenu[] = [
-  // 汽水音乐
+  // 汽水音乐// 数据看板（一期假数据预览；权限资源后续再挂）
+  {
+    path: 'data-dashboard',
+    name: '数据看板',
+    icon: 'charts-bar',
+    auth: ['data-dashboard'],
+    component: lazy(() => import('@/views/dataDashboard')),
+  },
+  {
+    path: 'card-secret',
+    name: '卡密管理',
+    icon: 'lock',
+    auth: ['card-secret-management'],
+    component: lazy(() => import('@/views/cardSecret')),
+  },
+  // 快速创建卡密
+  {
+    path: 'quick-create-card',
+    name: '快速创建卡密',
+    auth: ['card-secret-management'],
+    component: lazy(() => import('@/views/quickCreateCard')),
+    hiddenLayout: true,
+    hidden: true,
+  },
+  {
+    path: 'auth-info',
+    name: '认证信息管理',
+    icon: 'customer-certified',
+    component: lazy(() => import('@/views/authInfo')),
+  },
+  {
+    path: 'logs',
+    name: '日志管理',
+    icon: 'time-history',
+    auth: ['qishui-logs-management'],
+    component: lazy(() => import('@/views/parseLogs')),
+  },
   {
     path: 'qishui',
     name: '汽水音乐',
     icon: 'listening-fill',
+    hidden: true,
     children: [
-      // 数据看板（一期假数据预览；权限资源后续再挂）
-      {
-        path: 'data-dashboard',
-        name: '数据看板',
-        auth: ['data-dashboard'],
-        component: lazy(() => import('@/views/qishui/dataDashboard')),
-      },
-      {
-        path: 'card-secret',
-        name: '卡密管理',
-        auth: ['card-secret-management'],
-        component: lazy(() => import('@/views/qishui/cardSecret')),
-      },
       // 快速创建卡密
       {
         path: 'quick-create-card',
         name: '快速创建卡密',
         auth: ['card-secret-management'],
-        component: lazy(() => import('@/views/qishui/quickCreateCard')),
+        component: lazy(() => import('@/views/quickCreateCard')),
         hiddenLayout: true,
         hidden: true,
       },
       {
         path: 'auth-info',
         name: '认证信息管理',
-        component: lazy(() => import('@/views/qishui/authInfo')),
+        component: lazy(() => import('@/views/authInfo')),
       },
       {
         path: 'link-parse',
@@ -43,11 +67,27 @@ export const routes: IMenu[] = [
         component: lazy(() => import('@/views/qishui/linkParse')),
         hiddenLayout: true,
       },
+    ],
+  },
+  // 音乐解析
+  {
+    path: 'music-parse',
+    name: '音乐解析',
+    icon: 'listening-fill',
+    children: [
+      // 汽水音乐解析
       {
-        path: 'logs',
-        name: '日志管理',
-        auth: ['qishui-logs-management'],
-        component: lazy(() => import('@/views/qishui/parseLogs')),
+        path: 'qishui-music-parse',
+        name: '汽水音乐解析',
+        component: lazy(() => import('@/views/qishui/linkParse')),
+        hiddenLayout: true,
+      },
+      // 网易云音乐解析
+      {
+        path: 'netease-music-parse',
+        name: '网易云音乐解析',
+        component: lazy(() => import('@/views/neteaseMusic/parse')),
+        hiddenLayout: true,
       },
     ],
   },

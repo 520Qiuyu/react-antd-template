@@ -1,0 +1,2225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="网易云音乐分享链接解析 · 歌曲与歌单" />
+  <title>网易云音乐解析 · Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600;1,700&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" />
+  <style>
+    :root {
+      /* 网易云红：朱漆 #c20c0c · 墨酒红 · 暮霭玫瑰，不要金黄 */
+      --lp-soda-rgb: 194, 12, 12;
+      --lp-bubble-rgb: 90, 18, 18;
+      --lp-lemon-rgb: 166, 124, 118;
+      --soda-rgb: 194, 12, 12;
+      --bubble-rgb: 90, 18, 18;
+      --lemon-rgb: 166, 124, 118;
+      --lp-bg: #f5f2f1;
+      --lp-bg-alt: #eee9e8;
+      --lp-bg-mute: #e4d8d6;
+      --lp-text-1: #1a1414;
+      --lp-text-2: #5a504e;
+      --lp-text-3: #8a7d7a;
+      --lp-brand: #c20c0c;
+      --lp-brand-2: #8a0e0e;
+      --lp-brand-3: #a67c76;
+      --lp-primary-hover: #9a0a0a;
+      --lp-gradient: linear-gradient(135deg, #c20c0c 0%, #8a0e0e 100%);
+      --lp-gradient-btn: linear-gradient(180deg, #d41414 0%, #c20c0c 52%, #a50b0b 100%);
+      --vp-c-bg: var(--lp-bg);
+      --vp-c-bg-alt: var(--lp-bg-alt);
+      --vp-c-bg-soft: rgba(255, 255, 255, 0.82);
+      --vp-c-bg-glass: rgba(255, 255, 255, 0.58);
+      --vp-c-bg-mute: var(--lp-bg-mute);
+      --vp-c-divider: rgba(var(--lp-soda-rgb), 0.1);
+      --vp-c-border: rgba(var(--lp-soda-rgb), 0.16);
+      --vp-c-gutter: #e4d8d6;
+      --vp-c-text-1: var(--lp-text-1);
+      --vp-c-text-2: var(--lp-text-2);
+      --vp-c-text-3: var(--lp-text-3);
+      --vp-c-brand: var(--lp-brand);
+      --vp-c-brand-2: var(--lp-brand-2);
+      --vp-c-brand-3: var(--lp-brand-3);
+      --vp-c-brand-light: #e24a4a;
+      --vp-c-brand-soft: rgba(var(--lp-soda-rgb), 0.12);
+      --vp-c-brand-softer: rgba(var(--lp-soda-rgb), 0.06);
+      --vp-c-coral-soft: rgba(var(--lp-bubble-rgb), 0.1);
+      --vp-c-cyan-soft: rgba(var(--lp-bubble-rgb), 0.1);
+      --vp-c-primary: var(--lp-brand);
+      --vp-c-primary-hover: var(--lp-primary-hover);
+      --vp-c-primary-soft: rgba(var(--lp-soda-rgb), 0.08);
+      --vp-c-gradient: var(--lp-gradient);
+      --vp-c-gradient-btn: var(--lp-gradient-btn);
+      --vp-c-gradient-mesh: linear-gradient(
+        160deg,
+        rgba(var(--lp-soda-rgb), 0.07),
+        rgba(255, 255, 255, 0.55) 55%,
+        rgba(var(--lp-bubble-rgb), 0.05)
+      );
+      --vp-c-danger: #c20c0c;
+      --vp-c-danger-soft: rgba(194, 12, 12, 0.08);
+      --vp-c-warning: #8a4a42;
+      --vp-shadow-1: 0 2px 10px rgba(26, 20, 20, 0.06);
+      --vp-shadow-2: 0 16px 40px rgba(194, 12, 12, 0.1);
+      --vp-shadow-3: 0 0 0 1px rgba(255, 255, 255, 0.75), 0 10px 36px rgba(26, 20, 20, 0.06);
+      --vp-shadow-glow: 0 0 40px rgba(194, 12, 12, 0.1);
+      --glass-blur: blur(22px);
+      --nav-height: 56px;
+      --sidebar-width: 272px;
+      --aside-width: 224px;
+      --content-max: 820px;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --font-display: "Noto Serif SC", "Cormorant Garamond", serif;
+      --font-sans: "Noto Sans SC", "Songti SC", system-ui, sans-serif;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--vp-c-text-1);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.65;
+      background:
+        radial-gradient(ellipse 50% 38% at 94% 0%, rgba(var(--soda-rgb), 0.11), transparent 62%),
+        radial-gradient(ellipse 42% 34% at 4% 96%, rgba(var(--bubble-rgb), 0.14), transparent 58%),
+        var(--vp-c-bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.45;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.9) 0%, transparent 8%),
+        radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.7) 0%, transparent 6%),
+        radial-gradient(circle at 65% 72%, rgba(255, 255, 255, 0.6) 0%, transparent 5%);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .vp-nav,
+    .vp-layout {
+      position: relative;
+      z-index: 1;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      background: none;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* —— Top Nav —— */
+    .vp-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--nav-height);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: var(--glass-blur) saturate(1.6);
+      -webkit-backdrop-filter: var(--glass-blur) saturate(1.6);
+      box-shadow: 0 1px 0 rgba(var(--soda-rgb), 0.06);
+    }
+
+    .vp-nav__inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 0 24px;
+      gap: 16px;
+    }
+
+    .vp-nav__brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .vp-nav__logo {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      color: #fff;
+      background: var(--vp-c-gradient-btn);
+      box-shadow: 0 4px 14px rgba(var(--soda-rgb), 0.28);
+      font-size: 17px;
+    }
+
+    .vp-nav__title {
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+    }
+
+    .vp-nav__title span {
+      color: var(--vp-c-text-3);
+      font-weight: 500;
+      margin-left: 6px;
+      font-size: 13px;
+    }
+
+    .vp-nav__links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .vp-nav__link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      color: var(--vp-c-text-2);
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: background 0.2s var(--ease), color 0.2s var(--ease);
+    }
+
+    .vp-nav__link:hover,
+    .vp-nav__link:focus-visible {
+      color: var(--vp-c-brand);
+      background: var(--vp-c-brand-softer);
+      outline: none;
+    }
+
+    .vp-nav__toggle {
+      display: none;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      color: var(--vp-c-text-2);
+      background: var(--vp-c-bg-soft);
+      border: 1px solid var(--vp-c-border);
+    }
+
+    /* —— Layout —— */
+    .vp-layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+      max-width: 1480px;
+      margin: 0 auto;
+      min-height: calc(100vh - var(--nav-height));
+    }
+
+    /* —— Sidebar —— */
+    .vp-sidebar {
+      position: sticky;
+      top: var(--nav-height);
+      align-self: start;
+      height: calc(100vh - var(--nav-height));
+      overflow-y: auto;
+      padding: 28px 18px 40px 24px;
+      border-right: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.42);
+      backdrop-filter: var(--glass-blur) saturate(1.4);
+      -webkit-backdrop-filter: var(--glass-blur) saturate(1.4);
+    }
+
+    .vp-sidebar__group + .vp-sidebar__group {
+      margin-top: 28px;
+    }
+
+    .vp-sidebar__heading {
+      padding: 0 12px;
+      margin: 0 0 8px;
+      color: var(--vp-c-text-3);
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .vp-sidebar__item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 12px;
+      margin: 2px 0;
+      border-radius: 10px;
+      color: var(--vp-c-text-2);
+      font-size: 13.5px;
+      font-weight: 500;
+      text-align: left;
+      transition: background 0.2s var(--ease), color 0.2s var(--ease), transform 0.2s var(--ease);
+    }
+
+    .vp-sidebar__item i {
+      font-size: 16px;
+      opacity: 0.85;
+    }
+
+    .vp-sidebar__item:hover,
+    .vp-sidebar__item:focus-visible {
+      color: var(--vp-c-brand);
+      background: var(--vp-c-brand-softer);
+      outline: none;
+    }
+
+    .vp-sidebar__item.is-active {
+      color: var(--vp-c-brand);
+      background: linear-gradient(90deg, rgba(var(--soda-rgb), 0.1), rgba(var(--bubble-rgb), 0.05) 80%);
+      font-weight: 600;
+      box-shadow: inset 3px 0 0 var(--vp-c-brand);
+    }
+
+    .vp-sidebar__meta {
+      margin-top: 36px;
+      padding: 14px 14px 14px 16px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(var(--soda-rgb), 0.12);
+      background: rgba(255, 255, 255, 0.62);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: inset 3px 0 0 var(--vp-c-brand);
+    }
+
+    .vp-sidebar__meta strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+
+    .vp-sidebar__meta p {
+      margin: 0;
+      color: var(--vp-c-text-3);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* —— Content —— */
+    .vp-content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) var(--aside-width);
+      gap: 0 40px;
+      padding: 36px 40px 80px 48px;
+    }
+
+    .vp-doc {
+      max-width: var(--content-max);
+      width: 100%;
+      animation: fade-up 0.55s var(--ease) both;
+      padding: 28px 32px 36px;
+      border-radius: calc(var(--radius) + 6px);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      background: var(--vp-c-bg-glass);
+      backdrop-filter: var(--glass-blur) saturate(1.5);
+      -webkit-backdrop-filter: var(--glass-blur) saturate(1.5);
+      box-shadow: var(--vp-shadow-3), var(--vp-shadow-glow);
+    }
+
+    @keyframes fade-up {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .vp-doc__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 14px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--vp-c-gradient-btn);
+      border: none;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 16px rgba(var(--soda-rgb), 0.3);
+    }
+
+    .vp-doc__title {
+      margin: 0 0 12px;
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 3vw, 2.55rem);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: 0.02em;
+    }
+
+    .vp-doc__title em {
+      font-family: "Cormorant Garamond", "Noto Serif SC", serif;
+      font-style: italic;
+      font-weight: 600;
+      color: var(--vp-c-brand);
+      background: none;
+      -webkit-background-clip: unset;
+      background-clip: unset;
+      letter-spacing: 0;
+      margin-left: 0.12em;
+    }
+
+    .vp-doc__lead {
+      margin: 0 0 28px;
+      max-width: 56ch;
+      color: var(--vp-c-text-2);
+      font-size: 15.5px;
+    }
+
+    .vp-doc__section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 36px 0 14px;
+      padding-top: 8px;
+      border-top: 1px solid var(--vp-c-divider);
+      font-size: 1.15rem;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+    }
+
+    .vp-doc__section-title:first-of-type {
+      margin-top: 8px;
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .vp-doc__section-title .hash {
+      color: var(--vp-c-brand);
+      font-weight: 600;
+      opacity: 0.7;
+    }
+
+    /* —— Glass surface utility —— */
+    .glass-surface {
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(16px) saturate(1.4);
+      -webkit-backdrop-filter: blur(16px) saturate(1.4);
+      box-shadow: var(--vp-shadow-3);
+    }
+
+    /* —— Parse Panel —— */
+    .parse-panel {
+      padding: 22px;
+      border-radius: calc(var(--radius) + 2px);
+      background:
+        linear-gradient(145deg, rgba(var(--soda-rgb), 0.08), rgba(var(--bubble-rgb), 0.04)),
+        rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(18px) saturate(1.5);
+      -webkit-backdrop-filter: blur(18px) saturate(1.5);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow: var(--vp-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .parse-panel__hint {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(var(--bubble-rgb), 0.08);
+      border: 1px solid rgba(var(--bubble-rgb), 0.2);
+      color: var(--vp-c-text-2);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    .parse-panel__hint i {
+      margin-top: 1px;
+      color: var(--vp-c-brand);
+      flex-shrink: 0;
+    }
+
+    .parse-panel__hint code {
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(var(--soda-rgb), 0.1);
+      color: var(--vp-c-brand);
+      font-size: 12px;
+    }
+
+    /* —— Mode Segment —— */
+    .mode-segment {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 4px;
+      margin: 0 0 14px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--soda-rgb), 0.18);
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .mode-segment__item {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 36px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 999px;
+      color: var(--vp-c-text-3);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.2s var(--ease), background 0.2s var(--ease), box-shadow 0.2s var(--ease);
+    }
+
+    .mode-segment__item:hover:not(.is-active),
+    .mode-segment__item:focus-visible:not(.is-active) {
+      color: var(--vp-c-brand);
+      background: var(--vp-c-brand-softer);
+      outline: none;
+    }
+
+    .mode-segment__item:focus-visible {
+      outline: 2px solid var(--vp-c-brand);
+      outline-offset: 2px;
+    }
+
+    .mode-segment__item.is-active {
+      color: #fff;
+      background: var(--vp-c-gradient-btn);
+      box-shadow: 0 4px 16px rgba(var(--soda-rgb), 0.35);
+    }
+
+    .parse-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .parse-form__label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--vp-c-text-2);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .parse-form__field {
+      position: relative;
+    }
+
+    .parse-form__field i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--vp-c-text-3);
+      font-size: 17px;
+      pointer-events: none;
+    }
+
+    .parse-form__input {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 14px 12px 42px;
+      border: 1px solid rgba(var(--soda-rgb), 0.2);
+      border-radius: var(--radius);
+      color: var(--vp-c-text-1);
+      background: rgba(255, 255, 255, 0.7);
+      outline: none;
+      transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease), background 0.2s var(--ease);
+    }
+
+    .parse-form__input:hover {
+      border-color: rgba(var(--soda-rgb), 0.35);
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .parse-form__input:focus {
+      border-color: var(--vp-c-brand);
+      background: #fff;
+      box-shadow: 0 0 0 4px var(--vp-c-brand-soft), 0 4px 20px rgba(var(--soda-rgb), 0.15);
+    }
+
+    .parse-form__actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 42px;
+      padding: 0 18px;
+      border-radius: 11px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: transform 0.18s var(--ease), background 0.18s var(--ease), box-shadow 0.18s var(--ease), opacity 0.18s;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--vp-c-brand);
+      outline-offset: 2px;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn--primary {
+      color: #fff;
+      background: var(--vp-c-gradient-btn);
+      box-shadow: 0 8px 20px rgba(var(--soda-rgb), 0.22);
+    }
+
+    .btn--primary:hover {
+      filter: none;
+      background: linear-gradient(180deg, #c20c0c 0%, #a50b0b 100%);
+      box-shadow: 0 10px 26px rgba(var(--soda-rgb), 0.28);
+      transform: translateY(-1px);
+    }
+
+    .btn--primary.is-loading {
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    .btn--ghost {
+      color: var(--vp-c-brand);
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(var(--soda-rgb), 0.25);
+    }
+
+    .btn--ghost:hover {
+      color: var(--vp-c-primary-hover);
+      border-color: rgba(var(--soda-rgb), 0.4);
+      background: var(--vp-c-brand-softer);
+    }
+
+    .btn--sm {
+      min-height: 34px;
+      padding: 0 12px;
+      font-size: 12.5px;
+      border-radius: 8px;
+    }
+
+    .spin {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* —— States —— */
+    .state-empty,
+    .state-error {
+      display: none;
+      margin-top: 20px;
+      padding: 28px 20px;
+      border: 1px dashed rgba(var(--soda-rgb), 0.25);
+      border-radius: var(--radius);
+      text-align: center;
+      color: var(--vp-c-text-3);
+      background: rgba(255, 255, 255, 0.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .state-empty.is-visible,
+    .state-error.is-visible {
+      display: block;
+      animation: fade-up 0.4s var(--ease) both;
+    }
+
+    .state-empty i,
+    .state-error i {
+      display: block;
+      margin: 0 auto 10px;
+      font-size: 28px;
+      opacity: 0.55;
+    }
+
+    .state-error {
+      border-color: rgba(194, 59, 59, 0.25);
+      background: var(--vp-c-danger-soft);
+      color: var(--vp-c-danger);
+    }
+
+    .result {
+      display: none;
+      margin-top: 20px;
+      animation: fade-up 0.5s var(--ease) both;
+    }
+
+    .result.is-visible {
+      display: block;
+    }
+
+    /* —— Song Result —— */
+    .song-card {
+      display: grid;
+      grid-template-columns: 148px minmax(0, 1fr);
+      gap: 22px;
+      padding: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: calc(var(--radius) + 4px);
+      background:
+        linear-gradient(135deg, rgba(var(--soda-rgb), 0.06), rgba(var(--bubble-rgb), 0.03)),
+        rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      box-shadow: var(--vp-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      overflow: hidden;
+    }
+
+    .song-card__cover-wrap {
+      position: relative;
+    }
+
+    .song-card__cover {
+      width: 148px;
+      height: 148px;
+      object-fit: cover;
+      border-radius: calc(var(--radius) + 2px);
+      background: var(--vp-c-bg-mute);
+      box-shadow: 0 16px 40px rgba(var(--soda-rgb), 0.2);
+    }
+
+    .song-card__cover-glow {
+      position: absolute;
+      inset: 15% -15%;
+      z-index: -1;
+      filter: blur(36px);
+      opacity: 0.55;
+      background: linear-gradient(135deg, var(--vp-c-brand), var(--vp-c-brand-2));
+      border-radius: 50%;
+    }
+
+    .song-card__meta {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .song-card__album {
+      color: var(--vp-c-text-3);
+      font-size: 12.5px;
+      font-weight: 500;
+    }
+
+    .song-card__title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.7rem;
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: 0.01em;
+    }
+
+    .song-card__artist {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--vp-c-text-2);
+      font-size: 14px;
+    }
+
+    .song-card__avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--vp-c-bg-mute);
+    }
+
+    .song-card__id {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+      padding: 4px 8px;
+      width: fit-content;
+      border-radius: 6px;
+      background: rgba(var(--soda-rgb), 0.08);
+      border: 1px solid rgba(var(--soda-rgb), 0.15);
+      color: var(--vp-c-brand);
+      font-size: 12px;
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    }
+
+    .song-card__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 12px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .info-chip {
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .info-chip:nth-child(1) {
+      border-color: rgba(var(--soda-rgb), 0.25);
+      background: linear-gradient(145deg, rgba(var(--soda-rgb), 0.1), rgba(255, 255, 255, 0.5));
+    }
+
+    .info-chip:nth-child(2) {
+      border-color: rgba(var(--bubble-rgb), 0.25);
+      background: linear-gradient(145deg, rgba(var(--bubble-rgb), 0.08), rgba(255, 255, 255, 0.5));
+    }
+
+    .info-chip:nth-child(3) {
+      border-color: rgba(var(--lemon-rgb), 0.3);
+      background: linear-gradient(145deg, rgba(var(--lemon-rgb), 0.1), rgba(255, 255, 255, 0.5));
+    }
+
+    .info-chip__label {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--vp-c-text-3);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .info-chip__value {
+      font-size: 13.5px;
+      font-weight: 560;
+      word-break: break-all;
+    }
+
+    .quality-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .quality-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: border-color 0.2s var(--ease), background 0.2s var(--ease), transform 0.2s var(--ease);
+    }
+
+    .quality-item:hover {
+      border-color: rgba(var(--soda-rgb), 0.3);
+      background: rgba(255, 255, 255, 0.75);
+      transform: translateX(2px);
+    }
+
+    .quality-item__badge {
+      padding: 4px 9px;
+      border-radius: 6px;
+      color: #fff;
+      background: var(--vp-c-gradient-btn);
+      border: none;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .quality-item__meta {
+      color: var(--vp-c-text-3);
+      font-size: 12.5px;
+    }
+
+    .lyric-box {
+      margin-top: 12px;
+      max-height: 240px;
+      overflow: auto;
+      padding: 16px 18px;
+      border: 1px solid rgba(var(--soda-rgb), 0.15);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(var(--soda-rgb), 0.05), rgba(255, 255, 255, 0.6));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      white-space: pre-wrap;
+      color: var(--vp-c-text-2);
+      font-size: 13.5px;
+      line-height: 1.8;
+    }
+
+    .lyric-box::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .lyric-box::-webkit-scrollbar-thumb {
+      background: rgba(var(--soda-rgb), 0.3);
+      border-radius: 999px;
+    }
+
+    /* —— Playlist Result —— */
+    .playlist-hero {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 18px;
+      align-items: center;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: calc(var(--radius) + 4px);
+      background:
+        linear-gradient(135deg, rgba(var(--bubble-rgb), 0.08), rgba(var(--bubble-rgb), 0.04)),
+        rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      box-shadow: var(--vp-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .playlist-hero__cover {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: calc(var(--radius) + 2px);
+      background: var(--vp-c-bg-mute);
+      box-shadow: 0 14px 36px rgba(var(--bubble-rgb), 0.25);
+    }
+
+    .playlist-hero__title {
+      margin: 0 0 6px;
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: 0.01em;
+    }
+
+    .playlist-hero__owner {
+      margin: 0 0 10px;
+      color: var(--vp-c-text-2);
+      font-size: 13.5px;
+    }
+
+    .playlist-hero__stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(var(--soda-rgb), 0.2);
+      background: rgba(255, 255, 255, 0.6);
+      color: var(--vp-c-text-2);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .stat-pill i {
+      color: var(--vp-c-brand);
+    }
+
+    .artist-hero {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 18px;
+      align-items: center;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: calc(var(--radius) + 4px);
+      background:
+        linear-gradient(135deg, rgba(var(--soda-rgb), 0.08), rgba(var(--bubble-rgb), 0.04)),
+        rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(20px) saturate(1.5);
+      -webkit-backdrop-filter: blur(20px) saturate(1.5);
+      box-shadow: var(--vp-shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .artist-hero__avatar {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 50%;
+      background: var(--vp-c-bg-mute);
+      box-shadow: 0 14px 36px rgba(var(--soda-rgb), 0.22);
+    }
+
+    .album-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .album-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px;
+      border-radius: calc(var(--radius));
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      background: rgba(255, 255, 255, 0.48);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .album-card__cover {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 8px;
+      background: var(--vp-c-bg-mute);
+    }
+
+    .album-card__title {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .album-card__year {
+      margin: 0;
+      color: var(--vp-c-text-3);
+      font-size: 12px;
+    }
+
+    .track-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 18px 0 10px;
+    }
+
+    .track-toolbar__count {
+      color: var(--vp-c-text-3);
+      font-size: 13px;
+    }
+
+    .track-search {
+      position: relative;
+      flex: 1;
+      max-width: 240px;
+    }
+
+    .track-search i {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--vp-c-text-3);
+      font-size: 14px;
+    }
+
+    .track-search input {
+      width: 100%;
+      min-height: 34px;
+      padding: 6px 10px 6px 32px;
+      border: 1px solid rgba(var(--soda-rgb), 0.2);
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.6);
+      outline: none;
+    }
+
+    .track-search input:focus {
+      border-color: var(--vp-c-brand);
+      box-shadow: 0 0 0 3px var(--vp-c-brand-soft);
+      background: #fff;
+    }
+
+    .track-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: calc(var(--radius) + 2px);
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: var(--vp-shadow-1);
+    }
+
+    .track-item {
+      display: grid;
+      grid-template-columns: 36px 44px minmax(0, 1fr) 72px auto;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(var(--soda-rgb), 0.08);
+      transition: background 0.18s var(--ease);
+    }
+
+    .track-item:last-child {
+      border-bottom: 0;
+    }
+
+    .track-item:hover {
+      background: linear-gradient(90deg, rgba(var(--soda-rgb), 0.08), rgba(var(--bubble-rgb), 0.04));
+    }
+
+    .track-item__index {
+      color: var(--vp-c-brand);
+      font-size: 12.5px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+
+    .track-item__cover {
+      width: 44px;
+      height: 44px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: var(--vp-c-bg-mute);
+    }
+
+    .track-item__info {
+      min-width: 0;
+    }
+
+    .track-item__title {
+      margin: 0;
+      font-size: 13.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .track-item__artist {
+      margin: 2px 0 0;
+      color: var(--vp-c-text-3);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .track-item__duration {
+      color: var(--vp-c-text-3);
+      font-size: 12.5px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .preview-tag {
+      padding: 3px 7px;
+      border-radius: 6px;
+      color: #7a2a2a;
+      background: rgba(194, 12, 12, 0.08);
+      border: 1px solid rgba(194, 12, 12, 0.18);
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    /* —— Right Aside —— */
+    .vp-aside {
+      position: sticky;
+      top: calc(var(--nav-height) + 28px);
+      align-self: start;
+      max-height: calc(100vh - var(--nav-height) - 56px);
+      overflow: auto;
+      padding-left: 4px;
+    }
+
+    .vp-aside__title {
+      margin: 0 0 10px;
+      color: var(--vp-c-text-3);
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .vp-aside__link {
+      display: block;
+      padding: 5px 0 5px 12px;
+      border-left: 1px solid var(--vp-c-divider);
+      color: var(--vp-c-text-3);
+      font-size: 12.5px;
+      transition: color 0.18s, border-color 0.18s;
+    }
+
+    .vp-aside__link:hover,
+    .vp-aside__link.is-active {
+      color: var(--vp-c-brand);
+      border-left-color: var(--vp-c-brand);
+    }
+
+    .vp-aside__card {
+      margin-top: 28px;
+      padding: 16px 16px 16px 18px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(var(--soda-rgb), 0.12);
+      background: rgba(255, 255, 255, 0.62);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: inset 3px 0 0 var(--vp-c-brand);
+    }
+
+    .vp-aside__card h4 {
+      margin: 0 0 6px;
+      font-family: var(--font-display);
+      font-size: 13px;
+      color: var(--vp-c-brand);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .vp-aside__card p {
+      margin: 0;
+      color: var(--vp-c-text-3);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    /* —— Overlay (mobile sidebar) —— */
+    .vp-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(2px);
+    }
+
+    .vp-overlay.is-open {
+      display: block;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* —— Responsive —— */
+    @media (max-width: 1200px) {
+      .vp-content {
+        grid-template-columns: 1fr;
+        padding-right: 32px;
+      }
+
+      .vp-aside {
+        display: none;
+      }
+    }
+
+    @media (max-width: 960px) {
+      .vp-nav__links {
+        display: none;
+      }
+
+      .vp-nav__toggle {
+        display: grid;
+      }
+
+      .vp-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .vp-sidebar {
+        position: fixed;
+        top: var(--nav-height);
+        left: 0;
+        z-index: 95;
+        width: min(300px, 86vw);
+        transform: translateX(-105%);
+        transition: transform 0.28s var(--ease);
+        background: var(--vp-c-bg);
+        box-shadow: var(--vp-shadow-2);
+      }
+
+      .vp-sidebar.is-open {
+        transform: none;
+      }
+
+      .vp-content {
+        padding: 28px 20px 64px;
+      }
+
+      .vp-doc {
+        padding: 20px 18px 28px;
+        border-radius: var(--radius);
+      }
+
+      .song-card {
+        grid-template-columns: 1fr;
+        text-align: left;
+      }
+
+      .song-card__cover-wrap {
+        justify-self: start;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .track-item {
+        grid-template-columns: 28px 40px minmax(0, 1fr) auto;
+      }
+
+      .track-item__duration {
+        display: none;
+      }
+
+      .playlist-hero {
+        grid-template-columns: 96px 1fr;
+      }
+
+      .playlist-hero__cover {
+        width: 96px;
+        height: 96px;
+      }
+
+      .artist-hero {
+        grid-template-columns: 96px 1fr;
+      }
+
+      .artist-hero__avatar {
+        width: 96px;
+        height: 96px;
+      }
+
+      .album-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .vp-doc__title {
+        font-size: 1.85rem;
+      }
+
+      .parse-form__actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .track-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .track-search {
+        max-width: none;
+      }
+
+      .quality-item {
+        grid-template-columns: auto 1fr;
+        gap: 8px 12px;
+      }
+
+      .quality-item .btn {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+
+      .mode-segment {
+        grid-template-columns: 1fr 1fr;
+        border-radius: 16px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="vp-nav" role="banner">
+    <div class="vp-nav__inner">
+      <a class="vp-nav__brand" href="#song" aria-label="网易云音乐解析首页">
+        <span class="vp-nav__logo" aria-hidden="true"><i class="ri-netease-cloud-music-fill"></i></span>
+        <span class="vp-nav__title">网易云解析<span>Docs</span></span>
+      </a>
+
+      <nav class="vp-nav__links" aria-label="顶部导航">
+        <a class="vp-nav__link" href="https://music.163.com/" target="_blank" rel="noopener noreferrer">
+          <i class="ri-external-link-line"></i>网易云音乐
+        </a>
+      </nav>
+
+      <button class="vp-nav__toggle" type="button" id="sidebarToggle" aria-label="打开侧边栏" aria-expanded="false"
+        tabindex="0">
+        <i class="ri-menu-line"></i>
+      </button>
+    </div>
+  </header>
+
+  <div class="vp-overlay" id="sidebarOverlay" hidden></div>
+
+  <div class="vp-layout">
+    <aside class="vp-sidebar" id="sidebar" aria-label="文档侧边栏">
+      <div class="vp-sidebar__group">
+        <p class="vp-sidebar__heading">参考</p>
+        <a class="vp-sidebar__item" href="#guide-share">
+          <i class="ri-question-line"></i>如何获取分享链接
+        </a>
+        <a class="vp-sidebar__item" href="#guide-fields">
+          <i class="ri-list-check-2"></i>字段说明
+        </a>
+      </div>
+
+      <div class="vp-sidebar__meta">
+        <strong>原型说明</strong>
+        <p>本页为静态交互原型。点击「解析」会演示结果展示；接入后端后可改为真实接口。</p>
+      </div>
+    </aside>
+
+    <div class="vp-content">
+      <main class="vp-doc" id="parseDoc">
+        <div class="vp-doc__badge" id="docBadge"><i class="ri-sparkling-2-line"></i> Song Parse</div>
+        <h1 class="vp-doc__title" id="docTitle">单曲解析 <em>Song</em></h1>
+        <p class="vp-doc__lead" id="docLead">
+          粘贴网易云音乐分享链接，一键提取封面、艺人、专辑、音质地址与歌词，结构清晰、便于后续下载与二次处理。
+        </p>
+
+        <h2 class="vp-doc__section-title" id="parse-input"><span class="hash">#</span> 输入链接</h2>
+        <section class="parse-panel" aria-label="链接解析">
+          <div class="mode-segment" role="tablist" aria-label="解析类型" id="modeSegment">
+            <button class="mode-segment__item is-active" type="button" role="tab" id="tabSong" data-mode="song"
+              aria-selected="true" tabindex="0">
+              <i class="ri-music-2-line" aria-hidden="true"></i>单曲
+            </button>
+            <button class="mode-segment__item" type="button" role="tab" id="tabPlaylist" data-mode="playlist"
+              aria-selected="false" tabindex="-1">
+              <i class="ri-play-list-2-line" aria-hidden="true"></i>歌单
+            </button>
+            <button class="mode-segment__item" type="button" role="tab" id="tabAlbum" data-mode="album"
+              aria-selected="false" tabindex="-1">
+              <i class="ri-album-line" aria-hidden="true"></i>专辑
+            </button>
+            <button class="mode-segment__item" type="button" role="tab" id="tabArtist" data-mode="artist"
+              aria-selected="false" tabindex="-1">
+              <i class="ri-user-voice-line" aria-hidden="true"></i>歌手
+            </button>
+          </div>
+          <p class="parse-panel__hint" id="parseHint">
+            <i class="ri-information-line"></i>
+            <span>支持完整分享文案或纯链接，例如：<code>海阔天空 https://music.163.com/song?id=347230</code></span>
+          </p>
+          <form class="parse-form" id="parseForm">
+            <div>
+              <label class="parse-form__label" for="parseLink">分享链接</label>
+              <div class="parse-form__field">
+                <i class="ri-link" aria-hidden="true"></i>
+                <input class="parse-form__input" id="parseLink" type="text" name="shareLink" autocomplete="off"
+                  placeholder="粘贴网易云单曲分享链接…"
+                  value="海阔天空 https://music.163.com/song?id=347230"
+                  aria-label="单曲分享链接" />
+              </div>
+            </div>
+            <div class="parse-form__actions">
+              <button class="btn btn--primary" type="submit" id="parseBtn" aria-label="解析单曲">
+                <i class="ri-search-eye-line"></i>
+                <span>解析单曲</span>
+              </button>
+              <button class="btn btn--ghost" type="button" id="clearBtn" aria-label="清空">
+                <i class="ri-refresh-line"></i>清空
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <h2 class="vp-doc__section-title" id="parse-result"><span class="hash">#</span> 解析结果</h2>
+        <div class="state-empty is-visible" id="emptyState" aria-live="polite">
+          <i class="ri-music-2-line" id="emptyIcon"></i>
+          <span id="emptyText">解析结果将显示在这里</span>
+        </div>
+        <div class="state-error" id="errorState" role="alert"></div>
+
+        <div class="result" id="songResult" aria-live="polite">
+          <article class="song-card">
+            <div class="song-card__cover-wrap">
+              <div class="song-card__cover-glow" aria-hidden="true"></div>
+              <img class="song-card__cover" id="songCover" alt="专辑封面" src="" />
+            </div>
+            <div class="song-card__meta">
+              <span class="song-card__album" id="songAlbum">—</span>
+              <h3 class="song-card__title" id="songTitle">—</h3>
+              <div class="song-card__artist">
+                <img class="song-card__avatar" id="songArtistAvatar" alt="" />
+                <span id="songArtist">—</span>
+              </div>
+              <code class="song-card__id" id="songTrackId">songId</code>
+              <div class="song-card__actions">
+                <button class="btn btn--primary btn--sm" type="button" id="songCopyId" aria-label="复制歌曲 ID">
+                  <i class="ri-file-copy-line"></i>复制 ID
+                </button>
+                <button class="btn btn--ghost btn--sm" type="button" id="songCopyLrc" aria-label="复制歌词">
+                  <i class="ri-file-text-line"></i>复制歌词
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <div class="info-grid" id="songInfoGrid"></div>
+
+          <h2 class="vp-doc__section-title" id="song-quality"><span class="hash">#</span> 音质列表</h2>
+          <div class="quality-list" id="songQualityList"></div>
+
+          <h2 class="vp-doc__section-title" id="song-lyric"><span class="hash">#</span> 歌词</h2>
+          <pre class="lyric-box" id="songLyric"></pre>
+        </div>
+
+        <div class="result" id="playlistResult" aria-live="polite">
+          <header class="playlist-hero">
+            <img class="playlist-hero__cover" id="playlistCover" alt="歌单封面" src="" />
+            <div>
+              <h3 class="playlist-hero__title" id="playlistTitle">—</h3>
+              <p class="playlist-hero__owner" id="playlistOwner">—</p>
+              <div class="playlist-hero__stats">
+                <span class="stat-pill"><i class="ri-music-line"></i><span id="playlistCount">0</span> 首</span>
+                <span class="stat-pill"><i class="ri-hashtag"></i><span id="playlistId">—</span></span>
+              </div>
+            </div>
+          </header>
+
+          <div class="track-toolbar">
+            <span class="track-toolbar__count" id="trackVisibleCount">共 0 首</span>
+            <div class="track-search">
+              <i class="ri-search-line" aria-hidden="true"></i>
+              <input type="search" id="trackFilter" placeholder="筛选歌曲 / 艺人…" aria-label="筛选歌单曲目" />
+            </div>
+          </div>
+          <ul class="track-list" id="trackList"></ul>
+        </div>
+
+        <div class="result" id="albumResult" aria-live="polite">
+          <header class="playlist-hero">
+            <img class="playlist-hero__cover" id="albumCover" alt="专辑封面" src="" />
+            <div>
+              <h3 class="playlist-hero__title" id="albumTitle">—</h3>
+              <p class="playlist-hero__owner" id="albumArtist">—</p>
+              <div class="playlist-hero__stats">
+                <span class="stat-pill"><i class="ri-music-line"></i><span id="albumCount">0</span> 首</span>
+                <span class="stat-pill"><i class="ri-calendar-line"></i><span id="albumYear">—</span></span>
+                <span class="stat-pill"><i class="ri-hashtag"></i><span id="albumId">—</span></span>
+              </div>
+            </div>
+          </header>
+
+          <div class="track-toolbar">
+            <span class="track-toolbar__count" id="albumTrackVisibleCount">共 0 首</span>
+            <div class="track-search">
+              <i class="ri-search-line" aria-hidden="true"></i>
+              <input type="search" id="albumTrackFilter" placeholder="筛选歌曲 / 艺人…" aria-label="筛选专辑曲目" />
+            </div>
+          </div>
+          <ul class="track-list" id="albumTrackList"></ul>
+        </div>
+
+        <div class="result" id="artistResult" aria-live="polite">
+          <header class="artist-hero">
+            <img class="artist-hero__avatar" id="artistAvatar" alt="歌手头像" src="" />
+            <div>
+              <h3 class="playlist-hero__title" id="artistName">—</h3>
+              <p class="playlist-hero__owner" id="artistMeta">—</p>
+              <div class="playlist-hero__stats">
+                <span class="stat-pill"><i class="ri-music-line"></i><span id="artistSongCount">0</span> 单曲</span>
+                <span class="stat-pill"><i class="ri-album-line"></i><span id="artistAlbumCount">0</span> 张专辑</span>
+                <span class="stat-pill"><i class="ri-hashtag"></i><span id="artistId">—</span></span>
+              </div>
+            </div>
+          </header>
+
+          <h2 class="vp-doc__section-title" id="artist-hotsongs"><span class="hash">#</span> 热门歌曲</h2>
+          <div class="track-toolbar">
+            <span class="track-toolbar__count" id="artistTrackVisibleCount">共 0 首</span>
+            <div class="track-search">
+              <i class="ri-search-line" aria-hidden="true"></i>
+              <input type="search" id="artistTrackFilter" placeholder="筛选热门歌曲…" aria-label="筛选热门歌曲" />
+            </div>
+          </div>
+          <ul class="track-list" id="artistTrackList"></ul>
+
+          <h2 class="vp-doc__section-title" id="artist-albums"><span class="hash">#</span> 专辑</h2>
+          <div class="album-grid" id="artistAlbumGrid"></div>
+        </div>
+
+        <h2 class="vp-doc__section-title" id="guide-share"><span class="hash">#</span> 如何获取分享链接</h2>
+        <p style="color: var(--vp-c-text-2); margin: 0 0 10px;">
+          在网易云音乐 App 打开单曲、歌单、专辑或歌手页 → 分享 → 复制链接。可将整段文案直接粘贴到输入框。
+        </p>
+
+        <h2 class="vp-doc__section-title" id="guide-fields"><span class="hash">#</span> 字段说明</h2>
+        <p style="color: var(--vp-c-text-2); margin: 0;">
+          单曲对齐 <code>title / artist / album / cover / urls / lrc</code>；歌单对齐
+          <code>id / title / cover / owner / tracks</code>；专辑对齐
+          <code>id / name / artist / publishTime / tracks</code>；歌手对齐
+          <code>id / name / alias / hotSongs / albums</code>。
+        </p>
+      </main>
+
+      <aside class="vp-aside" id="pageAside" aria-label="本页目录">
+        <p class="vp-aside__title">On this page</p>
+        <nav id="tocNav"></nav>
+        <div class="vp-aside__card">
+          <h4>网易云音乐 · Docs</h4>
+          <p>朱漆红 #c20c0c 铺在宣纸底上，阴影走墨色，不靠金黄撑场。</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const PLACEHOLDER_COVER =
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">
+            <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop stop-color="#C20C0C"/><stop offset="0.62" stop-color="#8A0E0E"/><stop offset="1" stop-color="#4A1010"/>
+            </linearGradient></defs>
+            <rect width="300" height="300" fill="url(#g)"/>
+            <circle cx="150" cy="150" r="54" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="8"/>
+            <path d="M168 118v72a22 22 0 1 1-14-20.5V142l14-8z" fill="rgba(255,255,255,.88)"/>
+          </svg>`
+        );
+
+      const MODE_COPY = {
+        song: {
+          badgeHtml: '<i class="ri-sparkling-2-line"></i> Song Parse',
+          titleHtml: "单曲解析 <em>Song</em>",
+          lead: "粘贴网易云单曲分享链接，一键提取封面、艺人、专辑、音质地址与歌词，结构清晰、便于后续下载与二次处理。",
+          hintHtml:
+            '<i class="ri-information-line"></i><span>支持完整分享文案或纯链接，例如：<code>海阔天空 https://music.163.com/song?id=347230</code></span>',
+          placeholder: "粘贴网易云单曲分享链接…",
+          defaultLink: "海阔天空 https://music.163.com/song?id=347230",
+          parseLabel: "解析单曲",
+          inputAria: "单曲分享链接",
+          emptyIcon: "ri-music-2-line",
+          emptyText: "解析结果将显示在这里",
+        },
+        playlist: {
+          badgeHtml: '<i class="ri-play-list-add-line"></i> Playlist Parse',
+          titleHtml: "歌单解析 <em>Playlist</em>",
+          lead: "解析网易云歌单分享链接，展示歌单封面、创建者、曲目数量与完整歌曲列表，支持关键字快速筛选。",
+          hintHtml: '<i class="ri-information-line"></i><span>请使用歌单分享链接；单曲链接请切换到「单曲」。</span>',
+          placeholder: "粘贴网易云歌单分享链接…",
+          defaultLink: "https://music.163.com/playlist?id=3778678",
+          parseLabel: "解析歌单",
+          inputAria: "歌单分享链接",
+          emptyIcon: "ri-play-list-2-line",
+          emptyText: "解析结果将显示在这里",
+        },
+        album: {
+          badgeHtml: '<i class="ri-album-line"></i> Album Parse',
+          titleHtml: "专辑解析 <em>Album</em>",
+          lead: "解析网易云专辑页，展示封面、艺人、发行年份与完整曲目列表，结构和歌单一致、字段对齐专辑。",
+          hintHtml: '<i class="ri-information-line"></i><span>请使用专辑分享链接，例如：<code>https://music.163.com/album?id=31532</code></span>',
+          placeholder: "粘贴网易云专辑分享链接…",
+          defaultLink: "https://music.163.com/album?id=31532",
+          parseLabel: "解析专辑",
+          inputAria: "专辑分享链接",
+          emptyIcon: "ri-album-line",
+          emptyText: "解析结果将显示在这里",
+        },
+        artist: {
+          badgeHtml: '<i class="ri-user-voice-line"></i> Artist Parse',
+          titleHtml: "歌手解析 <em>Artist</em>",
+          lead: "解析网易云歌手页，展示头像、地区、热门歌曲与专辑列表，便于从艺人入口继续下钻。",
+          hintHtml: '<i class="ri-information-line"></i><span>请使用歌手主页分享链接，例如：<code>https://music.163.com/artist?id=3691</code></span>',
+          placeholder: "粘贴网易云歌手分享链接…",
+          defaultLink: "https://music.163.com/artist?id=3691",
+          parseLabel: "解析歌手",
+          inputAria: "歌手分享链接",
+          emptyIcon: "ri-user-voice-line",
+          emptyText: "解析结果将显示在这里",
+        },
+      };
+
+      /** 演示用歌曲数据（对齐 MusicInfo） */
+      const MOCK_SONG = {
+        trackId: "347230",
+        title: "海阔天空",
+        artist: "Beyond",
+        artists: [{ id: "1", name: "Beyond", avatar: PLACEHOLDER_COVER }],
+        album: "海阔天空",
+        cover: PLACEHOLDER_COVER,
+        urls: [
+          { quality: "standard", format: "mp3", size: 4128768, url: "https://example.com/std.mp3", encryptionMethod: "none" },
+          { quality: "higher", format: "mp3", size: 8257536, url: "https://example.com/high.mp3", encryptionMethod: "none" },
+          { quality: "lossless", format: "flac", size: 31256832, url: "https://example.com/flac.flac", encryptionMethod: "none" },
+        ],
+        lrc: `[ti:海阔天空]
+[ar:Beyond]
+[00:12.00]这是原型占位歌词
+[00:16.40]用来预览歌词盒的排版
+[00:21.10]朱漆红落在宣纸上
+[00:26.80]把分享链接轻轻放进输入框
+[00:32.00]封面、音质、歌词依次展开
+[00:36.50]像翻开一页云村文档`,
+        lrcText:
+          "这是原型占位歌词\n用来预览歌词盒的排版\n朱漆红落在宣纸上\n把分享链接轻轻放进输入框\n封面、音质、歌词依次展开\n像翻开一页云村文档",
+      };
+
+      /** 演示用歌单数据（对齐 PlaylistInfo） */
+      const MOCK_PLAYLIST = {
+        id: "3778678",
+        title: "云音乐热歌榜",
+        cover: PLACEHOLDER_COVER,
+        owner: "网易云音乐",
+        countTracks: 8,
+        tracks: [
+          { id: "t1", title: "海阔天空", artist: "Beyond", album: "海阔天空", cover: PLACEHOLDER_COVER, duration: 326, isPreviewOnly: false },
+          { id: "t2", title: "起风了", artist: "买辣椒也用券", album: "起风了", cover: PLACEHOLDER_COVER, duration: 311, isPreviewOnly: false },
+          { id: "t3", title: "消愁", artist: "毛不易", album: "平凡的一天", cover: PLACEHOLDER_COVER, duration: 265, isPreviewOnly: true, previewDuration: 30 },
+          { id: "t4", title: "如愿", artist: "王菲", album: "如愿", cover: PLACEHOLDER_COVER, duration: 278, isPreviewOnly: false },
+          { id: "t5", title: "光年之外", artist: "G.E.M. 邓紫棋", album: "光年之外", cover: PLACEHOLDER_COVER, duration: 235, isPreviewOnly: false },
+          { id: "t6", title: "告白气球", artist: "周杰伦", album: "周杰伦的床边故事", cover: PLACEHOLDER_COVER, duration: 215, isPreviewOnly: false },
+          { id: "t7", title: "体面", artist: "于文文", album: "体面", cover: PLACEHOLDER_COVER, duration: 251, isPreviewOnly: true, previewDuration: 30 },
+          { id: "t8", title: "孤勇者", artist: "陈奕迅", album: "孤勇者", cover: PLACEHOLDER_COVER, duration: 256, isPreviewOnly: false },
+        ],
+      };
+
+      const MOCK_ALBUM_TRACKS = [
+        { id: "a1", title: "海阔天空", artist: "Beyond", album: "海阔天空", cover: PLACEHOLDER_COVER, duration: 326, isPreviewOnly: false },
+        { id: "a2", title: "光辉岁月", artist: "Beyond", album: "海阔天空", cover: PLACEHOLDER_COVER, duration: 302, isPreviewOnly: false },
+        { id: "a3", title: "真的爱你", artist: "Beyond", album: "海阔天空", cover: PLACEHOLDER_COVER, duration: 278, isPreviewOnly: false },
+        { id: "a4", title: "喜欢你", artist: "Beyond", album: "海阔天空", cover: PLACEHOLDER_COVER, duration: 239, isPreviewOnly: false },
+        { id: "a5", title: "不再犹豫", artist: "Beyond", album: "海阔天空", cover: PLACEHOLDER_COVER, duration: 251, isPreviewOnly: true, previewDuration: 30 },
+        { id: "a6", title: "大地", artist: "Beyond", album: "海阔天空", cover: PLACEHOLDER_COVER, duration: 268, isPreviewOnly: false },
+        { id: "a7", title: "谁伴我闯荡", artist: "Beyond", album: "海阔天空", cover: PLACEHOLDER_COVER, duration: 244, isPreviewOnly: false },
+        { id: "a8", title: "灰色轨迹", artist: "Beyond", album: "海阔天空", cover: PLACEHOLDER_COVER, duration: 287, isPreviewOnly: false },
+      ];
+
+      /** 演示用专辑数据 */
+      const MOCK_ALBUM = {
+        id: "31532",
+        title: "海阔天空",
+        artist: "Beyond",
+        cover: PLACEHOLDER_COVER,
+        year: "1993",
+        company: "华星唱片",
+        countTracks: 8,
+        tracks: MOCK_ALBUM_TRACKS,
+      };
+
+      /** 演示用歌手数据 */
+      const MOCK_ARTIST = {
+        id: "3691",
+        name: "Beyond",
+        alias: "黄家驹 / 黄贯中 / 黄家强 / 叶世荣",
+        area: "香港",
+        avatar: PLACEHOLDER_COVER,
+        songCount: 186,
+        albumCount: 24,
+        hotSongs: [
+          { id: "h1", title: "海阔天空", artist: "Beyond", album: "海阔天空", cover: PLACEHOLDER_COVER, duration: 326, isPreviewOnly: false },
+          { id: "h2", title: "光辉岁月", artist: "Beyond", album: "海阔天空", cover: PLACEHOLDER_COVER, duration: 302, isPreviewOnly: false },
+          { id: "h3", title: "真的爱你", artist: "Beyond", album: "真的爱你", cover: PLACEHOLDER_COVER, duration: 278, isPreviewOnly: false },
+          { id: "h4", title: "喜欢你", artist: "Beyond", album: "秘密警察", cover: PLACEHOLDER_COVER, duration: 239, isPreviewOnly: false },
+          { id: "h5", title: "不再犹豫", artist: "Beyond", album: "命运派对", cover: PLACEHOLDER_COVER, duration: 251, isPreviewOnly: true, previewDuration: 30 },
+          { id: "h6", title: "大地", artist: "Beyond", album: "信念", cover: PLACEHOLDER_COVER, duration: 268, isPreviewOnly: false },
+          { id: "h7", title: "谁伴我闯荡", artist: "Beyond", album: "命运派对", cover: PLACEHOLDER_COVER, duration: 244, isPreviewOnly: false },
+          { id: "h8", title: "灰色轨迹", artist: "Beyond", album: "Continue The Struggle", cover: PLACEHOLDER_COVER, duration: 287, isPreviewOnly: false },
+        ],
+        albums: [
+          { id: "al1", title: "海阔天空", year: "1993", cover: PLACEHOLDER_COVER },
+          { id: "al2", title: "乐与怒", year: "1993", cover: PLACEHOLDER_COVER },
+          { id: "al3", title: "命运派对", year: "1990", cover: PLACEHOLDER_COVER },
+          { id: "al4", title: "Beyond IV", year: "1989", cover: PLACEHOLDER_COVER },
+        ],
+      };
+
+      const $ = (sel, root = document) => root.querySelector(sel);
+      const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+      const formatSize = (bytes = 0) => {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      };
+
+      const formatDuration = (sec = 0) => {
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${String(s).padStart(2, "0")}`;
+      };
+
+      const qualityLabel = (q) =>
+        ({ standard: "标准", higher: "较高", lossless: "无损", hq: "HQ" }[q] || q);
+
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      const copyText = async (text) => {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      const MODES = ["song", "playlist", "album", "artist"];
+      const RESULT_IDS = ["songResult", "playlistResult", "albumResult", "artistResult"];
+
+      let currentMode = "song";
+      let playlistTracks = [];
+      let albumTracks = [];
+      let artistTracks = [];
+
+      const hideAllResults = () => {
+        RESULT_IDS.forEach((id) => $(`#${id}`).classList.remove("is-visible"));
+      };
+
+      const resetResults = () => {
+        $("#emptyState").classList.add("is-visible");
+        $("#errorState").classList.remove("is-visible");
+        $("#errorState").textContent = "";
+        hideAllResults();
+        $("#trackFilter").value = "";
+        $("#albumTrackFilter").value = "";
+        $("#artistTrackFilter").value = "";
+        playlistTracks = [];
+        albumTracks = [];
+        artistTracks = [];
+      };
+
+      const applyModeCopy = (mode, { fillDefaultLink = true } = {}) => {
+        const copy = MODE_COPY[mode];
+        $("#docBadge").innerHTML = copy.badgeHtml;
+        $("#docTitle").innerHTML = copy.titleHtml;
+        $("#docLead").textContent = copy.lead;
+        $("#parseHint").innerHTML = copy.hintHtml;
+        const input = $("#parseLink");
+        input.placeholder = copy.placeholder;
+        input.setAttribute("aria-label", copy.inputAria);
+        if (fillDefaultLink) input.value = copy.defaultLink;
+        const btn = $("#parseBtn");
+        if (!btn.classList.contains("is-loading")) {
+          btn.innerHTML = `<i class="ri-search-eye-line"></i><span>${copy.parseLabel}</span>`;
+          btn.setAttribute("aria-label", copy.parseLabel);
+        }
+        const emptyIcon = $("#emptyIcon");
+        emptyIcon.className = copy.emptyIcon;
+        $("#emptyText").textContent = copy.emptyText;
+      };
+
+      const setMode = (mode, { fillDefaultLink = true } = {}) => {
+        currentMode = MODES.includes(mode) ? mode : "song";
+        $$("[data-mode]").forEach((el) => {
+          const active = el.dataset.mode === currentMode;
+          el.classList.toggle("is-active", active);
+          el.setAttribute("aria-selected", active ? "true" : "false");
+          el.tabIndex = active ? 0 : -1;
+        });
+        applyModeCopy(currentMode, { fillDefaultLink });
+        resetResults();
+        buildToc();
+        closeSidebar();
+        history.replaceState(null, "", `#${currentMode}`);
+      };
+
+      const sidebar = $("#sidebar");
+      const overlay = $("#sidebarOverlay");
+      const toggleBtn = $("#sidebarToggle");
+
+      const openSidebar = () => {
+        sidebar.classList.add("is-open");
+        overlay.hidden = false;
+        overlay.classList.add("is-open");
+        toggleBtn.setAttribute("aria-expanded", "true");
+        toggleBtn.setAttribute("aria-label", "关闭侧边栏");
+      };
+
+      const closeSidebar = () => {
+        sidebar.classList.remove("is-open");
+        overlay.classList.remove("is-open");
+        overlay.hidden = true;
+        toggleBtn.setAttribute("aria-expanded", "false");
+        toggleBtn.setAttribute("aria-label", "打开侧边栏");
+      };
+
+      toggleBtn.addEventListener("click", () => {
+        if (sidebar.classList.contains("is-open")) closeSidebar();
+        else openSidebar();
+      });
+      overlay.addEventListener("click", closeSidebar);
+
+      const buildToc = () => {
+        const nav = $("#tocNav");
+        if (!nav) return;
+        const headings = $$(".vp-doc__section-title[id]").filter((h) => {
+          const result = h.closest(".result");
+          if (!result) return true;
+          return result.classList.contains("is-visible");
+        });
+        nav.innerHTML = headings
+          .map(
+            (h) =>
+              `<a class="vp-aside__link" href="#${h.id}">${h.textContent.replace("#", "").trim()}</a>`
+          )
+          .join("");
+      };
+
+      const renderSong = (info) => {
+        $("#songCover").src = info.cover || PLACEHOLDER_COVER;
+        $("#songAlbum").textContent = info.album || "未知专辑";
+        $("#songTitle").textContent = info.title || "未知歌曲";
+        $("#songArtist").textContent = info.artist || "未知歌手";
+        $("#songTrackId").textContent = info.trackId || "—";
+
+        const avatar = info.artists?.[0]?.avatar;
+        const avatarEl = $("#songArtistAvatar");
+        if (avatar) {
+          avatarEl.src = avatar;
+          avatarEl.style.display = "";
+        } else {
+          avatarEl.style.display = "none";
+        }
+
+        $("#songInfoGrid").innerHTML = [
+          ["艺人", info.artist || "—"],
+          ["专辑", info.album || "—"],
+          ["音质数", `${info.urls?.length || 0} 档`],
+        ]
+          .map(
+            ([label, value]) => `
+          <div class="info-chip">
+            <span class="info-chip__label">${label}</span>
+            <span class="info-chip__value">${value}</span>
+          </div>`
+          )
+          .join("");
+
+        $("#songQualityList").innerHTML = (info.urls || [])
+          .map(
+            (u) => `
+          <div class="quality-item">
+            <span class="quality-item__badge">${qualityLabel(u.quality)}</span>
+            <span class="quality-item__meta">${(u.format || "").toUpperCase()} · ${formatSize(u.size)}</span>
+            <span class="quality-item__meta">${u.encryptionMethod || "none"}</span>
+            <button class="btn btn--ghost btn--sm" type="button" data-copy-url="${u.url}" aria-label="复制播放地址">
+              <i class="ri-link"></i>复制链接
+            </button>
+          </div>`
+          )
+          .join("");
+
+        $("#songLyric").textContent = info.lrcText || info.lrc || "暂无歌词";
+
+        $("#emptyState").classList.remove("is-visible");
+        $("#errorState").classList.remove("is-visible");
+        hideAllResults();
+        $("#songResult").classList.add("is-visible");
+        buildToc();
+      };
+
+      const renderTrackList = (tracks, { listId = "trackList", countId = "trackVisibleCount" } = {}) => {
+        $(`#${countId}`).textContent = `共 ${tracks.length} 首`;
+        $(`#${listId}`).innerHTML = tracks
+          .map(
+            (t, i) => `
+          <li class="track-item">
+            <span class="track-item__index">${String(i + 1).padStart(2, "0")}</span>
+            <img class="track-item__cover" src="${t.cover || PLACEHOLDER_COVER}" alt="" />
+            <div class="track-item__info">
+              <p class="track-item__title">${t.title || "未知歌曲"}</p>
+              <p class="track-item__artist">${t.artist || "未知艺人"}</p>
+            </div>
+            <span class="track-item__duration">${formatDuration(t.duration || 0)}</span>
+            ${
+              t.isPreviewOnly
+                ? `<span class="preview-tag">试听 ${t.previewDuration || 30}s</span>`
+                : `<button class="btn btn--ghost btn--sm" type="button" data-track-id="${t.id}" aria-label="查看歌曲 ${t.title}">
+                     <i class="ri-arrow-right-up-line"></i>查看
+                   </button>`
+            }
+          </li>`
+          )
+          .join("");
+      };
+
+      const showCollectionResult = (resultId) => {
+        $("#emptyState").classList.remove("is-visible");
+        $("#errorState").classList.remove("is-visible");
+        hideAllResults();
+        $(`#${resultId}`).classList.add("is-visible");
+        buildToc();
+      };
+
+      const renderPlaylist = (data) => {
+        playlistTracks = data.tracks || [];
+        $("#playlistCover").src = data.cover || PLACEHOLDER_COVER;
+        $("#playlistTitle").textContent = data.title || "未命名歌单";
+        $("#playlistOwner").textContent = `创建者 · ${data.owner || "未知"}`;
+        $("#playlistCount").textContent = String(data.countTracks ?? playlistTracks.length);
+        $("#playlistId").textContent = data.id || "—";
+        $("#trackFilter").value = "";
+        renderTrackList(playlistTracks);
+        showCollectionResult("playlistResult");
+      };
+
+      const renderAlbum = (data) => {
+        albumTracks = data.tracks || [];
+        $("#albumCover").src = data.cover || PLACEHOLDER_COVER;
+        $("#albumTitle").textContent = data.title || "未命名专辑";
+        $("#albumArtist").textContent = `${data.artist || "未知艺人"} · ${data.company || "未知厂牌"}`;
+        $("#albumCount").textContent = String(data.countTracks ?? albumTracks.length);
+        $("#albumYear").textContent = data.year || "—";
+        $("#albumId").textContent = data.id || "—";
+        $("#albumTrackFilter").value = "";
+        renderTrackList(albumTracks, { listId: "albumTrackList", countId: "albumTrackVisibleCount" });
+        showCollectionResult("albumResult");
+      };
+
+      const renderArtist = (data) => {
+        artistTracks = data.hotSongs || [];
+        $("#artistAvatar").src = data.avatar || PLACEHOLDER_COVER;
+        $("#artistName").textContent = data.name || "未知歌手";
+        $("#artistMeta").textContent = `${data.area || "未知地区"} · ${data.alias || ""}`;
+        $("#artistSongCount").textContent = String(data.songCount ?? artistTracks.length);
+        $("#artistAlbumCount").textContent = String(data.albumCount ?? data.albums?.length ?? 0);
+        $("#artistId").textContent = data.id || "—";
+        $("#artistTrackFilter").value = "";
+        renderTrackList(artistTracks, { listId: "artistTrackList", countId: "artistTrackVisibleCount" });
+        $("#artistAlbumGrid").innerHTML = (data.albums || [])
+          .map(
+            (al) => `
+          <article class="album-card">
+            <img class="album-card__cover" src="${al.cover || PLACEHOLDER_COVER}" alt="" />
+            <p class="album-card__title">${al.title || "未命名专辑"}</p>
+            <p class="album-card__year">${al.year || "—"}</p>
+            <button class="btn btn--ghost btn--sm" type="button" data-album-id="${al.id}" aria-label="查看专辑 ${al.title}">
+              <i class="ri-arrow-right-up-line"></i>查看
+            </button>
+          </article>`
+          )
+          .join("");
+        showCollectionResult("artistResult");
+      };
+
+      const setParseLoading = (loading) => {
+        const btn = $("#parseBtn");
+        const copy = MODE_COPY[currentMode];
+        btn.classList.toggle("is-loading", loading);
+        btn.innerHTML = loading
+          ? `<span class="spin" aria-hidden="true"></span><span>解析中…</span>`
+          : `<i class="ri-search-eye-line"></i><span>${copy.parseLabel}</span>`;
+        btn.disabled = loading;
+      };
+
+      const handleParse = async (e) => {
+        e.preventDefault();
+        const raw = $("#parseLink").value.trim();
+        if (!raw) {
+          $("#errorState").textContent = "请先粘贴分享链接";
+          $("#errorState").classList.add("is-visible");
+          $("#emptyState").classList.remove("is-visible");
+          hideAllResults();
+          buildToc();
+          return;
+        }
+
+        setParseLoading(true);
+        $("#errorState").classList.remove("is-visible");
+        await sleep(currentMode === "song" ? 700 : 780);
+        if (currentMode === "song") renderSong({ ...MOCK_SONG, cover: PLACEHOLDER_COVER });
+        else if (currentMode === "playlist") renderPlaylist(MOCK_PLAYLIST);
+        else if (currentMode === "album") renderAlbum(MOCK_ALBUM);
+        else renderArtist(MOCK_ARTIST);
+        setParseLoading(false);
+      };
+
+      const handleClear = () => {
+        $("#parseLink").value = "";
+        resetResults();
+        buildToc();
+        $("#parseLink").focus();
+      };
+
+      const flashCopied = (btn, okHtml, idleHtml) => {
+        btn.innerHTML = okHtml;
+        setTimeout(() => {
+          btn.innerHTML = idleHtml;
+        }, 1400);
+      };
+
+      $("#parseForm").addEventListener("submit", handleParse);
+      $("#clearBtn").addEventListener("click", handleClear);
+
+      $$("[data-mode]").forEach((btn) => {
+        btn.addEventListener("click", () => setMode(btn.dataset.mode));
+      });
+
+      $("#modeSegment").addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+        e.preventDefault();
+        const index = MODES.indexOf(currentMode);
+        const delta = e.key === "ArrowRight" ? 1 : -1;
+        const next = MODES[(index + delta + MODES.length) % MODES.length];
+        setMode(next);
+        $(`[data-mode="${next}"]`).focus();
+      });
+
+      $("#songCopyId").addEventListener("click", async () => {
+        const ok = await copyText($("#songTrackId").textContent);
+        flashCopied(
+          $("#songCopyId"),
+          ok ? `<i class="ri-check-line"></i>已复制` : `<i class="ri-file-copy-line"></i>复制 ID`,
+          `<i class="ri-file-copy-line"></i>复制 ID`
+        );
+      });
+
+      $("#songCopyLrc").addEventListener("click", async () => {
+        const ok = await copyText(MOCK_SONG.lrc || MOCK_SONG.lrcText || "");
+        flashCopied(
+          $("#songCopyLrc"),
+          ok ? `<i class="ri-check-line"></i>已复制` : `<i class="ri-file-text-line"></i>复制歌词`,
+          `<i class="ri-file-text-line"></i>复制歌词`
+        );
+      });
+
+      $("#songQualityList").addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-copy-url]");
+        if (!btn) return;
+        const ok = await copyText(btn.dataset.copyUrl);
+        flashCopied(
+          btn,
+          ok ? `<i class="ri-check-line"></i>已复制` : `<i class="ri-link"></i>复制链接`,
+          `<i class="ri-link"></i>复制链接`
+        );
+      });
+
+      const bindTrackFilter = (inputId, getTracks, listIds) => {
+        $(inputId).addEventListener("input", (e) => {
+          const q = e.target.value.trim().toLowerCase();
+          const tracks = getTracks();
+          if (!q) {
+            renderTrackList(tracks, listIds);
+            return;
+          }
+          renderTrackList(
+            tracks.filter(
+              (t) =>
+                (t.title || "").toLowerCase().includes(q) ||
+                (t.artist || "").toLowerCase().includes(q)
+            ),
+            listIds
+          );
+        });
+      };
+
+      bindTrackFilter("#trackFilter", () => playlistTracks);
+      bindTrackFilter("#albumTrackFilter", () => albumTracks, {
+        listId: "albumTrackList",
+        countId: "albumTrackVisibleCount",
+      });
+      bindTrackFilter("#artistTrackFilter", () => artistTracks, {
+        listId: "artistTrackList",
+        countId: "artistTrackVisibleCount",
+      });
+
+      $$('a[href^="#guide"]').forEach((a) => {
+        a.addEventListener("click", () => {
+          closeSidebar();
+        });
+      });
+
+      const hash = location.hash.replace("#", "");
+      if (MODES.includes(hash) && hash !== "song") setMode(hash);
+      else {
+        history.replaceState(null, "", "#song");
+        buildToc();
+      }
+
+      window.__neteaseProto = { setMode, MOCK_SONG, MOCK_PLAYLIST, MOCK_ALBUM, MOCK_ARTIST };
+    })();
+  </script>
+</body>
+
+</html>

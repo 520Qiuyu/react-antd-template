@@ -21,7 +21,7 @@ import {
 // ======================== 可调常量 ========================
 
 /** 要下载的歌单 json 路径（相对本脚本目录；也可 CLI 传参覆盖） */
-const DOWNLOAD_JSON_PATH = './车载DJ抖音热歌DJ8D全景环绕车载超重低音开车犯困必听嗨曲.json';
+const DOWNLOAD_JSON_PATH = './经典草原歌曲精选.json';
 /** 首选下载音质（缺失则按阶梯降级） */
 const PREFERRED_QUALITY = 'spatial' as const;
 /** 并发数 */

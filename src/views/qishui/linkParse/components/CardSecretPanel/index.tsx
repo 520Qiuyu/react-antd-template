@@ -8,7 +8,7 @@ import { useParseStore } from '../../store';
 import { maskCardSecret } from '../CardSecretModal';
 import styles from './index.module.less';
 import { useSearchParams } from '@/hooks/useSearchParams';
-import { getValidDaysExpireAt } from '@/views/qishui/cardSecret/utils/cardSecretTime';
+import { getValidDaysExpireAt } from '@/views/cardSecret/utils/cardSecretTime';
 
 /**
  * 侧栏卡密信息卡片（直接读取 parseStore）

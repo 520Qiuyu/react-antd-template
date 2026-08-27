@@ -1,0 +1,28 @@
+.sectionTitle {
+  display: flex;
+  flex-direction: column;
+
+  .title-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 36px 0 14px;
+    padding-top: 8px;
+    border-top: 1px solid var(--lp-divider);
+    font-size: 1.15rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+
+    .hash {
+      color: var(--lp-brand);
+      font-weight: 600;
+      opacity: 0.7;
+    }
+  }
+
+  &.first .title-container {
+    margin-top: 8px;
+    border-top: 0;
+    padding-top: 0;
+  }
+}
