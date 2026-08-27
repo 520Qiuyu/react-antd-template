@@ -19,8 +19,8 @@ const GuideSections: React.FC = () => {
       <DocSectionTitle title='字段说明' id='guide-fields'>
         <p className={docStyles['guideText']}>
           单曲对齐 <code>title / artist / album / cover / urls / lrc</code>；歌单对齐{' '}
-          <code>id / title / cover / owner / tracks</code>；专辑对齐{' '}
-          <code>id / name / artist / publishTime / tracks</code>；歌手对齐{' '}
+          <code>id / name / coverImgUrl / creator / trackCount / playCount / tags / songs</code>
+          ；专辑对齐 <code>id / name / artist / publishTime / tracks</code>；歌手对齐{' '}
           <code>id / name / alias / hotSongs / albums</code>。
         </p>
       </DocSectionTitle>

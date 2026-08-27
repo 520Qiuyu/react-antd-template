@@ -56,7 +56,13 @@ export interface NeteasePlaylistInfo {
   title: string;
   cover: string;
   owner: string;
+  ownerAvatar?: string;
   countTracks: number;
+  playCount?: number;
+  subscribedCount?: number;
+  description?: string | null;
+  tags?: string[];
+  createTime?: number;
   tracks: NeteaseTrack[];
 }
 

@@ -1,3 +1,11 @@
+import type {
+  NeteaseApiPrivilege,
+  NeteaseApiSong,
+  ParseNeteasePlaylistResponseData,
+} from '@/types/netease';
+import { PLACEHOLDER_COVER } from './mock';
+import type { NeteasePlaylistInfo, NeteaseTrack } from './types';
+
 /**
  * 格式化文件大小
  * @example
@@ -40,3 +48,88 @@ export const qualityLabel = (quality: string) => QUALITY_LABEL_MAP[quality] || q
  * await sleep(700)
  */
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * 将 http 封面升级为 https，避免混合内容
+ * @example
+ * toHttpsUrl('http://p1.music.126.net/a.jpg')
+ */
+export const toHttpsUrl = (url?: string) => {
+  if (!url) return '';
+  return url.replace(/^http:\/\//, 'https://');
+};
+
+/**
+ * 格式化播放量
+ * @example
+ * formatPlayCount(12345) // => '1.2万'
+ */
+export const formatPlayCount = (count = 0) => {
+  if (count < 10000) return String(count);
+  if (count < 100000000) {
+    const value = count / 10000;
+    const digits = value >= 100 ? 0 : 1;
+    return `${value.toFixed(digits).replace(/\.0$/, '')}万`;
+  }
+  return `${(count / 100000000).toFixed(1).replace(/\.0$/, '')}亿`;
+};
+
+/**
+ * 判断曲目是否仅可试听 / 无版权
+ * @example
+ * isNeteasePreviewOnly(song, privilege)
+ */
+const isNeteasePreviewOnly = (song: NeteaseApiSong, privilege?: NeteaseApiPrivilege) => {
+  if (song.noCopyrightRcmd) return true;
+  if (!privilege) return false;
+  if ((privilege.st ?? 0) < 0) return true;
+  if (privilege.pl === 0) return true;
+  return false;
+};
+
+/**
+ * 将网易云歌单解析接口数据映射为页面结构
+ * @example
+ * const playlist = mapNeteasePlaylistParseResult(res.data);
+ */
+export const mapNeteasePlaylistParseResult = (
+  data: ParseNeteasePlaylistResponseData | null | undefined,
+): NeteasePlaylistInfo | null => {
+  const playlist = data?.detail?.playlist;
+  if (!playlist?.id) return null;
+
+  const songs = data?.all?.songs?.length ? data.all.songs : playlist.tracks || [];
+  const privileges = data?.all?.privileges || data?.detail?.privileges || [];
+  const privilegeMap = new Map(privileges.map((item) => [item.id, item]));
+  const cover = toHttpsUrl(playlist.coverImgUrl) || PLACEHOLDER_COVER;
+
+  const tracks: NeteaseTrack[] = songs.map((song) => {
+    const privilege = privilegeMap.get(song.id);
+    const previewOnly = isNeteasePreviewOnly(song, privilege);
+    return {
+      id: String(song.id),
+      title: song.name || '未知歌曲',
+      artist: song.ar?.map((item) => item.name).filter(Boolean).join(' / ') || '未知艺人',
+      album: song.al?.name || '未知专辑',
+      cover: toHttpsUrl(song.al?.picUrl) || cover,
+      duration: Math.round((song.dt || 0) / 1000),
+      isPreviewOnly: previewOnly,
+      previewDuration: previewOnly ? 30 : undefined,
+    };
+  });
+
+  return {
+    id: String(playlist.id),
+    title: playlist.name || '未命名歌单',
+    cover,
+    owner: playlist.creator?.nickname || '未知',
+    ownerAvatar: toHttpsUrl(playlist.creator?.avatarUrl),
+    countTracks: playlist.trackCount ?? tracks.length,
+    playCount: playlist.playCount,
+    subscribedCount: playlist.subscribedCount,
+    description: playlist.description,
+    tags: playlist.tags || [],
+    createTime: playlist.createTime,
+    tracks,
+  };
+};

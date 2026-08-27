@@ -51,11 +51,7 @@ const NeteaseArtistPage: React.FC = () => {
         <>
           <ArtistHero data={parse.result} />
           <DocSectionTitle title='热门歌曲' id='artist-hotsongs'>
-            <TrackList
-              tracks={parse.result.hotSongs}
-              filterPlaceholder='筛选热门歌曲…'
-              filterAriaLabel='筛选热门歌曲'
-            />
+            <TrackList tracks={parse.result.hotSongs} />
           </DocSectionTitle>
           <DocSectionTitle title='专辑' id='artist-albums'>
             <AlbumGrid albums={parse.result.albums} />

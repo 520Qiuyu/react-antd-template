@@ -1,9 +1,11 @@
+import { reqParseNeteasePlaylist } from '@/apis';
 import { UnorderedListOutlined } from '@ant-design/icons';
 import ParsePageFrame from '../components/ParsePageFrame';
 import TrackList from '../components/TrackList';
 import { BASE_TOC_SECTIONS, GUIDE_TOC_SECTIONS, MODE_COPY } from '../constants';
 import { useNeteaseParse } from '../hooks/useNeteaseParse';
-import { MOCK_PLAYLIST } from '../mock';
+import type { NeteasePlaylistInfo } from '../types';
+import { mapNeteasePlaylistParseResult } from '../utils';
 import PlaylistHero from './components/PlaylistHero';
 
 /**
@@ -14,11 +16,20 @@ import PlaylistHero from './components/PlaylistHero';
  * ```
  */
 const NeteasePlaylistPage: React.FC = () => {
-  const parse = useNeteaseParse({
-    mock: MOCK_PLAYLIST,
+  const parse = useNeteaseParse<NeteasePlaylistInfo>({
     defaultLink: MODE_COPY.playlist.defaultLink,
     storageKey: 'netease-playlist-link',
-    delay: 780,
+    fetcher: async (shareLink) => {
+      const res = await reqParseNeteasePlaylist({ shareLink });
+      if (res.code !== 200) {
+        throw new Error(res.message || '解析失败');
+      }
+      const mapped = mapNeteasePlaylistParseResult(res.data);
+      if (!mapped) {
+        throw new Error('未解析到有效歌单信息');
+      }
+      return mapped;
+    },
   });
 
   const tocSections = useMemo(
@@ -42,7 +53,7 @@ const NeteasePlaylistPage: React.FC = () => {
       {parse.result ? (
         <>
           <PlaylistHero data={parse.result} />
-          <TrackList tracks={parse.result.tracks} filterAriaLabel='筛选歌单曲目' />
+          <TrackList tracks={parse.result.tracks} />
         </>
       ) : null}
     </ParsePageFrame>

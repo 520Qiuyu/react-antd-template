@@ -39,7 +39,7 @@ const NeteaseAlbumPage: React.FC = () => {
       {parse.result ? (
         <>
           <AlbumHero data={parse.result} />
-          <TrackList tracks={parse.result.tracks} filterAriaLabel='筛选专辑曲目' />
+          <TrackList tracks={parse.result.tracks} />
         </>
       ) : null}
     </ParsePageFrame>
