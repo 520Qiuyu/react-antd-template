@@ -1,6 +1,6 @@
 import { reqParseSongShareLink } from '@/apis';
 import { useSearchParams } from '@/hooks';
-import { confirm, msgError } from '@/utils/modal';
+import { confirm, msgError, msgSuccess } from '@/utils/modal';
 import { CustomerServiceOutlined, StarOutlined } from '@ant-design/icons';
 import type { SearchParams } from '../..';
 import { DEFAULT_SONG_LINK } from '../../constants';
@@ -52,6 +52,8 @@ const SongParseView: React.FC<SongParseViewProps> = () => {
             className: 'confirmCancel',
           },
         });
+        localStorage.setItem('playlist-link', link);
+        msgSuccess(`已为您自动填充歌单链接!`);
         return setSearchParams({ ...searchParams, currentView: 'playlist' });
       } catch (error) {
         console.log('error', error);
