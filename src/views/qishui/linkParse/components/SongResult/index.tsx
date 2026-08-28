@@ -1,3 +1,4 @@
+import { SongLyricBox as SharedSongLyricBox } from '@/components';
 import { useEmbedAudioMetadata } from '@/hooks';
 import type { MusicInfo, QishuiUrl } from '@/types/qishui';
 import copy from '@/utils/copy';
@@ -7,7 +8,6 @@ import {
   CopyOutlined,
   DownloadOutlined,
   LoadingOutlined,
-  SaveOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames';
@@ -260,57 +260,18 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
 
 /** 歌词展示 */
 export const SongLyricBox: React.FC<SongCardProps> = ({ data }) => {
-  const [lyricMode, setLyricMode] = useState<'lrc' | 'txt'>('lrc');
-  const { lrc, lrcText } = data;
-  const lyricText = lyricMode === 'lrc' ? lrc || '暂无歌词' : lrcText || '暂无歌词';
-
-  /** 保存歌词 */
-  const handleSaveLyric = () => {
-    try {
-      downloadSongLyric(data, lyricMode);
-      msgSuccess('歌词已保存');
-    } catch (error) {
-      msgError(error instanceof Error ? error.message : '暂无歌词可保存');
-    }
+  const handleSave = (mode: 'lrc' | 'txt') => {
+    downloadSongLyric(data, mode);
   };
 
   return (
-    <div className={styles['lyricWrap']}>
-      <div className={styles['lyricToolbar']}>
-        <div className={styles['lyricSegment']} role='tablist' aria-label='歌词格式'>
-          <button
-            className={classNames(styles['lyricSegmentItem'], {
-              [styles['lyricSegmentItemActive']]: lyricMode === 'lrc',
-            })}
-            type='button'
-            role='tab'
-            aria-selected={lyricMode === 'lrc'}
-            onClick={() => setLyricMode('lrc')}>
-            LRC
-          </button>
-          <button
-            className={classNames(styles['lyricSegmentItem'], {
-              [styles['lyricSegmentItemActive']]: lyricMode === 'txt',
-            })}
-            type='button'
-            role='tab'
-            aria-selected={lyricMode === 'txt'}
-            onClick={() => setLyricMode('txt')}>
-            TXT
-          </button>
-        </div>
-        <button
-          className={classNames(styles['btn'], styles['btnGhost'], styles['btnSm'])}
-          type='button'
-          aria-label='保存歌词'
-          disabled={!lyricText}
-          onClick={handleSaveLyric}>
-          <SaveOutlined />
-          保存
-        </button>
-      </div>
-      <pre className={styles['lyricBox']}>{lyricText}</pre>
-    </div>
+    <SharedSongLyricBox
+      theme='qishui'
+      lrc={data.lrc}
+      lrcText={data.lrcText}
+      filename={data.title}
+      onSave={handleSave}
+    />
   );
 };
 

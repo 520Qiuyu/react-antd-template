@@ -1,11 +1,13 @@
+import { reqParseNeteaseSong } from '@/apis';
+import { SongLyricBox } from '@/components';
 import { CustomerServiceOutlined, StarOutlined } from '@ant-design/icons';
 import DocSectionTitle from '../components/DocSectionTitle';
 import ParsePageFrame from '../components/ParsePageFrame';
 import { BASE_TOC_SECTIONS, GUIDE_TOC_SECTIONS, MODE_COPY } from '../constants';
 import { useNeteaseParse } from '../hooks/useNeteaseParse';
-import { MOCK_SONG } from '../mock';
-import type { TocSection } from '../types';
-import SongResult, { SongLyricBox, SongQualityList } from './components/SongResult';
+import type { NeteaseSongInfo, TocSection } from '../types';
+import { mapNeteaseSongParseResult } from '../utils';
+import SongResult, { SongQualityList } from './components/SongResult';
 
 /**
  * 网易云单曲解析
@@ -15,11 +17,20 @@ import SongResult, { SongLyricBox, SongQualityList } from './components/SongResu
  * ```
  */
 const NeteaseSongPage: React.FC = () => {
-  const parse = useNeteaseParse({
-    mock: MOCK_SONG,
+  const parse = useNeteaseParse<NeteaseSongInfo>({
     defaultLink: MODE_COPY.song.defaultLink,
     storageKey: 'netease-song-link',
-    delay: 700,
+    fetcher: async (shareLink) => {
+      const res = await reqParseNeteaseSong({ shareLink });
+      if (res.code !== 200) {
+        throw new Error(res.message || '解析失败');
+      }
+      const mapped = mapNeteaseSongParseResult(res.data);
+      if (!mapped) {
+        throw new Error('未解析到有效歌曲信息');
+      }
+      return mapped;
+    },
   });
 
   const tocSections = useMemo<TocSection[]>(() => {
@@ -52,7 +63,12 @@ const NeteaseSongPage: React.FC = () => {
             <SongQualityList urls={parse.result.urls} />
           </DocSectionTitle>
           <DocSectionTitle title='歌词' id='song-lyric'>
-            <SongLyricBox text={parse.result.lrcText || parse.result.lrc} />
+            <SongLyricBox
+              theme='netease'
+              lrc={parse.result.lrc}
+              lrcText={parse.result.lrcText}
+              filename={parse.result.title}
+            />
           </DocSectionTitle>
         </>
       ) : null}

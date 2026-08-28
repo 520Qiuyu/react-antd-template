@@ -77,3 +77,25 @@ export interface ParseNeteasePlaylistResponseData {
   detail: NeteasePlaylistDetailData | null;
   all: NeteasePlaylistTrackAllData | null;
 }
+
+/** 网易云单曲解析下载信息 */
+export interface ParseNeteaseSongUrl {
+  url: string | null;
+  size?: number;
+  type?: string | null;
+  encodeType?: string | null;
+  level?: string | null;
+}
+
+/** 网易云单曲解析歌词 */
+export interface ParseNeteaseSongLyric {
+  lrc: string;
+  lrcText: string;
+}
+
+/** 网易云单曲解析响应 */
+export interface ParseNeteaseSongResponseData {
+  song: NeteaseApiSong | null;
+  download: ParseNeteaseSongUrl | null;
+  lyric: ParseNeteaseSongLyric;
+}

@@ -159,19 +159,4 @@ export const SongQualityList: React.FC<SongQualityListProps> = ({ urls }) => {
   );
 };
 
-interface SongLyricBoxProps {
-  text: string;
-}
-
-/**
- * 歌词预览
- * @example
- * ```tsx
- * <SongLyricBox text={data.lrcText} />
- * ```
- */
-export const SongLyricBox: React.FC<SongLyricBoxProps> = ({ text }) => {
-  return <pre className={styles['lyricBox']}>{text || '暂无歌词'}</pre>;
-};
-
 export default SongResult;

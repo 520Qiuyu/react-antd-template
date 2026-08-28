@@ -1,4 +1,4 @@
-// 由d:\Documents\qishui-card-secret-system\frontend\scripts\generate-exports.js自动生成，请勿修改
+// 由D:\Documents\qishui-card-secret-system\frontend\scripts\generate-exports.js自动生成，请勿修改
 export { useAutoScroll} from './useAutoScroll.ts';
 export { useClickOutside} from './useClickOutside.ts';
 export { useCompRef} from './useCompRef.ts';

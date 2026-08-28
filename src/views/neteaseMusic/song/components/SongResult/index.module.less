@@ -196,31 +196,6 @@
   font-size: 12.5px;
 }
 
-.lyricBox {
-  margin-top: 12px;
-  max-height: 240px;
-  overflow: auto;
-  padding: 16px 18px;
-  border: 1px solid rgba(var(--lp-soda-rgb), 0.15);
-  border-radius: var(--lp-radius);
-  background: linear-gradient(180deg, rgba(var(--lp-soda-rgb), 0.05), rgba(255, 255, 255, 0.6));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  white-space: pre-wrap;
-  color: var(--lp-text-2);
-  font-size: 13.5px;
-  line-height: 1.8;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(var(--lp-soda-rgb), 0.3);
-    border-radius: 999px;
-  }
-}
-
 @media (max-width: 960px) {
   .songCard {
     grid-template-columns: 1fr;

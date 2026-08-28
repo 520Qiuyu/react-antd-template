@@ -2,9 +2,10 @@ import type {
   NeteaseApiPrivilege,
   NeteaseApiSong,
   ParseNeteasePlaylistResponseData,
+  ParseNeteaseSongResponseData,
 } from '@/types/netease';
 import { PLACEHOLDER_COVER } from './mock';
-import type { NeteasePlaylistInfo, NeteaseTrack } from './types';
+import type { NeteasePlaylistInfo, NeteaseSongInfo, NeteaseTrack, NeteaseUrl } from './types';
 
 /**
  * 格式化文件大小
@@ -31,7 +32,15 @@ export const formatDuration = (sec = 0) => {
 const QUALITY_LABEL_MAP: Record<string, string> = {
   standard: '标准',
   higher: '较高',
+  // cspell:ignore exhigh hires jyeffect jymaster
+  exhigh: '极高',
   lossless: '无损',
+  hires: 'Hi-Res',
+  jyeffect: '高清臻音',
+  jymaster: '超清母带',
+  sky: '沉浸环绕声',
+  vivid: '臻音全景声',
+  dolby: '杜比全景声',
   hq: 'HQ',
 };
 
@@ -131,5 +140,47 @@ export const mapNeteasePlaylistParseResult = (
     tags: playlist.tags || [],
     createTime: playlist.createTime,
     tracks,
+  };
+};
+
+/**
+ * 将网易云单曲解析接口数据映射为页面结构
+ * @example
+ * const song = mapNeteaseSongParseResult(res.data);
+ */
+export const mapNeteaseSongParseResult = (
+  data: ParseNeteaseSongResponseData | null | undefined,
+): NeteaseSongInfo | null => {
+  const song = data?.song;
+  if (!song?.id) return null;
+
+  const download = data?.download;
+  const artists = (song.ar || []).map((item) => ({
+    id: String(item.id),
+    name: item.name,
+    avatar: '',
+  }));
+  const urls: NeteaseUrl[] = download
+    ? [
+        {
+          quality: download.level || '',
+          format: download.encodeType || download.type || '',
+          size: download.size || 0,
+          url: toHttpsUrl(download.url || '') || download.url || '',
+          encryptionMethod: 'none',
+        },
+      ]
+    : [];
+
+  return {
+    trackId: String(song.id),
+    title: song.name || '未知歌曲',
+    artist: artists.map((item) => item.name).filter(Boolean).join(' / ') || '未知歌手',
+    artists,
+    album: song.al?.name || '未知专辑',
+    cover: toHttpsUrl(song.al?.picUrl) || PLACEHOLDER_COVER,
+    urls,
+    lrc: data?.lyric?.lrc || '',
+    lrcText: data?.lyric?.lrcText || '',
   };
 };
