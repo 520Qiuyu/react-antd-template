@@ -1,5 +1,7 @@
 import { reqParseNeteaseSong } from '@/apis';
 import { SongLyricBox } from '@/components';
+import { useSearchParams } from '@/hooks';
+import { msgError } from '@/utils/modal';
 import { CustomerServiceOutlined, StarOutlined } from '@ant-design/icons';
 import DocSectionTitle from '../components/DocSectionTitle';
 import ParsePageFrame from '../components/ParsePageFrame';
@@ -17,6 +19,7 @@ import SongResult, { SongQualityList } from './components/SongResult';
  * ```
  */
 const NeteaseSongPage: React.FC = () => {
+  const { searchParams } = useSearchParams<SearchParams>();
   const [link, setLink] = useLocalStorageState<string>('netease-song-link', {
     defaultValue: MODE_COPY.song.defaultLink,
   });
@@ -28,11 +31,17 @@ const NeteaseSongPage: React.FC = () => {
   const handleParse = async () => {
     try {
       setLoading(true);
+      if (!searchParams.cardSecret) {
+        return msgError('请先绑定卡密');
+      }
       setError('');
       if (!link?.trim()) {
         throw new Error('请先粘贴歌曲分享链接');
       }
-      const res = await reqParseNeteaseSong({ shareLink: link });
+      const res = await reqParseNeteaseSong({
+        shareLink: link,
+        cardSecret: searchParams.cardSecret,
+      });
       if (res.code !== 200) {
         throw new Error(res.message || '解析失败');
       }
@@ -99,3 +108,7 @@ const NeteaseSongPage: React.FC = () => {
 };
 
 export default NeteaseSongPage;
+
+export interface SearchParams {
+  cardSecret?: string;
+}

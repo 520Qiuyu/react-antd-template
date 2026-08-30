@@ -1,19 +1,39 @@
 import { reqGetCardSecretBySecret } from '@/apis';
 import { useSearchParams, useVisible } from '@/hooks';
+import { useParseStore } from '@/store';
 import eventBus from '@/utils/eventBus';
 import { KeyOutlined } from '@ant-design/icons';
 import { Input, Modal } from 'antd';
 import { useEffect, useState } from 'react';
-import { useParseStore } from '../../store';
 import styles from './index.module.less';
 
-interface CardSecretModalProps {}
+export type CardSecretModalTheme = 'qishui' | 'netease';
+
+interface CardSecretModalProps {
+  /** 配色主题：汽水绿 / 网易红 */
+  theme?: CardSecretModalTheme;
+}
 
 /**
- * 卡密输入弹窗
+ * 卡密脱敏展示
+ * @example
+ * maskCardSecret('ABCD1234') // '****1234'
  */
-const CardSecretModal: React.FC<CardSecretModalProps> = ({}) => {
-  const { searchParams, setSearchParams } = useSearchParams();
+export const maskCardSecret = (secret: string) => {
+  const text = secret.trim();
+  if (text.length <= 4) return '****';
+  return `****${text.slice(-4)}`;
+};
+
+/**
+ * 卡密绑定弹窗
+ * @example
+ * ```tsx
+ * <CardSecretModal theme='netease' />
+ * ```
+ */
+const CardSecretModal: React.FC<CardSecretModalProps> = ({ theme = 'qishui' }) => {
+  const { searchParams, setSearchParams } = useSearchParams<{ cardSecret?: string }>();
   const [input, setInput] = useState(searchParams.cardSecret || '');
   const { visible, open, close } = useVisible();
   const { setCardSecret } = useParseStore();
@@ -86,9 +106,8 @@ const CardSecretModal: React.FC<CardSecretModalProps> = ({}) => {
     }
   };
 
-  // 绑定卡密修改事件监听
   useEffect(() => {
-    const handleCardSecretChange = (type: 'edit' | 'bind') => {
+    const handleCardSecretChange = () => {
       open();
     };
     eventBus.on('cardSecretChange', handleCardSecretChange);
@@ -116,7 +135,7 @@ const CardSecretModal: React.FC<CardSecretModalProps> = ({}) => {
         body: { padding: 0 },
         container: { padding: 0 },
       }}>
-      <div className={styles['body']}>
+      <div className={styles['body']} data-theme={theme}>
         <div className={styles['icon']} aria-hidden='true'>
           <KeyOutlined />
         </div>
@@ -166,10 +185,3 @@ const CardSecretModal: React.FC<CardSecretModalProps> = ({}) => {
 };
 
 export default CardSecretModal;
-
-/** 卡密脱敏展示 */
-export const maskCardSecret = (secret: string) => {
-  const text = secret.trim();
-  if (text.length <= 4) return '****';
-  return `****${text.slice(-4)}`;
-};

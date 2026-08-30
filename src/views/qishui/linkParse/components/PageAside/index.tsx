@@ -1,5 +1,5 @@
+import { CardSecretPanel } from '@/components';
 import { type TocSection } from '../../store';
-import CardSecretPanel from '../CardSecretPanel';
 import styles from './index.module.less';
 
 interface PageAsideProps {
@@ -32,7 +32,7 @@ const PageAside: React.FC<PageAsideProps> = ({ sections }) => {
         ))}
       </nav>
 
-      <CardSecretPanel />
+      <CardSecretPanel theme='qishui' />
     </aside>
   );
 };

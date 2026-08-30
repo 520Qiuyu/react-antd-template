@@ -1,4 +1,4 @@
-export { useParseStore, type CardSecret, type TocSection } from './parseStore';
+export { useParseStore, type CardSecret, type TocSection } from '@/store';
 export {
   usePlaylistParseStore,
   type TrackDownloadInfo,

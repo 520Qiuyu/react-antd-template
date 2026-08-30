@@ -1,9 +1,9 @@
-import NeteaseParseLayout from '../components/NeteaseParseLayout';
-import { NeteaseParseProvider, useNeteaseParseContext } from '../components/NeteaseParseContext';
-import AlbumPage from '../album';
-import ArtistPage from '../artist';
-import PlaylistPage from '../playlist';
-import SongPage from '../song';
+import NeteaseParseLayout from './components/NeteaseParseLayout';
+import { NeteaseParseProvider, useNeteaseParseContext } from './components/NeteaseParseContext';
+import AlbumPage from './album';
+import ArtistPage from './artist';
+import PlaylistPage from './playlist';
+import SongPage from './song';
 
 /**
  * 按当前 Tab 渲染对应解析组件

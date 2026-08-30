@@ -1,6 +1,6 @@
+import { resolveDownloadBasename } from '@/hooks/useConfig';
 import type { EmbedAudioMetadataOptions, EmbedOutputFormat } from '@/hooks/useEmbedAudioMetadata';
 import { downloadBlob, getCoverBlob, getDownloadProgress } from '@/utils/download';
-import { resolveDownloadBasename } from '@/views/qishui/linkParse/downloadSong';
 import type { NeteaseSongInfo, NeteaseUrl } from './types';
 
 export type DownloadProgressPhase = 'downloading' | 'embedding';

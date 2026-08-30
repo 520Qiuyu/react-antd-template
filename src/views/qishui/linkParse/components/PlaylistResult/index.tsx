@@ -8,7 +8,7 @@ import { msgError, msgSuccess } from '@/utils/modal';
 import { downloadSongAudio, downloadSongLyric, runWithConcurrency } from '../../downloadSong';
 import { usePlaylistParseStore } from '../../store';
 import { isTrackParsed, mockParseDelay, pickDownloadUrl } from '../../utils';
-import EngineStatus from '../EngineStatus';
+import { EngineStatus } from '@/components';
 import PlaylistHero from './components/PlaylistHero';
 import TrackList from './components/TrackList';
 import styles from './index.module.less';
@@ -471,7 +471,7 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
 
   return (
     <div className={styles['result']} aria-live='polite'>
-      <EngineStatus />
+      <EngineStatus theme='qishui' />
       <PlaylistHero data={data} />
       <TrackList
         tracks={tracks}

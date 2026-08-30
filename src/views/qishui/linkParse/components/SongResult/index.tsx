@@ -13,7 +13,7 @@ import {
 import classNames from 'classnames';
 import { downloadSongAudio, downloadSongLyric } from '../../downloadSong';
 import { formatSize, qualityLabel } from '../../utils';
-import EngineStatus from '../EngineStatus';
+import { EngineStatus } from '@/components';
 import SongPlayer from '../SongPlayer';
 import VideoPlayer from '../VideoPlayer';
 import styles from './index.module.less';
@@ -296,7 +296,7 @@ interface SongResultProps {
 const SongResult: React.FC<SongResultProps> = ({ data }) => {
   return (
     <div className={styles['result']} aria-live='polite'>
-      <EngineStatus />
+      <EngineStatus theme='qishui' />
       <SongCard data={data} />
       <SongInfoGrid data={data} />
     </div>

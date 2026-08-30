@@ -1,7 +1,7 @@
 /** 网易云解析查询参数 */
 export interface ParseNeteaseShareLinkParams {
   shareLink: string;
-  cardSecret?: string;
+  cardSecret: string;
 }
 
 /** 网易云歌曲艺人 */
@@ -155,6 +155,7 @@ export type NeteaseSoundQualityLevel =
 export interface GetNeteaseSongDownloadParams {
   id: string;
   level?: NeteaseSoundQualityLevel;
+  cardSecret: string;
 }
 
 /** 网易云歌曲下载地址 */

@@ -1,5 +1,5 @@
 import { reqGetNeteaseSongDownload } from '@/apis';
-import { useEmbedAudioMetadata } from '@/hooks';
+import { useEmbedAudioMetadata, useSearchParams } from '@/hooks';
 import type { NeteaseSoundQualityLevel } from '@/types/netease';
 import copy from '@/utils/copy';
 import { msgError, msgSuccess } from '@/utils/modal';
@@ -24,6 +24,7 @@ import {
   qualityLabel,
 } from '../../../utils';
 import styles from './index.module.less';
+import type { SearchParams } from '../..';
 
 interface SongResultProps {
   data: NeteaseSongInfo;
@@ -128,7 +129,6 @@ const SongResult: React.FC<SongResultProps> = ({ data }) => {
  * formatQualityMeta(item) // => '320 kbps · 44.1 kHz · MP3 · 5.2 MB'
  */
 const formatQualityMeta = (item: NeteaseUrl) => {
-  console.log('item', item);
   const parts = [
     formatBitrate(item.br),
     formatSampleRate(item.sr),
@@ -139,6 +139,15 @@ const formatQualityMeta = (item: NeteaseUrl) => {
 };
 
 /**
+ * 拼接音质 ID
+ * @example
+ * formatQualityId(item) // => '320-mp3-0'
+ */
+const formatQualityId = (item: NeteaseUrl) => {
+  return `${item.quality}-${item.format}`;
+};
+
+/**
  * 音质列表
  * @example
  * ```tsx
@@ -146,18 +155,19 @@ const formatQualityMeta = (item: NeteaseUrl) => {
  * ```
  */
 export const SongQualityList: React.FC = () => {
+  const { searchParams } = useSearchParams<SearchParams>();
   const { result, setResult } = useSongParseStore();
-  const [parsingIndexs, setParsingIndexs] = useState<number[]>([]);
+  const [parsingIds, setParsingIds] = useState<string[]>([]);
   const [downloadStates, setDownloadStates] = useState<
     Record<
-      number,
+      string,
       { progress: number; status: 'idle' | 'downloading' | 'embedding' | 'done' | 'error' }
     >
   >({});
   const { embedMetadata } = useEmbedAudioMetadata();
 
   const patchDownloadState = (
-    index: number,
+    id: string,
     patch: Partial<{
       progress: number;
       status: 'idle' | 'downloading' | 'embedding' | 'done' | 'error';
@@ -165,24 +175,24 @@ export const SongQualityList: React.FC = () => {
   ) => {
     setDownloadStates((prev) => ({
       ...prev,
-      [index]: {
-        progress: prev[index]?.progress ?? 0,
-        status: prev[index]?.status ?? 'idle',
+      [id]: {
+        progress: prev[id]?.progress ?? 0,
+        status: prev[id]?.status ?? 'idle',
         ...patch,
       },
     }));
   };
 
-  const handleDownload = async (item: NeteaseUrl, index: number) => {
+  const handleDownload = async (item: NeteaseUrl, key: string) => {
     if (!result) return;
     if (!item.url) {
       msgError('缺少播放地址');
       return;
     }
-    const current = downloadStates[index]?.status;
+    const current = downloadStates[key]?.status;
     if (current === 'downloading' || current === 'embedding') return;
 
-    patchDownloadState(index, { progress: 0, status: 'downloading' });
+    patchDownloadState(key, { progress: 0, status: 'downloading' });
     try {
       await downloadNeteaseSongAudio({
         data: result,
@@ -190,20 +200,20 @@ export const SongQualityList: React.FC = () => {
         embedMetadata,
         onProgress: (phase, progress) => {
           if (phase === 'downloading') {
-            patchDownloadState(index, { progress, status: 'downloading' });
+            patchDownloadState(key, { progress, status: 'downloading' });
             return;
           }
-          patchDownloadState(index, {
+          patchDownloadState(key, {
             progress: Math.round(Math.min(100, Math.max(0, progress))),
             status: 'embedding',
           });
         },
       });
-      patchDownloadState(index, { progress: 100, status: 'done' });
+      patchDownloadState(key, { progress: 100, status: 'done' });
       msgSuccess('下载成功');
     } catch (error) {
       console.log('error', error);
-      patchDownloadState(index, { progress: 0, status: 'error' });
+      patchDownloadState(key, { progress: 0, status: 'error' });
       const message = error instanceof Error ? error.message : '下载失败（可能是 CORS）';
       const is403 = message.includes('403');
       if (is403) {
@@ -225,18 +235,23 @@ export const SongQualityList: React.FC = () => {
     }
   };
 
-  const handleParseUrl = async (item: NeteaseUrl, urlIndex: number) => {
+  const handleParseUrl = async (item: NeteaseUrl, key: string) => {
     const { trackId } = result || {};
     if (!trackId) return;
     if (!item.quality) {
       msgError('缺少音质档位');
       return;
     }
-    setParsingIndexs((prev) => [...prev, urlIndex]);
+    if (!searchParams.cardSecret) {
+      msgError('请先绑定卡密');
+      return;
+    }
+    setParsingIds((prev) => [...prev, key]);
     try {
       const res = await reqGetNeteaseSongDownload({
         id: trackId,
         level: item.quality as NeteaseSoundQualityLevel,
+        cardSecret: searchParams.cardSecret,
       });
       const download = res.data;
       if (res.code !== 200 || !download?.url) {
@@ -247,20 +262,21 @@ export const SongQualityList: React.FC = () => {
       if (!latestResult) return;
       setResult({
         ...latestResult,
-        urls: latestResult.urls?.map((row, rowIndex) =>
-          rowIndex === urlIndex ? applyNeteaseDownloadToUrl(row, download) : row,
-        ),
+        urls: latestResult.urls?.map((row) => {
+          const id = formatQualityId(row);
+          return id === key ? applyNeteaseDownloadToUrl(row, download) : row;
+        }),
       });
       msgSuccess('解析成功');
     } catch (error) {
       console.log('error', error);
       msgError('解析地址失败');
     } finally {
-      setParsingIndexs((prev) => prev.filter((index) => index !== urlIndex));
+      setParsingIds((prev) => prev.filter((id) => id !== key));
     }
   };
 
-  const urls = useMemo(() => result?.urls?.reverse() || [], [result]);
+  const urls = useMemo(() => [...(result?.urls || [])]?.reverse(), [result]);
 
   if (!urls.length) {
     return <p className={styles['qualityEmpty']}>暂无音质信息</p>;
@@ -268,18 +284,20 @@ export const SongQualityList: React.FC = () => {
 
   return (
     <div className={styles['qualityList']}>
-      {urls.map((item, index) => {
-        const downloadState = downloadStates[index];
+      {urls.map((item) => {
+        const key = formatQualityId(item);
+        const downloadState = downloadStates[key];
         const downloadStatus = downloadState?.status ?? 'idle';
         const downloadProgress = downloadState?.progress ?? 0;
         const downloading = downloadStatus === 'downloading' || downloadStatus === 'embedding';
+        const parsing = parsingIds.includes(key);
 
         return (
           <div
-            key={`${item.quality}-${item.format}-${index}`}
+            key={key}
             className={classNames(styles['qualityItem'], {
               [styles['qualityItemPlayable']]: item.playable,
-              [styles['qualityItemLoading']]: parsingIndexs.includes(index),
+              [styles['qualityItemLoading']]: parsingIds.includes(key),
               [styles['qualityItemProgress']]: downloading,
               [styles['qualityItemDone']]: downloadStatus === 'done',
               [styles['qualityItemError']]: downloadStatus === 'error',
@@ -309,7 +327,7 @@ export const SongQualityList: React.FC = () => {
                   type='button'
                   aria-label={`下载${qualityLabel(item.quality)}音质`}
                   disabled={downloading}
-                  onClick={() => handleDownload(item, index)}>
+                  onClick={() => handleDownload(item, key)}>
                   {downloading ? (
                     <LoadingOutlined />
                   ) : downloadStatus === 'done' ? (
@@ -337,7 +355,7 @@ export const SongQualityList: React.FC = () => {
                   className={classNames(shared['btn'], shared['btnGhost'], shared['btnSm'])}
                   type='button'
                   aria-label='重新解析'
-                  onClick={() => handleParseUrl(item, index)}>
+                  onClick={() => handleParseUrl(item, key)}>
                   重新解析
                 </button>
               </div>
@@ -351,9 +369,9 @@ export const SongQualityList: React.FC = () => {
                 )}
                 type='button'
                 aria-label={`解析${qualityLabel(item.quality)}音质地址`}
-                onClick={() => handleParseUrl(item, index)}>
-                {parsingIndexs.includes(index) ? <LoadingOutlined /> : <ThunderboltOutlined />}
-                {parsingIndexs.includes(index) ? '解析中' : '解析'}
+                onClick={() => handleParseUrl(item, key)}>
+                {parsing ? <LoadingOutlined /> : <ThunderboltOutlined />}
+                {parsing ? '解析中' : '解析'}
               </button>
             )}
           </div>

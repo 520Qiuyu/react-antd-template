@@ -1,3 +1,4 @@
+import { EngineStatus } from '@/components';
 import type { NeteaseModeCopy, TocSection } from '../../types';
 import { useNeteaseParseContext } from '../NeteaseParseContext';
 import DocSectionTitle from '../DocSectionTitle';
@@ -80,6 +81,7 @@ const ParsePageFrame: React.FC<ParsePageFrameProps> = ({
       </DocSectionTitle>
 
       <DocSectionTitle title='解析结果' id='parse-result'>
+        <EngineStatus theme='netease' />
         {!hasResult && !error ? (
           <ParseEmptyState icon={emptyIcon}>{copy.emptyText}</ParseEmptyState>
         ) : null}

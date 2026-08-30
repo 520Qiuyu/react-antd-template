@@ -1,15 +1,69 @@
+.wrap {
+  width: 100%;
+
+  &[data-theme='qishui'] {
+    --cp-soda-rgb: 0, 194, 122;
+    --cp-bubble-rgb: 0, 184, 212;
+    --cp-lemon-rgb: 255, 176, 32;
+    --cp-text-1: #0f1f18;
+    --cp-text-2: #3d5c50;
+    --cp-text-3: #6b8f82;
+    --cp-brand: #00c27a;
+    --cp-ok: #0b7a4f;
+    --cp-time: #087f8c;
+    --cp-count: #9a6700;
+    --cp-code-bg: rgba(15, 31, 24, 0.04);
+    --cp-gradient: linear-gradient(135deg, #00c27a 0%, #00c9a7 38%, #00b8d4 72%, #5ce1e6 100%);
+    --cp-gradient-mesh: linear-gradient(
+      135deg,
+      rgba(0, 194, 122, 0.14),
+      rgba(0, 184, 212, 0.1),
+      rgba(255, 176, 32, 0.08)
+    );
+    --cp-time-fill: linear-gradient(90deg, #00b8d4, #00c27a);
+    --cp-progress-fill: linear-gradient(90deg, #ffb020, #00c27a);
+    --cp-progress-glow: 0 0 10px rgba(255, 176, 32, 0.35);
+    --cp-shadow: 0 2px 8px rgba(0, 194, 122, 0.1);
+  }
+
+  &[data-theme='netease'] {
+    --cp-soda-rgb: 194, 12, 12;
+    --cp-bubble-rgb: 90, 18, 18;
+    --cp-lemon-rgb: 166, 124, 118;
+    --cp-text-1: #1a1414;
+    --cp-text-2: #5a504e;
+    --cp-text-3: #8a7d7a;
+    --cp-brand: #c20c0c;
+    --cp-ok: #9a0a0a;
+    --cp-time: #8a0e0e;
+    --cp-count: #8a5a54;
+    --cp-code-bg: rgba(26, 20, 20, 0.04);
+    --cp-gradient: linear-gradient(135deg, #c20c0c 0%, #8a0e0e 100%);
+    --cp-gradient-mesh: linear-gradient(
+      160deg,
+      rgba(194, 12, 12, 0.07),
+      rgba(255, 255, 255, 0.55) 55%,
+      rgba(90, 18, 18, 0.05)
+    );
+    --cp-time-fill: linear-gradient(90deg, #d41414, #8a0e0e);
+    --cp-progress-fill: linear-gradient(90deg, #a67c76, #c20c0c);
+    --cp-progress-glow: 0 0 10px rgba(194, 12, 12, 0.28);
+    --cp-shadow: 0 2px 10px rgba(26, 20, 20, 0.06);
+  }
+}
+
 .secretCard {
   position: relative;
   margin-top: 28px;
   padding: 16px;
-  border-radius: var(--lp-radius);
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.65);
   background:
     linear-gradient(160deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.38)),
-    var(--lp-gradient-mesh);
+    var(--cp-gradient-mesh);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: var(--lp-shadow-1);
+  box-shadow: var(--cp-shadow);
   overflow: hidden;
   animation: secretIn 0.45s ease both;
 
@@ -20,16 +74,16 @@
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--lp-soda-rgb), 0.22), transparent 70%);
+    background: radial-gradient(circle, rgba(var(--cp-soda-rgb), 0.22), transparent 70%);
     pointer-events: none;
   }
 
   &.isTime::before {
-    background: radial-gradient(circle, rgba(var(--lp-bubble-rgb), 0.24), transparent 70%);
+    background: radial-gradient(circle, rgba(var(--cp-bubble-rgb), 0.24), transparent 70%);
   }
 
   &.isCount::before {
-    background: radial-gradient(circle, rgba(255, 176, 32, 0.22), transparent 70%);
+    background: radial-gradient(circle, rgba(var(--cp-lemon-rgb), 0.22), transparent 70%);
   }
 
   &.isWarn {
@@ -62,8 +116,8 @@
   height: 36px;
   margin-bottom: 10px;
   border-radius: 12px;
-  color: var(--lp-brand);
-  background: rgba(var(--lp-soda-rgb), 0.12);
+  color: var(--cp-brand);
+  background: rgba(var(--cp-soda-rgb), 0.12);
   font-size: 16px;
 }
 
@@ -71,7 +125,7 @@
   margin: 0 0 6px;
   font-size: 13px;
   font-weight: 700;
-  background: var(--lp-gradient);
+  background: var(--cp-gradient);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -79,7 +133,7 @@
 
 .secretDesc {
   margin: 0;
-  color: var(--lp-text-3);
+  color: var(--cp-text-3);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -107,7 +161,7 @@
   padding: 0;
   border: none;
   border-radius: 6px;
-  color: var(--lp-text-3);
+  color: var(--cp-text-3);
   background: transparent;
   cursor: pointer;
   transition:
@@ -115,8 +169,8 @@
     background 0.2s ease;
 
   &:hover:not(:disabled) {
-    color: var(--lp-brand);
-    background: rgba(var(--lp-soda-rgb), 0.1);
+    color: var(--cp-brand);
+    background: rgba(var(--cp-soda-rgb), 0.1);
   }
 
   &:disabled {
@@ -137,13 +191,13 @@
 }
 
 .typeTime {
-  color: #087f8c;
-  background: rgba(var(--lp-bubble-rgb), 0.16);
+  color: var(--cp-time);
+  background: rgba(var(--cp-bubble-rgb), 0.16);
 }
 
 .typeCount {
-  color: #9a6700;
-  background: rgba(255, 176, 32, 0.18);
+  color: var(--cp-count);
+  background: rgba(var(--cp-lemon-rgb), 0.18);
 }
 
 .stateBadge {
@@ -157,8 +211,8 @@
   letter-spacing: 0.02em;
 
   &.ok {
-    color: #0b7a4f;
-    background: rgba(var(--lp-soda-rgb), 0.14);
+    color: var(--cp-ok);
+    background: rgba(var(--cp-soda-rgb), 0.14);
   }
 
   &.bad {
@@ -179,9 +233,9 @@
   font-weight: 600;
 
   &.ok {
-    color: #0b7a4f;
-    background: rgba(var(--lp-soda-rgb), 0.1);
-    border: 1px solid rgba(var(--lp-soda-rgb), 0.14);
+    color: var(--cp-ok);
+    background: rgba(var(--cp-soda-rgb), 0.1);
+    border: 1px solid rgba(var(--cp-soda-rgb), 0.14);
   }
 
   &.bad {
@@ -208,22 +262,22 @@
   margin-bottom: 14px;
   padding: 8px 10px;
   border-radius: 10px;
-  background: rgba(15, 31, 24, 0.04);
-  border: 1px solid rgba(var(--lp-soda-rgb), 0.08);
-  color: var(--lp-text-2);
+  background: var(--cp-code-bg);
+  border: 1px solid rgba(var(--cp-soda-rgb), 0.08);
+  color: var(--cp-text-2);
   font-size: 13px;
 
   code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-weight: 650;
     letter-spacing: 0.04em;
-    color: var(--lp-text-1);
+    color: var(--cp-text-1);
   }
+}
 
-  .editIcon {
-    cursor: pointer;
-    color: var(--lp-text-3);
-  }
+.editIcon {
+  cursor: pointer;
+  color: var(--cp-text-3);
 }
 
 .metricBlock {
@@ -232,14 +286,14 @@
 
 .metricLabel {
   margin-bottom: 4px;
-  color: var(--lp-text-3);
+  color: var(--cp-text-3);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
 }
 
 .metricValue {
-  color: var(--lp-text-1);
+  color: var(--cp-text-1);
   font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -248,14 +302,14 @@
 .timeBar {
   height: 6px;
   border-radius: 999px;
-  background: rgba(var(--lp-bubble-rgb), 0.12);
+  background: rgba(var(--cp-bubble-rgb), 0.12);
   overflow: hidden;
 }
 
 .timeBarFill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #00b8d4, #00c27a);
+  background: var(--cp-time-fill);
   transition: width 0.4s ease;
 
   &.isFull {
@@ -281,21 +335,21 @@
 .countNum {
   font-size: 16px;
   font-weight: 750;
-  color: var(--lp-text-1);
+  color: var(--cp-text-1);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
 .countLabel {
   font-size: 10.5px;
-  color: var(--lp-text-3);
+  color: var(--cp-text-3);
   font-weight: 600;
 }
 
 .countDivider {
   width: 1px;
   height: 22px;
-  background: rgba(var(--lp-soda-rgb), 0.12);
+  background: rgba(var(--cp-soda-rgb), 0.12);
 }
 
 .progressWrap {
@@ -306,7 +360,7 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: 6px;
-  color: var(--lp-text-3);
+  color: var(--cp-text-3);
   font-size: 11px;
   font-weight: 600;
 }
@@ -314,15 +368,15 @@
 .progressBar {
   height: 7px;
   border-radius: 999px;
-  background: rgba(255, 176, 32, 0.14);
+  background: rgba(var(--cp-lemon-rgb), 0.14);
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #ffb020, #00c27a);
-  box-shadow: 0 0 10px rgba(255, 176, 32, 0.35);
+  background: var(--cp-progress-fill);
+  box-shadow: var(--cp-progress-glow);
   transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 
   &.isFull {
@@ -336,6 +390,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

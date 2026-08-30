@@ -39,7 +39,7 @@ export const formatDuration = (sec = 0) => {
  * @example
  * qualityLabel('lossless') // => '无损'
  */
-export const qualityLabel = (quality: string) => QUALITY_LABEL_MAP[quality] || quality;
+export const qualityLabel = (quality: string) => QUALITY_LABEL_MAP[quality]?.label || quality;
 
 /**
  * 格式化码率

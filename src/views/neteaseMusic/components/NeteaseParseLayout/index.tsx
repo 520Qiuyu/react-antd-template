@@ -1,4 +1,7 @@
-import { CustomerServiceOutlined, ExportOutlined, MenuOutlined } from '@ant-design/icons';
+import { CardSecretModal, maskCardSecret } from '@/components';
+import { useSearchParams } from '@/hooks';
+import eventBus from '@/utils/eventBus';
+import { CustomerServiceOutlined, ExportOutlined, KeyOutlined, MenuOutlined } from '@ant-design/icons';
 import classNames from 'classnames';
 import { NETEASE_HOME_URL } from '../../constants';
 import { useNeteaseParseContext } from '../NeteaseParseContext';
@@ -21,7 +24,10 @@ interface NeteaseParseLayoutProps {
  */
 const NeteaseParseLayout: React.FC<NeteaseParseLayoutProps> = ({ children }) => {
   const { tocSections, setMode } = useNeteaseParseContext();
+  const { searchParams } = useSearchParams<{ cardSecret?: string }>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const cardSecret = searchParams.cardSecret?.trim() || '';
+  const hasCardSecret = Boolean(cardSecret);
 
   const handleToggleSidebar = () => {
     setSidebarOpen((open) => !open);
@@ -42,6 +48,10 @@ const NeteaseParseLayout: React.FC<NeteaseParseLayoutProps> = ({ children }) => 
     });
   };
 
+  const handleOpenCardSecret = () => {
+    eventBus.emit('cardSecretChange', 'bind');
+  };
+
   return (
     <div className={styles['page']}>
       <header className={styles['nav']} role='banner'>
@@ -57,6 +67,17 @@ const NeteaseParseLayout: React.FC<NeteaseParseLayoutProps> = ({ children }) => 
             <span className={styles['brandTitle']}>
               网易云解析<span>Docs</span>
             </span>
+          </button>
+
+          <button
+            className={classNames(styles['cardSecretChip'], {
+              [styles['isBound']]: hasCardSecret,
+            })}
+            type='button'
+            aria-label={hasCardSecret ? '更换卡密' : '绑定卡密'}
+            onClick={handleOpenCardSecret}>
+            <KeyOutlined />
+            <span>{hasCardSecret ? maskCardSecret(cardSecret) : '未绑定卡密'}</span>
           </button>
 
           <nav className={styles['navLinks']} aria-label='顶部导航'>
@@ -98,6 +119,8 @@ const NeteaseParseLayout: React.FC<NeteaseParseLayoutProps> = ({ children }) => 
           <PageAside sections={tocSections} />
         </div>
       </div>
+
+      <CardSecretModal theme='netease' />
     </div>
   );
 };

@@ -184,6 +184,37 @@
   }
 }
 
+.qualityItemPlayable {
+  border-color: rgba(var(--lp-soda-rgb), 0.4);
+  background: linear-gradient(145deg, rgba(var(--lp-soda-rgb), 0.1), rgba(255, 255, 255, 0.55));
+}
+
+.qualityItemDone {
+  border-color: rgba(var(--lp-soda-rgb), 0.32);
+  background: linear-gradient(
+    90deg,
+    rgba(var(--lp-soda-rgb), 0.14),
+    rgba(var(--lp-bubble-rgb), 0.08)
+  );
+
+  &:hover {
+    background: linear-gradient(
+      90deg,
+      rgba(var(--lp-soda-rgb), 0.18),
+      rgba(var(--lp-bubble-rgb), 0.1)
+    );
+  }
+}
+
+.qualityItemError {
+  border-color: rgba(220, 70, 70, 0.35);
+  background: rgba(220, 70, 70, 0.08);
+
+  &:hover {
+    background: rgba(220, 70, 70, 0.12);
+  }
+}
+
 .qualityItemProgress {
   background: linear-gradient(
     to right,
@@ -202,29 +233,6 @@
       rgba(255, 255, 255, 0.75) 100%
     );
   }
-}
-
-.qualityItemDone {
-  border-color: rgba(34, 160, 107, 0.35);
-  background: linear-gradient(90deg, rgba(34, 160, 107, 0.28), rgba(34, 160, 107, 0.16));
-
-  &:hover {
-    background: linear-gradient(90deg, rgba(34, 160, 107, 0.34), rgba(34, 160, 107, 0.2));
-  }
-}
-
-.qualityItemError {
-  border-color: rgba(220, 70, 70, 0.35);
-  background: rgba(220, 70, 70, 0.08);
-
-  &:hover {
-    background: rgba(220, 70, 70, 0.12);
-  }
-}
-
-.qualityItemPlayable {
-  border-color: rgba(var(--lp-soda-rgb), 0.4);
-  background: linear-gradient(145deg, rgba(var(--lp-soda-rgb), 0.1), rgba(255, 255, 255, 0.55));
 }
 
 .qualityItemLoading {

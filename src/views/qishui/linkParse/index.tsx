@@ -1,4 +1,6 @@
+import { CardSecretModal, maskCardSecret } from '@/components';
 import { useEmbedAudioMetadata, useSearchParams } from '@/hooks';
+import { useParseStore } from '@/store';
 import eventBus from '@/utils/eventBus';
 import {
   AppstoreOutlined,
@@ -10,7 +12,6 @@ import {
 } from '@ant-design/icons';
 import classNames from 'classnames';
 import { useCallback } from 'react';
-import CardSecretModal, { maskCardSecret } from './components/CardSecretModal';
 import HelpFab from './components/HelpFab';
 import LinkParseSidebar from './components/LinkParseSidebar';
 import PageAside from './components/PageAside';
@@ -18,7 +19,6 @@ import PlaylistParseView from './components/PlaylistParseView';
 import SongParseView from './components/SongParseView';
 import { QISHUI_HOME_URL, type LinkParseView } from './constants';
 import styles from './index.module.less';
-import { useParseStore } from './store';
 
 const defaultSearchParams: SearchParams = {
   currentView: 'song',
@@ -128,7 +128,7 @@ const LinkParse: React.FC = () => {
         </div>
       </div>
 
-      <CardSecretModal />
+      <CardSecretModal theme='qishui' />
       <HelpFab />
     </div>
   );

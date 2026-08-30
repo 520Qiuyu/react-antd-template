@@ -1,14 +1,13 @@
 import { reqGetCardSecretBySecret } from '@/apis';
 import type { CardSecretDetail } from '@/types/cardSecret';
 import { create } from 'zustand';
-import { mockParseDelay } from '../utils';
 
 export interface TocSection {
   id: string;
   label: string;
 }
 
-/** 卡密信息（链接解析侧） */
+/** 卡密信息（解析页） */
 export type CardSecret = CardSecretDetail;
 
 interface ParseStoreState {
@@ -44,11 +43,10 @@ export const useParseStore = create<ParseStore>()((set) => ({
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
   toggleSidebarOpen: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   getCardSecret: async (cardSecret: string) => {
-    await mockParseDelay(1);
     const res = await reqGetCardSecretBySecret(cardSecret);
-    if (res.code === 200) {
-      set({ cardSecret: res.data! });
-      return res.data!;
+    if (res.code === 200 && res.data) {
+      set({ cardSecret: res.data });
+      return res.data;
     }
     return undefined;
   },

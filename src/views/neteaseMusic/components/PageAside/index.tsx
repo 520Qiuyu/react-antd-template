@@ -1,3 +1,4 @@
+import { CardSecretPanel } from '@/components';
 import type { TocSection } from '../../types';
 import styles from './index.module.less';
 
@@ -6,7 +7,7 @@ interface PageAsideProps {
 }
 
 /**
- * 页面右侧目录
+ * 页面右侧目录 + 卡密信息
  * @example
  * ```tsx
  * <PageAside sections={[{ id: 'parse-input', label: '输入链接' }]} />
@@ -34,10 +35,7 @@ const PageAside: React.FC<PageAsideProps> = ({ sections }) => {
           </a>
         ))}
       </nav>
-      <div className={styles['card']}>
-        <h4>网易云音乐 · Docs</h4>
-        <p>朱漆红 #c20c0c 铺在宣纸底上，阴影走墨色，不靠金黄撑场。</p>
-      </div>
+      <CardSecretPanel theme='netease' />
     </aside>
   );
 };

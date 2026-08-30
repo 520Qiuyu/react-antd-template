@@ -86,7 +86,7 @@ export const routes: IMenu[] = [
       {
         path: 'netease-music-parse',
         name: '网易云音乐解析',
-        component: lazy(() => import('@/views/neteaseMusic/parse')),
+        component: lazy(() => import('@/views/neteaseMusic')),
         hiddenLayout: true,
       },
     ],

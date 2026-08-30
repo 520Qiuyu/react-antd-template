@@ -2,13 +2,21 @@ import { useEmbedAudioMetadata } from '@/hooks';
 import { CheckCircleFilled, CloseCircleFilled, LoadingOutlined } from '@ant-design/icons';
 import styles from './index.module.less';
 
+export type EngineStatusTheme = 'qishui' | 'netease';
+
+interface EngineStatusProps {
+  /** 配色主题：汽水绿 / 网易红 */
+  theme?: EngineStatusTheme;
+}
+
 /**
- * 音频处理引擎（ffmpeg-wasm）加载状态提示
- *
- * @description
- * 只展示 WASM core 下载 / 就绪状态。内嵌封面歌词不写入共享状态，由下载流程自行处理。
+ * 音频处理引擎（ffmpeg-wasm）加载状态
+ * @example
+ * ```tsx
+ * <EngineStatus theme='netease' />
+ * ```
  */
-const EngineStatus: React.FC = () => {
+const EngineStatus: React.FC<EngineStatusProps> = ({ theme = 'qishui' }) => {
   const { status, loadStage, error, progress, loadFfmpeg } = useEmbedAudioMetadata();
 
   const banner = useMemo(() => {
@@ -50,7 +58,7 @@ const EngineStatus: React.FC = () => {
   };
 
   return (
-    <div className={styles['engine']} data-tone={banner.tone}>
+    <div className={styles['engine']} data-theme={theme} data-tone={banner.tone}>
       <span className={styles['engineIcon']}>{banner.icon}</span>
       <div className={styles['engineBody']}>
         <span className={styles['engineTitle']}>{banner.title}</span>
@@ -71,7 +79,11 @@ const EngineStatus: React.FC = () => {
         ) : null}
       </div>
       {banner.canRetry ? (
-        <button type='button' className={styles['engineRetry']} onClick={handleRetry}>
+        <button
+          type='button'
+          className={styles['engineRetry']}
+          aria-label='重试加载音频处理引擎'
+          onClick={handleRetry}>
           重试
         </button>
       ) : null}

@@ -1,19 +1,10 @@
-import { DEFAULT_CONFIG } from '@/hooks/useConfig';
+import { DEFAULT_CONFIG, resolveDownloadBasename } from '@/hooks/useConfig';
 import type { EmbedAudioMetadataOptions, EmbedOutputFormat } from '@/hooks/useEmbedAudioMetadata';
 import type { MusicInfo, QishuiUrl } from '@/types/qishui';
 import { downloadBlob, getCoverBlob, getDownloadProgress } from '@/utils/download';
 import { SodaAudioDecryptor } from '../../../utils/sodaDecryptor';
 
 export type DownloadProgressPhase = 'downloading' | 'decrypting' | 'embedding';
-
-export const DEFAULT_DOWNLOAD_NAME_FORMAT = '【歌名】-【歌手】';
-
-export interface DownloadNameParts {
-  index?: number;
-  title?: string;
-  album?: string;
-  artist?: string;
-}
 
 export interface DownloadSongAudioOptions {
   data: MusicInfo;
@@ -25,40 +16,8 @@ export interface DownloadSongAudioOptions {
   index?: number;
 }
 
-const sanitizeFilenamePart = (value: string) => value.replace(/[\\/:*?"<>|]/g, '_').trim();
-
 const START_RATIO = 0;
 const END_RATIO = 1;
-
-/**
- * 按配置模板解析下载文件名主体（不含扩展名）
- * @example
- * resolveDownloadBasename({ title: '晴天', artist: '周杰伦' })
- * // 默认模板 → '晴天-周杰伦'
- * resolveDownloadBasename({ index: 1, title: '晴天', artist: '周杰伦' }, '【序号】-【歌名】-【歌手】')
- * // → '1-晴天-周杰伦'
- */
-export const resolveDownloadBasename = (parts: DownloadNameParts, nameFormat?: string): string => {
-  const format =
-    nameFormat?.trim() ||
-    (typeof window !== 'undefined' && window.config?.downloadNameFormat?.trim()) ||
-    DEFAULT_CONFIG.downloadNameFormat ||
-    DEFAULT_DOWNLOAD_NAME_FORMAT;
-
-  const values: Record<string, string> = {
-    序号: parts.index == null ? '' : String(parts.index),
-    歌名: sanitizeFilenamePart(parts.title || '未知歌曲'),
-    专辑名: sanitizeFilenamePart(parts.album || '未知专辑'),
-    歌手: sanitizeFilenamePart(parts.artist || '未知歌手'),
-  };
-
-  const basename = format.replace(
-    /【(序号|歌名|专辑名|歌手)】/g,
-    (_, key: string) => values[key] ?? '',
-  );
-  const cleaned = basename.trim();
-  return cleaned || '未知歌曲';
-};
 
 export const buildSongFilename = (
   data: Pick<MusicInfo, 'title' | 'artist' | 'album'>,
