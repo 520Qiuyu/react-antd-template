@@ -4,8 +4,8 @@ import { CustomerServiceOutlined, StarOutlined } from '@ant-design/icons';
 import DocSectionTitle from '../components/DocSectionTitle';
 import ParsePageFrame from '../components/ParsePageFrame';
 import { BASE_TOC_SECTIONS, GUIDE_TOC_SECTIONS, MODE_COPY } from '../constants';
-import { useNeteaseParse } from '../hooks/useNeteaseParse';
-import type { NeteaseSongInfo, TocSection } from '../types';
+import { useSongParseStore } from '../store/useSongParseStore';
+import type { TocSection } from '../types';
 import { mapNeteaseSongParseResult } from '../utils';
 import SongResult, { SongQualityList } from './components/SongResult';
 
@@ -17,11 +17,22 @@ import SongResult, { SongQualityList } from './components/SongResult';
  * ```
  */
 const NeteaseSongPage: React.FC = () => {
-  const parse = useNeteaseParse<NeteaseSongInfo>({
-    defaultLink: MODE_COPY.song.defaultLink,
-    storageKey: 'netease-song-link',
-    fetcher: async (shareLink) => {
-      const res = await reqParseNeteaseSong({ shareLink });
+  const [link, setLink] = useLocalStorageState<string>('netease-song-link', {
+    defaultValue: MODE_COPY.song.defaultLink,
+  });
+  const { result, setResult } = useSongParseStore();
+
+  /** 解析歌曲 */
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const handleParse = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      if (!link?.trim()) {
+        throw new Error('请先粘贴歌曲分享链接');
+      }
+      const res = await reqParseNeteaseSong({ shareLink: link });
       if (res.code !== 200) {
         throw new Error(res.message || '解析失败');
       }
@@ -29,19 +40,30 @@ const NeteaseSongPage: React.FC = () => {
       if (!mapped) {
         throw new Error('未解析到有效歌曲信息');
       }
-      return mapped;
-    },
-  });
+      setResult(mapped);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '解析失败');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  /** 清空 */
+  const handleClear = () => {
+    setLink('');
+    setResult(null);
+  };
+
+  /** 获取目录项 */
   const tocSections = useMemo<TocSection[]>(() => {
-    const extra: TocSection[] = parse.result
+    const extra: TocSection[] = result
       ? [
           { id: 'song-quality', label: '音质列表' },
           { id: 'song-lyric', label: '歌词' },
         ]
       : [];
     return [...BASE_TOC_SECTIONS, ...extra, ...GUIDE_TOC_SECTIONS];
-  }, [parse.result]);
+  }, [result]);
 
   return (
     <ParsePageFrame
@@ -49,25 +71,25 @@ const NeteaseSongPage: React.FC = () => {
       badgeIcon={<StarOutlined />}
       emptyIcon={<CustomerServiceOutlined />}
       tocSections={tocSections}
-      link={parse.link}
-      loading={parse.loading}
-      error={parse.error}
-      hasResult={Boolean(parse.result)}
-      onChange={parse.setLink}
-      onSubmit={parse.handleParse}
-      onClear={parse.handleClear}>
-      {parse.result ? (
+      link={link || ''}
+      loading={loading}
+      error={error}
+      hasResult={Boolean(result)}
+      onChange={setLink}
+      onSubmit={handleParse}
+      onClear={handleClear}>
+      {result ? (
         <>
-          <SongResult data={parse.result} />
+          <SongResult data={result} />
           <DocSectionTitle title='音质列表' id='song-quality'>
-            <SongQualityList urls={parse.result.urls} />
+            <SongQualityList />
           </DocSectionTitle>
           <DocSectionTitle title='歌词' id='song-lyric'>
             <SongLyricBox
               theme='netease'
-              lrc={parse.result.lrc}
-              lrcText={parse.result.lrcText}
-              filename={parse.result.title}
+              lrc={result.lrc}
+              lrcText={result.lrcText}
+              filename={result.title}
             />
           </DocSectionTitle>
         </>

@@ -1,5 +1,3 @@
-import { sleep } from '../utils';
-
 type UseNeteaseParseOptions<T> = {
   defaultLink: string;
   delay?: number;
@@ -26,19 +24,19 @@ type UseNeteaseParseOptions<T> = {
  * });
  * ```
  */
-export const useNeteaseParse = <T,>({
-  mock,
+export const useNeteaseParse = <T>({
   fetcher,
   defaultLink,
-  delay = 700,
   storageKey,
 }: UseNeteaseParseOptions<T>) => {
-  const [link, setLink] = useLocalStorageState<string>(storageKey, {
+  const [link, setLink] = useLocalStorageState<string>(`${storageKey}-link`, {
     defaultValue: defaultLink,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<T | null>(null);
+  const [result, setResult] = useLocalStorageState<T | null>(`${storageKey}-result`, {
+    defaultValue: null,
+  });
 
   const handleParse = async () => {
     if (!link?.trim()) {
@@ -55,8 +53,6 @@ export const useNeteaseParse = <T,>({
         setResult(data);
         return;
       }
-      await sleep(delay);
-      setResult(mock);
     } catch (err) {
       setResult(null);
       setError(err instanceof Error ? err.message : '解析失败，请稍后重试');
@@ -71,13 +67,9 @@ export const useNeteaseParse = <T,>({
     setError('');
   };
 
-  const handleLinkChange = (value: string) => {
-    setLink(value);
-  };
-
   return {
     link: link ?? '',
-    setLink: handleLinkChange,
+    setLink,
     loading,
     error,
     result,

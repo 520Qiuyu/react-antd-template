@@ -15,7 +15,13 @@ export interface NeteaseUrl {
   format: string;
   size: number;
   url: string;
-  encryptionMethod: string;
+  encryptionMethod?: string;
+  /** 码率（bps） */
+  br?: number;
+  /** 采样率（Hz） */
+  sr?: number;
+  /** 当前解析到的可播放档位 */
+  playable?: boolean;
 }
 
 /** 艺人摘要 */

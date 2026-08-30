@@ -18,7 +18,9 @@ const GuideSections: React.FC = () => {
       </DocSectionTitle>
       <DocSectionTitle title='字段说明' id='guide-fields'>
         <p className={docStyles['guideText']}>
-          单曲对齐 <code>title / artist / album / cover / urls / lrc</code>；歌单对齐{' '}
+          单曲对齐 <code>title / artist / album / cover / urls / lrc</code>
+          ，其中 <code>urls</code> 来自解析接口的 <code>quality</code> 全档位（含码率、采样率、体积），当前可播档位会挂上{' '}
+          <code>download</code> 地址；歌单对齐{' '}
           <code>id / name / coverImgUrl / creator / trackCount / playCount / tags / songs</code>
           ；专辑对齐 <code>id / name / artist / publishTime / tracks</code>；歌手对齐{' '}
           <code>id / name / alias / hotSongs / albums</code>。

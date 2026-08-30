@@ -1,9 +1,14 @@
 import type {
   NeteaseApiPrivilege,
   NeteaseApiSong,
+  NeteaseSongDownloadData,
+  NeteaseSongQualityData,
+  NeteaseSongQualityItem,
   ParseNeteasePlaylistResponseData,
   ParseNeteaseSongResponseData,
+  ParseNeteaseSongUrl,
 } from '@/types/netease';
+import { QUALITY_LABEL_MAP, QUALITY_SLOT_ORDER } from './constants/index';
 import { PLACEHOLDER_COVER } from './mock';
 import type { NeteasePlaylistInfo, NeteaseSongInfo, NeteaseTrack, NeteaseUrl } from './types';
 
@@ -29,27 +34,120 @@ export const formatDuration = (sec = 0) => {
   return `${m}:${String(s).padStart(2, '0')}`;
 };
 
-const QUALITY_LABEL_MAP: Record<string, string> = {
-  standard: '标准',
-  higher: '较高',
-  // cspell:ignore exhigh hires jyeffect jymaster
-  exhigh: '极高',
-  lossless: '无损',
-  hires: 'Hi-Res',
-  jyeffect: '高清臻音',
-  jymaster: '超清母带',
-  sky: '沉浸环绕声',
-  vivid: '臻音全景声',
-  dolby: '杜比全景声',
-  hq: 'HQ',
-};
-
 /**
  * 音质标签文案
  * @example
  * qualityLabel('lossless') // => '无损'
  */
 export const qualityLabel = (quality: string) => QUALITY_LABEL_MAP[quality] || quality;
+
+/**
+ * 格式化码率
+ * @example
+ * formatBitrate(320000) // => '320 kbps'
+ */
+export const formatBitrate = (br = 0) => {
+  if (!br) return '';
+  if (br < 1000) return `${br} kbps`;
+  return `${Math.round(br / 1000)} kbps`;
+};
+
+/**
+ * 格式化采样率
+ * @example
+ * formatSampleRate(44100) // => '44.1 kHz'
+ */
+export const formatSampleRate = (sr = 0) => {
+  if (!sr) return '';
+  if (sr < 1000) return `${sr} Hz`;
+  const khz = sr / 1000;
+  const digits = Number.isInteger(khz) ? 0 : 1;
+  return `${khz.toFixed(digits)} kHz`;
+};
+
+/**
+ * 将接口 quality 摊平为页面音质列表；download.level 对应档位会挂上可播地址
+ * @example
+ * flattenNeteaseQuality(data.quality, data.download)
+ */
+export const flattenNeteaseQuality = (
+  quality: NeteaseSongQualityData | null | undefined,
+  download?: ParseNeteaseSongUrl | null,
+): NeteaseUrl[] => {
+  const downloadLevel = download?.level || '';
+  const downloadUrl = toHttpsUrl(download?.url || '') || download?.url || '';
+  const downloadFormat = download?.encodeType || download?.type || '';
+
+  const toRow = (level: string, item: NeteaseSongQualityItem, attachUrl: boolean): NeteaseUrl => ({
+    quality: level,
+    format: item.it || (attachUrl ? downloadFormat : '') || '',
+    size: item.size || 0,
+    url: attachUrl ? downloadUrl : '',
+    encryptionMethod: 'none',
+    br: item.br,
+    sr: item.sr,
+    playable: attachUrl && Boolean(downloadUrl),
+  });
+
+  const rows: NeteaseUrl[] = [];
+
+  if (quality) {
+    for (const { slot, level } of QUALITY_SLOT_ORDER) {
+      if (slot === 'sk' && quality.sks?.length) {
+        const formatLower = downloadFormat.toLowerCase();
+        const matchIndex = quality.sks.findIndex(
+          (item) => item.it && formatLower && item.it.toLowerCase() === formatLower,
+        );
+        quality.sks.forEach((item, index) => {
+          const attach =
+            downloadLevel === 'sky' && (matchIndex >= 0 ? index === matchIndex : index === 0);
+          rows.push(toRow(level, item, attach));
+        });
+        continue;
+      }
+
+      const item = quality[slot];
+      if (!item) continue;
+      rows.push(toRow(level, item, downloadLevel === level));
+    }
+  }
+
+  if (rows.length) return rows;
+  if (!download) return [];
+
+  return [
+    {
+      quality: download.level || '',
+      format: downloadFormat,
+      size: download.size || 0,
+      url: downloadUrl,
+      encryptionMethod: 'none',
+      playable: Boolean(downloadUrl),
+    },
+  ];
+};
+
+/**
+ * 将下载接口结果写回音质行
+ * @example
+ * applyNeteaseDownloadToUrl(row, res.data)
+ */
+export const applyNeteaseDownloadToUrl = (
+  row: NeteaseUrl,
+  data: NeteaseSongDownloadData,
+): NeteaseUrl => {
+  const url = toHttpsUrl(data.url || '') || data.url || '';
+  return {
+    ...row,
+    url,
+    size: data.size || row.size,
+    format: data.type || row.format,
+    br: data.br || row.br,
+    sr: data.sr || row.sr,
+    quality: data.level || row.quality,
+    playable: Boolean(url),
+  };
+};
 
 /**
  * 延迟
@@ -118,7 +216,11 @@ export const mapNeteasePlaylistParseResult = (
     return {
       id: String(song.id),
       title: song.name || '未知歌曲',
-      artist: song.ar?.map((item) => item.name).filter(Boolean).join(' / ') || '未知艺人',
+      artist:
+        song.ar
+          ?.map((item) => item.name)
+          .filter(Boolean)
+          .join(' / ') || '未知艺人',
       album: song.al?.name || '未知专辑',
       cover: toHttpsUrl(song.al?.picUrl) || cover,
       duration: Math.round((song.dt || 0) / 1000),
@@ -154,28 +256,21 @@ export const mapNeteaseSongParseResult = (
   const song = data?.song;
   if (!song?.id) return null;
 
-  const download = data?.download;
   const artists = (song.ar || []).map((item) => ({
     id: String(item.id),
     name: item.name,
     avatar: '',
   }));
-  const urls: NeteaseUrl[] = download
-    ? [
-        {
-          quality: download.level || '',
-          format: download.encodeType || download.type || '',
-          size: download.size || 0,
-          url: toHttpsUrl(download.url || '') || download.url || '',
-          encryptionMethod: 'none',
-        },
-      ]
-    : [];
+  const urls = flattenNeteaseQuality(data?.quality, data?.download);
 
   return {
     trackId: String(song.id),
     title: song.name || '未知歌曲',
-    artist: artists.map((item) => item.name).filter(Boolean).join(' / ') || '未知歌手',
+    artist:
+      artists
+        .map((item) => item.name)
+        .filter(Boolean)
+        .join(' / ') || '未知歌手',
     artists,
     album: song.al?.name || '未知专辑',
     cover: toHttpsUrl(song.al?.picUrl) || PLACEHOLDER_COVER,

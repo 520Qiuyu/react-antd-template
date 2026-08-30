@@ -1,15 +1,28 @@
+import { reqGetNeteaseSongDownload } from '@/apis';
+import { useEmbedAudioMetadata } from '@/hooks';
+import type { NeteaseSoundQualityLevel } from '@/types/netease';
 import copy from '@/utils/copy';
 import { msgError, msgSuccess } from '@/utils/modal';
+import { useSongParseStore } from '@/views/neteaseMusic/store/useSongParseStore';
 import {
   CheckOutlined,
+  CloudDownloadOutlined,
   CopyOutlined,
   FileTextOutlined,
-  LinkOutlined,
+  LoadingOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import classNames from 'classnames';
 import shared from '../../../components/shared.module.less';
+import { downloadNeteaseSongAudio } from '../../../downloadSong';
 import type { NeteaseSongInfo, NeteaseUrl } from '../../../types';
-import { formatSize, qualityLabel } from '../../../utils';
+import {
+  applyNeteaseDownloadToUrl,
+  formatBitrate,
+  formatSampleRate,
+  formatSize,
+  qualityLabel,
+} from '../../../utils';
 import styles from './index.module.less';
 
 interface SongResultProps {
@@ -109,52 +122,243 @@ const SongResult: React.FC<SongResultProps> = ({ data }) => {
   );
 };
 
-interface SongQualityListProps {
-  urls: NeteaseUrl[];
-}
+/**
+ * 拼接音质元信息
+ * @example
+ * formatQualityMeta(item) // => '320 kbps · 44.1 kHz · MP3 · 5.2 MB'
+ */
+const formatQualityMeta = (item: NeteaseUrl) => {
+  console.log('item', item);
+  const parts = [
+    formatBitrate(item.br),
+    formatSampleRate(item.sr),
+    item.format ? item.format.toUpperCase() : '',
+    item.size ? formatSize(item.size) : '',
+  ].filter(Boolean);
+  return parts.join(' · ') || '—';
+};
 
 /**
  * 音质列表
  * @example
  * ```tsx
- * <SongQualityList urls={data.urls} />
+ * <SongQualityList trackId={data.trackId} urls={data.urls} />
  * ```
  */
-export const SongQualityList: React.FC<SongQualityListProps> = ({ urls }) => {
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+export const SongQualityList: React.FC = () => {
+  const { result, setResult } = useSongParseStore();
+  const [parsingIndexs, setParsingIndexs] = useState<number[]>([]);
+  const [downloadStates, setDownloadStates] = useState<
+    Record<
+      number,
+      { progress: number; status: 'idle' | 'downloading' | 'embedding' | 'done' | 'error' }
+    >
+  >({});
+  const { embedMetadata } = useEmbedAudioMetadata();
 
-  const handleCopyUrl = async (item: NeteaseUrl, index: number) => {
+  const patchDownloadState = (
+    index: number,
+    patch: Partial<{
+      progress: number;
+      status: 'idle' | 'downloading' | 'embedding' | 'done' | 'error';
+    }>,
+  ) => {
+    setDownloadStates((prev) => ({
+      ...prev,
+      [index]: {
+        progress: prev[index]?.progress ?? 0,
+        status: prev[index]?.status ?? 'idle',
+        ...patch,
+      },
+    }));
+  };
+
+  const handleDownload = async (item: NeteaseUrl, index: number) => {
+    if (!result) return;
+    if (!item.url) {
+      msgError('缺少播放地址');
+      return;
+    }
+    const current = downloadStates[index]?.status;
+    if (current === 'downloading' || current === 'embedding') return;
+
+    patchDownloadState(index, { progress: 0, status: 'downloading' });
+    try {
+      await downloadNeteaseSongAudio({
+        data: result,
+        item,
+        embedMetadata,
+        onProgress: (phase, progress) => {
+          if (phase === 'downloading') {
+            patchDownloadState(index, { progress, status: 'downloading' });
+            return;
+          }
+          patchDownloadState(index, {
+            progress: Math.round(Math.min(100, Math.max(0, progress))),
+            status: 'embedding',
+          });
+        },
+      });
+      patchDownloadState(index, { progress: 100, status: 'done' });
+      msgSuccess('下载成功');
+    } catch (error) {
+      console.log('error', error);
+      patchDownloadState(index, { progress: 0, status: 'error' });
+      const message = error instanceof Error ? error.message : '下载失败（可能是 CORS）';
+      const is403 = message.includes('403');
+      if (is403) {
+        msgError('下载失败,该下载链接已失效，请重新解析');
+        return;
+      }
+      msgError('下载失败');
+    }
+  };
+
+  const handleCopyUrl = async (item: NeteaseUrl) => {
     if (!item.url) return;
     try {
       await copy(item.url);
-      setCopiedIndex(index);
       msgSuccess('已复制播放地址');
-      setTimeout(() => setCopiedIndex(null), 1400);
     } catch (error) {
       console.log('error', error);
       msgError('复制失败');
     }
   };
 
+  const handleParseUrl = async (item: NeteaseUrl, urlIndex: number) => {
+    const { trackId } = result || {};
+    if (!trackId) return;
+    if (!item.quality) {
+      msgError('缺少音质档位');
+      return;
+    }
+    setParsingIndexs((prev) => [...prev, urlIndex]);
+    try {
+      const res = await reqGetNeteaseSongDownload({
+        id: trackId,
+        level: item.quality as NeteaseSoundQualityLevel,
+      });
+      const download = res.data;
+      if (res.code !== 200 || !download?.url) {
+        msgError(res.message || '解析地址失败');
+        return;
+      }
+      const latestResult = useSongParseStore.getState().result;
+      if (!latestResult) return;
+      setResult({
+        ...latestResult,
+        urls: latestResult.urls?.map((row, rowIndex) =>
+          rowIndex === urlIndex ? applyNeteaseDownloadToUrl(row, download) : row,
+        ),
+      });
+      msgSuccess('解析成功');
+    } catch (error) {
+      console.log('error', error);
+      msgError('解析地址失败');
+    } finally {
+      setParsingIndexs((prev) => prev.filter((index) => index !== urlIndex));
+    }
+  };
+
+  const urls = useMemo(() => result?.urls?.reverse() || [], [result]);
+
+  if (!urls.length) {
+    return <p className={styles['qualityEmpty']}>暂无音质信息</p>;
+  }
+
   return (
     <div className={styles['qualityList']}>
-      {urls.map((item, index) => (
-        <div key={`${item.quality}-${index}`} className={styles['qualityItem']}>
-          <span className={styles['qualityBadge']}>{qualityLabel(item.quality)}</span>
-          <span className={styles['qualityMeta']}>
-            {(item.format || '').toUpperCase()} · {formatSize(item.size)}
-          </span>
-          <span className={styles['qualityMeta']}>{item.encryptionMethod || 'none'}</span>
-          <button
-            className={classNames(shared['btn'], shared['btnGhost'], shared['btnSm'])}
-            type='button'
-            aria-label='复制播放地址'
-            onClick={() => handleCopyUrl(item, index)}>
-            {copiedIndex === index ? <CheckOutlined /> : <LinkOutlined />}
-            {copiedIndex === index ? '已复制' : '复制链接'}
-          </button>
-        </div>
-      ))}
+      {urls.map((item, index) => {
+        const downloadState = downloadStates[index];
+        const downloadStatus = downloadState?.status ?? 'idle';
+        const downloadProgress = downloadState?.progress ?? 0;
+        const downloading = downloadStatus === 'downloading' || downloadStatus === 'embedding';
+
+        return (
+          <div
+            key={`${item.quality}-${item.format}-${index}`}
+            className={classNames(styles['qualityItem'], {
+              [styles['qualityItemPlayable']]: item.playable,
+              [styles['qualityItemLoading']]: parsingIndexs.includes(index),
+              [styles['qualityItemProgress']]: downloading,
+              [styles['qualityItemDone']]: downloadStatus === 'done',
+              [styles['qualityItemError']]: downloadStatus === 'error',
+            })}
+            style={
+              downloading
+                ? ({ '--progress': `${downloadProgress}%` } as React.CSSProperties)
+                : undefined
+            }>
+            <span className={styles['qualityBadge']}>{qualityLabel(item.quality)}</span>
+            <span className={styles['qualityMeta']}>
+              {formatQualityMeta(item)}
+              {downloading
+                ? ` · ${downloadStatus === 'embedding' ? '写入中' : `${downloadProgress.toFixed(0)}%`}`
+                : null}
+              {downloadStatus === 'done' ? ' · 已完成' : null}
+            </span>
+            <span className={styles['qualityStatus']}>
+              {item.playable ? (
+                <span className={styles['qualityPlayableTag']}>当前可播</span>
+              ) : null}
+            </span>
+            {item.url ? (
+              <div className={styles['qualityActions']}>
+                <button
+                  className={classNames(shared['btn'], shared['btnGhost'], shared['btnSm'])}
+                  type='button'
+                  aria-label={`下载${qualityLabel(item.quality)}音质`}
+                  disabled={downloading}
+                  onClick={() => handleDownload(item, index)}>
+                  {downloading ? (
+                    <LoadingOutlined />
+                  ) : downloadStatus === 'done' ? (
+                    <CheckOutlined />
+                  ) : (
+                    <CloudDownloadOutlined />
+                  )}
+                  {downloading
+                    ? downloadStatus === 'embedding'
+                      ? '写入中'
+                      : '下载中'
+                    : downloadStatus === 'done'
+                      ? '已完成'
+                      : '下载'}
+                </button>
+                <button
+                  className={classNames(shared['btn'], shared['btnGhost'], shared['btnSm'])}
+                  type='button'
+                  aria-label='复制播放地址'
+                  onClick={() => handleCopyUrl(item)}>
+                  复制链接
+                </button>
+                {/* 重新解析 */}
+                <button
+                  className={classNames(shared['btn'], shared['btnGhost'], shared['btnSm'])}
+                  type='button'
+                  aria-label='重新解析'
+                  onClick={() => handleParseUrl(item, index)}>
+                  重新解析
+                </button>
+              </div>
+            ) : (
+              <button
+                className={classNames(
+                  shared['btn'],
+                  shared['btnGhost'],
+                  shared['btnSm'],
+                  styles['qualityCopy'],
+                )}
+                type='button'
+                aria-label={`解析${qualityLabel(item.quality)}音质地址`}
+                onClick={() => handleParseUrl(item, index)}>
+                {parsingIndexs.includes(index) ? <LoadingOutlined /> : <ThunderboltOutlined />}
+                {parsingIndexs.includes(index) ? '解析中' : '解析'}
+              </button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
