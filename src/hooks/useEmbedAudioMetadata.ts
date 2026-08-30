@@ -243,6 +243,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
       metadata,
       outputFormat = 'mp3',
       sourceCodec,
+      sourceBitrate,
       onProgress,
     }: EmbedAudioMetadataOptions) => {
       const inputExt = audioName.split('.').pop()?.toLowerCase();
@@ -274,11 +275,14 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
         if (coverExt) temporaryFiles.push(`cover.${coverExt}`);
 
         let ffmpeg: FFmpeg | null = null;
+        const probeLogs: string[] = [];
         reportEmbedProgress(0);
 
         try {
-          const handleLog: LogEventCallback = ({ message, type }) =>
+          const handleLog: LogEventCallback = ({ message, type }) => {
+            probeLogs.push(message);
             callbacksRef.current.onLog?.(message, type);
+          };
           const handleProgress: ProgressEventCallback = ({ progress: ratio }) => {
             reportEmbedProgress(Math.round(Math.min(1, Math.max(0, ratio)) * 100));
           };
@@ -293,6 +297,12 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
           if (cover && coverExt) {
             await ffmpeg.writeFile(`cover.${coverExt}`, await fetchFile(cover));
           }
+
+          console.time(audioName);
+          await ffmpeg.exec(['-hide_banner', '-i', sourceName]);
+          const bitrateKbps =
+            parseAudioBitrateKbps(probeLogs.join('\n')) ?? toBitrateKbps(sourceBitrate);
+          console.timeEnd(audioName);
 
           // 视频/MP4 容器：先按音轨 codec 抽到可 copy 的容器（AAC→m4a，FLAC→flac）
           let audioInputName = sourceName;
@@ -345,6 +355,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
             coverExt,
             metadata,
             outputFormat,
+            bitrateKbps,
           );
           temporaryFiles.push(outputName);
           console.log('args', args);
@@ -445,6 +456,8 @@ export interface EmbedAudioMetadataOptions {
    * 后端返回的音轨 codec（如 aac / flac）。FLAC-in-MP4 不能 copy 进 m4a。
    */
   sourceCodec?: EmbedSourceCodec;
+  /** 源文件码率（bps），探测失败时作为重编码码率 */
+  sourceBitrate?: number;
   /** 本次内嵌进度 0–100（ffmpeg.exec 过程） */
   onProgress?: (progress: number) => void;
 }
@@ -521,13 +534,42 @@ const normalizeCoverExt = (ext: string | null) => {
   return ext;
 };
 
-/** 按目标格式选择音频编码参数；同格式时可 copy，跨格式用高码率重编码 */
-const buildAudioCodecArgs = (outputFormat: EmbedOutputFormat, inputExt: string) => {
+/**
+ * 从 ffmpeg -i 日志里解析音轨码率（kb/s）
+ * @example
+ * parseAudioBitrateKbps('Stream #0:0: Audio: mp3, 44100 Hz, stereo, 128 kb/s') // 128
+ */
+const parseAudioBitrateKbps = (logText: string) => {
+  const audioMatch = logText.match(/Audio:.*?\b(\d+)\s*kb\/s/i);
+  if (audioMatch) return Number(audioMatch[1]);
+  const durationMatch = logText.match(/bitrate:\s*(\d+)\s*kb\/s/i);
+  if (durationMatch) return Number(durationMatch[1]);
+  return 320;
+};
+
+/**
+ * 将 bps 转为 kbps
+ * @example
+ * toBitrateKbps(128000) // 128
+ */
+const toBitrateKbps = (bps?: number) => {
+  if (!bps || bps <= 0) return null;
+  return Math.max(1, Math.round(bps / 1000));
+};
+
+/** 按目标格式选择音频编码参数；同格式 copy，跨格式沿用源码率且不超过 320k */
+const buildAudioCodecArgs = (
+  outputFormat: EmbedOutputFormat,
+  inputExt: string,
+  bitrateKbps: number = 320,
+) => {
+  const cappedKbps = Math.min(Math.max(1, bitrateKbps || 320), 320);
+  const bitrateArgs = ['-b:a', `${cappedKbps}k`];
   if (outputFormat === 'mp3') {
-    return inputExt === 'mp3' ? ['-c:a', 'copy'] : ['-c:a', 'libmp3lame', '-b:a', '320k'];
+    return inputExt === 'mp3' ? ['-c:a', 'copy'] : ['-c:a', 'libmp3lame', ...bitrateArgs];
   }
   if (outputFormat === 'm4a') {
-    return ['m4a', 'aac'].includes(inputExt) ? ['-c:a', 'copy'] : ['-c:a', 'aac', '-b:a', '320k'];
+    return ['m4a', 'aac'].includes(inputExt) ? ['-c:a', 'copy'] : ['-c:a', 'aac', ...bitrateArgs];
   }
   return inputExt === 'flac' ? ['-c:a', 'copy'] : ['-c:a', 'flac'];
 };
@@ -610,6 +652,7 @@ const buildFfmpegArgs = (
   coverExt: string | null,
   metadata: AudioMetadata,
   outputFormat: EmbedOutputFormat,
+  bitrateKbps: number = 320,
 ) => {
   const outputName = `output.${outputFormat}`;
   const hasCover = Boolean(coverExt);
@@ -621,7 +664,7 @@ const buildFfmpegArgs = (
     args.push('-map', '0:a:0');
   }
 
-  args.push(...buildAudioCodecArgs(outputFormat, inputExt));
+  args.push(...buildAudioCodecArgs(outputFormat, inputExt, bitrateKbps));
   args.push(...buildContainerArgs(outputFormat, coverExt));
   args.push(...buildMetadataArgs(metadata));
   args.push(outputName);

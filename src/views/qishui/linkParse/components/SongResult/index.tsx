@@ -122,21 +122,25 @@ export const SongInfoGrid: React.FC<SongCardProps> = ({ data }) => {
   );
 };
 
+type QualityDownloadStatus = 'idle' | 'downloading' | 'decrypting' | 'embedding' | 'done' | 'error';
+
+/**
+ * 是否处于下载 / 解密 / 写入过程中
+ * @example
+ * isDownloadBusy('embedding') // true
+ */
+const isDownloadBusy = (status: QualityDownloadStatus) =>
+  status === 'downloading' || status === 'decrypting' || status === 'embedding';
+
 /** 音质列表 */
 export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
   const [downloadStates, setDownloadStates] = useState<
-    Record<
-      number,
-      { progress: number; status: 'idle' | 'downloading' | 'decrypting' | 'done' | 'error' }
-    >
+    Record<number, { progress: number; status: QualityDownloadStatus }>
   >({});
 
   const patchDownloadState = (
     index: number,
-    patch: Partial<{
-      progress: number;
-      status: 'idle' | 'downloading' | 'decrypting' | 'done' | 'error';
-    }>,
+    patch: Partial<{ progress: number; status: QualityDownloadStatus }>,
   ) => {
     setDownloadStates((prev) => ({
       ...prev,
@@ -159,10 +163,7 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
       msgError('缺少播放地址');
       return;
     }
-    if (
-      downloadStates[index]?.status === 'downloading' ||
-      downloadStates[index]?.status === 'decrypting'
-    ) {
+    if (isDownloadBusy(downloadStates[index]?.status ?? 'idle')) {
       return;
     }
 
@@ -173,7 +174,8 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
         data,
         item,
         embedMetadata,
-        onProgress: (phase, progress) => {
+        onProgress: (phase, ratio) => {
+          const progress = Math.round(Math.min(1, Math.max(0, ratio)) * 100);
           if (phase === 'downloading') {
             patchDownloadState(index, { progress, status: 'downloading' });
             return;
@@ -183,10 +185,8 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
             return;
           }
           if (phase === 'embedding') {
-            patchDownloadState(index, {
-              progress: Math.round(Math.min(1, Math.max(0, progress)) * 100),
-              status: 'decrypting',
-            });
+            patchDownloadState(index, { progress, status: 'embedding' });
+            console.log('progress',progress)
           }
         },
       });
@@ -205,28 +205,37 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
         const state = downloadStates[index];
         const progress = state?.progress ?? 0;
         const status = state?.status ?? 'idle';
-        const busy = status === 'downloading' || status === 'decrypting';
+        const busy = isDownloadBusy(status);
+        const progressText = (() => {
+          if (status === 'downloading') {
+            return `下载中 ${progress}%`;
+          }
+          if (status === 'decrypting') {
+            return '解密中';
+          }
+          if (status === 'embedding') {
+            return `写入元数据中 ${progress}%`;
+          }
+          return null;
+        })();
 
         return (
           <div
             key={`${item.quality}-${index}`}
             className={classNames(styles['qualityItem'], {
-              [styles['qualityItemProgress']]: status === 'downloading' || status === 'decrypting',
+              [styles['qualityItemProgress']]: busy,
               [styles['qualityItemDone']]: status === 'done',
               [styles['qualityItemError']]: status === 'error',
             })}
-            style={
-              status === 'downloading' || status === 'decrypting'
-                ? ({ '--progress': `${progress}%` } as Record<string, string>)
-                : undefined
-            }>
+            style={busy ? ({ '--progress': `${progress}%` } as Record<string, string>) : undefined}>
             <span className={styles['qualityBadge']}>{qualityLabel(item.quality)}</span>
             <span className={styles['qualityMeta']}>
               {(item.format || '').toUpperCase()} · {formatSize(item.size)}
               {busy
-                ? ` · ${status === 'decrypting' ? '解密中' : `${progress?.toFixed(2)}%`}`
-                : null}
-              {status === 'done' ? ' · 已完成' : null}
+                ? `  ${progressText ? ` · ${progressText}` : ''}`
+                : status === 'done'
+                  ? ' · 已完成'
+                  : null}
             </span>
             <div className={styles['qualityActions']}>
               <button
@@ -245,7 +254,9 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
                 {busy
                   ? status === 'decrypting'
                     ? '解密中'
-                    : '下载中'
+                    : status === 'embedding'
+                      ? '写入中'
+                      : '下载中'
                   : status === 'done'
                     ? '已完成'
                     : '下载'}
