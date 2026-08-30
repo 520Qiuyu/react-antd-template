@@ -142,7 +142,6 @@ const TrackList: React.FC<TrackListProps> = ({
   /** 筛选之后的音乐 */
   const filteredTracks = useMemo(() => {
     const { title, type, artist, album, isParsed, isDownloaded, range } = searchParams;
-    console.log('searchParams', searchParams);
     return tracks
       ?.map((i, index) => ({ ...i, index }))
       .filter((track) => {

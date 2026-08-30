@@ -19,12 +19,16 @@ export interface DownloadSongAudioOptions {
   data: MusicInfo;
   item: QishuiUrl;
   embedMetadata?: (options: EmbedAudioMetadataOptions) => Promise<Blob>;
-  onProgress?: (phase: DownloadProgressPhase, progress: number) => void;
+  /** 下载进度回调 ratio: 0-1*/
+  onProgress?: (phase: DownloadProgressPhase, ratio: number) => void;
   /** 歌单列表序号（从 1 起）；单曲不传 */
   index?: number;
 }
 
 const sanitizeFilenamePart = (value: string) => value.replace(/[\\/:*?"<>|]/g, '_').trim();
+
+const START_RATIO = 0;
+const END_RATIO = 1;
 
 /**
  * 按配置模板解析下载文件名主体（不含扩展名）
@@ -34,10 +38,7 @@ const sanitizeFilenamePart = (value: string) => value.replace(/[\\/:*?"<>|]/g, '
  * resolveDownloadBasename({ index: 1, title: '晴天', artist: '周杰伦' }, '【序号】-【歌名】-【歌手】')
  * // → '1-晴天-周杰伦'
  */
-export const resolveDownloadBasename = (
-  parts: DownloadNameParts,
-  nameFormat?: string,
-): string => {
+export const resolveDownloadBasename = (parts: DownloadNameParts, nameFormat?: string): string => {
   const format =
     nameFormat?.trim() ||
     (typeof window !== 'undefined' && window.config?.downloadNameFormat?.trim()) ||
@@ -51,7 +52,10 @@ export const resolveDownloadBasename = (
     歌手: sanitizeFilenamePart(parts.artist || '未知歌手'),
   };
 
-  const basename = format.replace(/【(序号|歌名|专辑名|歌手)】/g, (_, key: string) => values[key] ?? '');
+  const basename = format.replace(
+    /【(序号|歌名|专辑名|歌手)】/g,
+    (_, key: string) => values[key] ?? '',
+  );
   const cleaned = basename.trim();
   return cleaned || '未知歌曲';
 };
@@ -100,12 +104,12 @@ export const downloadSongAudio = async ({
     throw new Error('缺少播放地址');
   }
 
-  onProgress?.('downloading', 0);
+  onProgress?.('downloading', START_RATIO);
   const fileBlob = await getDownloadProgress(item.url, {
     onProgress: (progress) => {
       const ratio =
         progress.contentLength > 0 ? progress.receivedLength / progress.contentLength : 0;
-      onProgress?.('downloading', ratio * 100);
+      onProgress?.('downloading', Number(ratio.toFixed(2)));
     },
   });
   if (!fileBlob) {
@@ -114,7 +118,6 @@ export const downloadSongAudio = async ({
 
   let resultBlob = fileBlob;
   if (item.playAuth) {
-    onProgress?.('decrypting', 1);
     const { blob, decrypted, reason } = await SodaAudioDecryptor.decryptBlob(
       fileBlob,
       item.playAuth,
@@ -123,6 +126,7 @@ export const downloadSongAudio = async ({
       throw new Error(reason || '解密失败');
     }
     resultBlob = blob;
+    onProgress?.('decrypting', END_RATIO);
   }
 
   let embedded = false;
@@ -130,7 +134,7 @@ export const downloadSongAudio = async ({
     window.config.downloadFormat || DEFAULT_CONFIG.downloadFormat;
   if (embedMetadata) {
     try {
-      onProgress?.('embedding', 0);
+      onProgress?.('embedding', START_RATIO);
       const coverBlob = data.cover ? await getCoverBlob(data.cover) : null;
       resultBlob = await embedMetadata({
         audio: resultBlob,
@@ -149,7 +153,6 @@ export const downloadSongAudio = async ({
         },
         onProgress: (percent) => onProgress?.('embedding', percent / 100),
       });
-      onProgress?.('embedding', 1);
       embedded = true;
     } catch (error) {
       console.log('embedMetadata skipped', error);

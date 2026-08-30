@@ -74,7 +74,7 @@ export const pickDownloadUrl = (
     if (matched) {
       if (i !== index) {
         msgSuccess(
-          `默认选择${qualityLabel(DOWNLOAD_QUALITY_ORDER[i])}音质下载，该歌曲没有当前音质，降级为${qualityLabel(DOWNLOAD_QUALITY_ORDER[i])}音质`,
+          `默认选择${qualityLabel(preferredQuality)}音质下载，该歌曲没有当前音质，降级为${qualityLabel(DOWNLOAD_QUALITY_ORDER[i])}音质`,
         );
       }
       return matched;
