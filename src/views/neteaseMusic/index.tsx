@@ -1,20 +1,21 @@
-import NeteaseParseLayout from './components/NeteaseParseLayout';
-import { NeteaseParseProvider, useNeteaseParseContext } from './components/NeteaseParseContext';
+import { useSearchParams } from '@/hooks';
 import AlbumPage from './album';
 import ArtistPage from './artist';
+import { NeteaseParseProvider } from './components/NeteaseParseContext';
+import NeteaseParseLayout from './components/NeteaseParseLayout';
 import PlaylistPage from './playlist';
 import SongPage from './song';
+import type { NeteaseParseMode } from './types';
 
-/**
- * 按当前 Tab 渲染对应解析组件
- */
-const NeteaseParseViews: React.FC = () => {
-  const { mode } = useNeteaseParseContext();
+const defaultSearchParams: SearchParams = {
+  currentView: 'song',
+};
 
-  if (mode === 'playlist') return <PlaylistPage />;
-  if (mode === 'album') return <AlbumPage />;
-  if (mode === 'artist') return <ArtistPage />;
-  return <SongPage />;
+const VIEW_MAP: Record<NeteaseParseMode, React.FC> = {
+  song: SongPage,
+  playlist: PlaylistPage,
+  album: AlbumPage,
+  artist: ArtistPage,
 };
 
 /**
@@ -25,13 +26,21 @@ const NeteaseParseViews: React.FC = () => {
  * ```
  */
 const NeteaseMusicParse: React.FC = () => {
+  const { searchParams } = useSearchParams(defaultSearchParams);
+  const View = VIEW_MAP[searchParams.currentView] || SongPage;
+
   return (
     <NeteaseParseProvider>
       <NeteaseParseLayout>
-        <NeteaseParseViews />
+        <View />
       </NeteaseParseLayout>
     </NeteaseParseProvider>
   );
 };
 
 export default NeteaseMusicParse;
+
+export interface SearchParams {
+  currentView: NeteaseParseMode;
+  cardSecret?: string;
+}

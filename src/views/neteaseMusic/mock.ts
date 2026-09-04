@@ -1,10 +1,5 @@
-import type {
-  NeteaseAlbumInfo,
-  NeteaseArtistInfo,
-  NeteasePlaylistInfo,
-  NeteaseSongInfo,
-  NeteaseTrack,
-} from './types';
+import type { NeteaseApiSong, ParseNeteasePlaylistResponseData, ParseNeteaseSongResponseData } from '@/types/netease';
+import type { NeteaseAlbumInfo, NeteaseArtistInfo } from './types';
 
 export const PLACEHOLDER_COVER =
   'data:image/svg+xml,' +
@@ -24,71 +19,32 @@ export const PLACEHOLDER_COVER =
   `);
 
 const track = (
-  id: string,
-  title: string,
+  id: number,
+  name: string,
   artist: string,
   album: string,
   duration: number,
   preview = false,
-): NeteaseTrack => ({
+): NeteaseApiSong => ({
   id,
-  title,
-  artist,
-  album,
-  cover: PLACEHOLDER_COVER,
-  duration,
-  isPreviewOnly: preview,
-  previewDuration: preview ? 30 : undefined,
+  name,
+  ar: [{ id: 1, name: artist }],
+  al: { id: 1, name: album, picUrl: PLACEHOLDER_COVER },
+  dt: duration * 1000,
+  noCopyrightRcmd: preview ? {} : null,
 });
 
 /** 演示用单曲数据 */
-export const MOCK_SONG: NeteaseSongInfo = {
-  trackId: '347230',
-  title: '海阔天空',
-  artist: 'Beyond',
-  artists: [{ id: '1', name: 'Beyond', avatar: PLACEHOLDER_COVER }],
-  album: '海阔天空',
-  cover: PLACEHOLDER_COVER,
-  urls: [
-    {
-      quality: 'standard',
-      format: 'mp3',
-      size: 4128768,
-      url: '',
-      encryptionMethod: 'none',
-      br: 128000,
-      sr: 44100,
-    },
-    {
-      quality: 'higher',
-      format: 'mp3',
-      size: 8257536,
-      url: '',
-      encryptionMethod: 'none',
-      br: 192000,
-      sr: 44100,
-    },
-    {
-      quality: 'exhigh',
-      format: 'mp3',
-      size: 12800000,
-      url: 'https://example.com/exhigh.mp3',
-      encryptionMethod: 'none',
-      br: 320000,
-      sr: 44100,
-      playable: true,
-    },
-    {
-      quality: 'lossless',
-      format: 'flac',
-      size: 31256832,
-      url: '',
-      encryptionMethod: 'none',
-      br: 999000,
-      sr: 44100,
-    },
-  ],
-  lrc: `[ti:海阔天空]
+export const MOCK_SONG: ParseNeteaseSongResponseData = {
+  song: {
+    id: 347230,
+    name: '海阔天空',
+    ar: [{ id: 1, name: 'Beyond' }],
+    al: { id: 1, name: '海阔天空', picUrl: PLACEHOLDER_COVER },
+  },
+  download: null,
+  lyric: {
+    lrc: `[ti:海阔天空]
 [ar:Beyond]
 [00:12.00]这是原型占位歌词
 [00:16.40]用来预览歌词盒的排版
@@ -96,27 +52,47 @@ export const MOCK_SONG: NeteaseSongInfo = {
 [00:26.80]把分享链接轻轻放进输入框
 [00:32.00]封面、音质、歌词依次展开
 [00:36.50]像翻开一页云村文档`,
-  lrcText:
-    '这是原型占位歌词\n用来预览歌词盒的排版\n朱漆红落在宣纸上\n把分享链接轻轻放进输入框\n封面、音质、歌词依次展开\n像翻开一页云村文档',
+    lrcText:
+      '这是原型占位歌词\n用来预览歌词盒的排版\n朱漆红落在宣纸上\n把分享链接轻轻放进输入框\n封面、音质、歌词依次展开\n像翻开一页云村文档',
+  },
+  quality: {
+    h: { br: 320000, size: 12800000, sr: 44100, it: 'mp3' },
+    m: { br: 192000, size: 8257536, sr: 44100, it: 'mp3' },
+    l: { br: 128000, size: 4128768, sr: 44100, it: 'mp3' },
+    sq: { br: 999000, size: 31256832, sr: 44100, it: 'flac' },
+  },
 };
 
 /** 演示用歌单数据 */
-export const MOCK_PLAYLIST: NeteasePlaylistInfo = {
-  id: '3778678',
-  title: '云音乐热歌榜',
-  cover: PLACEHOLDER_COVER,
-  owner: '网易云音乐',
-  countTracks: 8,
-  tracks: [
-    track('t1', '海阔天空', 'Beyond', '海阔天空', 326),
-    track('t2', '起风了', '买辣椒也用券', '起风了', 311),
-    track('t3', '消愁', '毛不易', '平凡的一天', 265, true),
-    track('t4', '如愿', '王菲', '如愿', 278),
-    track('t5', '光年之外', 'G.E.M. 邓紫棋', '光年之外', 235),
-    track('t6', '告白气球', '周杰伦', '周杰伦的床边故事', 215),
-    track('t7', '体面', '于文文', '体面', 251, true),
-    track('t8', '孤勇者', '陈奕迅', '孤勇者', 256),
-  ],
+export const MOCK_PLAYLIST: ParseNeteasePlaylistResponseData = {
+  detail: {
+    playlist: {
+      id: 3778678,
+      name: '云音乐热歌榜',
+      coverImgUrl: PLACEHOLDER_COVER,
+      trackCount: 8,
+      playCount: 12345678,
+      creator: {
+        userId: 1,
+        nickname: '网易云音乐',
+        avatarUrl: PLACEHOLDER_COVER,
+      },
+      tags: ['华语', '流行'],
+      createTime: Date.now(),
+    },
+  },
+  all: {
+    songs: [
+      track(1, '海阔天空', 'Beyond', '海阔天空', 326),
+      track(2, '起风了', '买辣椒也用券', '起风了', 311),
+      track(3, '消愁', '毛不易', '平凡的一天', 265, true),
+      track(4, '如愿', '王菲', '如愿', 278),
+      track(5, '光年之外', 'G.E.M. 邓紫棋', '光年之外', 235),
+      track(6, '告白气球', '周杰伦', '周杰伦的床边故事', 215),
+      track(7, '体面', '于文文', '体面', 251, true),
+      track(8, '孤勇者', '陈奕迅', '孤勇者', 256),
+    ],
+  },
 };
 
 /** 演示用专辑数据 */
@@ -129,14 +105,14 @@ export const MOCK_ALBUM: NeteaseAlbumInfo = {
   company: '华星唱片',
   countTracks: 8,
   tracks: [
-    track('a1', '海阔天空', 'Beyond', '海阔天空', 326),
-    track('a2', '光辉岁月', 'Beyond', '海阔天空', 302),
-    track('a3', '真的爱你', 'Beyond', '海阔天空', 278),
-    track('a4', '喜欢你', 'Beyond', '海阔天空', 239),
-    track('a5', '不再犹豫', 'Beyond', '海阔天空', 251, true),
-    track('a6', '大地', 'Beyond', '海阔天空', 268),
-    track('a7', '谁伴我闯荡', 'Beyond', '海阔天空', 244),
-    track('a8', '灰色轨迹', 'Beyond', '海阔天空', 287),
+    track(1, '海阔天空', 'Beyond', '海阔天空', 326),
+    track(2, '光辉岁月', 'Beyond', '海阔天空', 302),
+    track(3, '真的爱你', 'Beyond', '海阔天空', 278),
+    track(4, '喜欢你', 'Beyond', '海阔天空', 239),
+    track(5, '不再犹豫', 'Beyond', '海阔天空', 251, true),
+    track(6, '大地', 'Beyond', '海阔天空', 268),
+    track(7, '谁伴我闯荡', 'Beyond', '海阔天空', 244),
+    track(8, '灰色轨迹', 'Beyond', '海阔天空', 287),
   ],
 };
 
@@ -150,14 +126,14 @@ export const MOCK_ARTIST: NeteaseArtistInfo = {
   songCount: 186,
   albumCount: 24,
   hotSongs: [
-    track('h1', '海阔天空', 'Beyond', '海阔天空', 326),
-    track('h2', '光辉岁月', 'Beyond', '海阔天空', 302),
-    track('h3', '真的爱你', 'Beyond', '真的爱你', 278),
-    track('h4', '喜欢你', 'Beyond', '秘密警察', 239),
-    track('h5', '不再犹豫', 'Beyond', '命运派对', 251, true),
-    track('h6', '大地', 'Beyond', '信念', 268),
-    track('h7', '谁伴我闯荡', 'Beyond', '命运派对', 244),
-    track('h8', '灰色轨迹', 'Beyond', 'Continue The Struggle', 287),
+    track(1, '海阔天空', 'Beyond', '海阔天空', 326),
+    track(2, '光辉岁月', 'Beyond', '海阔天空', 302),
+    track(3, '真的爱你', 'Beyond', '真的爱你', 278),
+    track(4, '喜欢你', 'Beyond', '秘密警察', 239),
+    track(5, '不再犹豫', 'Beyond', '命运派对', 251, true),
+    track(6, '大地', 'Beyond', '信念', 268),
+    track(7, '谁伴我闯荡', 'Beyond', '命运派对', 244),
+    track(8, '灰色轨迹', 'Beyond', 'Continue The Struggle', 287),
   ],
   albums: [
     { id: 'al1', title: '海阔天空', year: '1993', cover: PLACEHOLDER_COVER },

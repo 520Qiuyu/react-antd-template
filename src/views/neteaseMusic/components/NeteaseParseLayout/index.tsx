@@ -8,6 +8,7 @@ import { useNeteaseParseContext } from '../NeteaseParseContext';
 import PageAside from '../PageAside';
 import ParseSidebar from '../ParseSidebar';
 import styles from './index.module.less';
+import type { SearchParams } from '../..';
 
 interface NeteaseParseLayoutProps {
   children: React.ReactNode;
@@ -23,8 +24,8 @@ interface NeteaseParseLayoutProps {
  * ```
  */
 const NeteaseParseLayout: React.FC<NeteaseParseLayoutProps> = ({ children }) => {
-  const { tocSections, setMode } = useNeteaseParseContext();
-  const { searchParams } = useSearchParams<{ cardSecret?: string }>();
+  const { tocSections } = useNeteaseParseContext();
+  const { searchParams,setSearchParams } = useSearchParams<SearchParams>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const cardSecret = searchParams.cardSecret?.trim() || '';
   const hasCardSecret = Boolean(cardSecret);
@@ -38,7 +39,7 @@ const NeteaseParseLayout: React.FC<NeteaseParseLayoutProps> = ({ children }) => 
   };
 
   const handleBrandClick = () => {
-    setMode('song');
+    setSearchParams({...searchParams, currentView: 'song' });
   };
 
   const handleGuideClick = (id: string) => {

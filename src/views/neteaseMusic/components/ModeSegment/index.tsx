@@ -9,6 +9,8 @@ import { NETEASE_MODES } from '../../constants';
 import type { NeteaseParseMode } from '../../types';
 import { useNeteaseParseContext } from '../NeteaseParseContext';
 import styles from './index.module.less';
+import { useSearchParams } from '@/hooks';
+import type { SearchParams } from '../..';
 
 const MODE_ITEMS: Array<{
   mode: NeteaseParseMode;
@@ -29,17 +31,17 @@ const MODE_ITEMS: Array<{
  * ```
  */
 const ModeSegment: React.FC = () => {
-  const { mode: currentMode, setMode } = useNeteaseParseContext();
+  const { searchParams, setSearchParams } = useSearchParams<SearchParams>();
 
   const handleSelect = (mode: NeteaseParseMode) => {
-    if (mode === currentMode) return;
-    setMode(mode);
+    if (mode === searchParams.currentView) return;
+    setSearchParams({ ...searchParams, currentView: mode });
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
     event.preventDefault();
-    const index = NETEASE_MODES.indexOf(currentMode);
+    const index = NETEASE_MODES.indexOf(searchParams.currentView);
     const delta = event.key === 'ArrowRight' ? 1 : -1;
     const next = NETEASE_MODES[(index + delta + NETEASE_MODES.length) % NETEASE_MODES.length];
     handleSelect(next);
@@ -52,7 +54,7 @@ const ModeSegment: React.FC = () => {
       aria-label='解析类型'
       onKeyDown={handleKeyDown}>
       {MODE_ITEMS.map((item) => {
-        const active = item.mode === currentMode;
+        const active = item.mode === searchParams.currentView;
         return (
           <button
             key={item.mode}

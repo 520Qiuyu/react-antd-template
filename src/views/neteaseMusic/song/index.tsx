@@ -8,7 +8,6 @@ import ParsePageFrame from '../components/ParsePageFrame';
 import { BASE_TOC_SECTIONS, GUIDE_TOC_SECTIONS, MODE_COPY } from '../constants';
 import { useSongParseStore } from '../store/useSongParseStore';
 import type { TocSection } from '../types';
-import { mapNeteaseSongParseResult } from '../utils';
 import SongResult, { SongQualityList } from './components/SongResult';
 
 /**
@@ -45,11 +44,10 @@ const NeteaseSongPage: React.FC = () => {
       if (res.code !== 200) {
         throw new Error(res.message || '解析失败');
       }
-      const mapped = mapNeteaseSongParseResult(res.data);
-      if (!mapped) {
+      if (!res.data?.song?.id) {
         throw new Error('未解析到有效歌曲信息');
       }
-      setResult(mapped);
+      setResult(res.data);
     } catch (error) {
       setError(error instanceof Error ? error.message : '解析失败');
     } finally {
@@ -96,9 +94,9 @@ const NeteaseSongPage: React.FC = () => {
           <DocSectionTitle title='歌词' id='song-lyric'>
             <SongLyricBox
               theme='netease'
-              lrc={result.lrc}
-              lrcText={result.lrcText}
-              filename={result.title}
+              lrc={result.lyric?.lrc}
+              lrcText={result.lyric?.lrcText}
+              filename={result.song?.name}
             />
           </DocSectionTitle>
         </>

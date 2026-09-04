@@ -1,3 +1,4 @@
+import type { NeteaseApiPlaylist } from '@/types/netease';
 import {
   CalendarOutlined,
   CustomerServiceOutlined,
@@ -6,12 +7,12 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import shared from '../../../components/shared.module.less';
-import type { NeteasePlaylistInfo } from '../../../types';
-import { formatPlayCount } from '../../../utils';
+import { PLACEHOLDER_COVER } from '../../../mock';
+import { formatPlayCount, toHttpsUrl } from '../../../utils';
 import styles from './index.module.less';
 
 interface PlaylistHeroProps {
-  data: NeteasePlaylistInfo;
+  data: NeteaseApiPlaylist;
 }
 
 /**
@@ -22,20 +23,20 @@ interface PlaylistHeroProps {
  * ```
  */
 const PlaylistHero: React.FC<PlaylistHeroProps> = ({ data }) => {
-  const trackCount = data.countTracks ?? data.tracks?.length ?? 0;
+  const trackCount = data.trackCount ?? data.tracks?.length ?? 0;
   const tags = data.tags?.filter(Boolean) || [];
   const createdAt = data.createTime ? dayjs(data.createTime).format('YYYY-MM-DD') : '';
+  const cover = toHttpsUrl(data.coverImgUrl) || data.coverImgUrl || PLACEHOLDER_COVER;
+  const ownerAvatar = toHttpsUrl(data.creator?.avatarUrl) || data.creator?.avatarUrl || '';
 
   return (
     <header className={styles['hero']}>
-      <img className={styles['cover']} src={data.cover} alt='歌单封面' />
+      <img className={styles['cover']} src={cover} alt='歌单封面' />
       <div>
-        <h3 className={styles['title']}>{data.title || '未命名歌单'}</h3>
+        <h3 className={styles['title']}>{data.name || '未命名歌单'}</h3>
         <p className={styles['owner']}>
-          {data.ownerAvatar ? (
-            <img className={styles['ownerAvatar']} src={data.ownerAvatar} alt='' />
-          ) : null}
-          <span>创建者 · {data.owner || '未知'}</span>
+          {ownerAvatar ? <img className={styles['ownerAvatar']} src={ownerAvatar} alt='' /> : null}
+          <span>创建者 · {data.creator?.nickname || '未知'}</span>
         </p>
         {data.description ? <p className={styles['desc']}>{data.description}</p> : null}
         {tags.length ? (

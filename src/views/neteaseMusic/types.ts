@@ -1,3 +1,4 @@
+import type { NeteaseApiSong } from '@/types/netease';
 import type { ReactNode } from 'react';
 
 /** 网易云解析类型 */
@@ -9,69 +10,6 @@ export interface TocSection {
   label: string;
 }
 
-/** 音质条目 */
-export interface NeteaseUrl {
-  quality: string;
-  format: string;
-  size: number;
-  url: string;
-  encryptionMethod?: string;
-  /** 码率（bps） */
-  br?: number;
-  /** 采样率（Hz） */
-  sr?: number;
-  /** 当前解析到的可播放档位 */
-  playable?: boolean;
-}
-
-/** 艺人摘要 */
-export interface NeteaseArtistBrief {
-  id: string;
-  name: string;
-  avatar: string;
-}
-
-/** 列表曲目 */
-export interface NeteaseTrack {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  cover: string;
-  duration: number;
-  isPreviewOnly?: boolean;
-  previewDuration?: number;
-}
-
-/** 单曲解析结果 */
-export interface NeteaseSongInfo {
-  trackId: string;
-  title: string;
-  artist: string;
-  artists: NeteaseArtistBrief[];
-  album: string;
-  cover: string;
-  urls: NeteaseUrl[];
-  lrc: string;
-  lrcText: string;
-}
-
-/** 歌单解析结果 */
-export interface NeteasePlaylistInfo {
-  id: string;
-  title: string;
-  cover: string;
-  owner: string;
-  ownerAvatar?: string;
-  countTracks: number;
-  playCount?: number;
-  subscribedCount?: number;
-  description?: string | null;
-  tags?: string[];
-  createTime?: number;
-  tracks: NeteaseTrack[];
-}
-
 /** 专辑解析结果 */
 export interface NeteaseAlbumInfo {
   id: string;
@@ -81,7 +19,7 @@ export interface NeteaseAlbumInfo {
   year: string;
   company: string;
   countTracks: number;
-  tracks: NeteaseTrack[];
+  tracks: NeteaseApiSong[];
 }
 
 /** 歌手专辑卡片 */
@@ -101,7 +39,7 @@ export interface NeteaseArtistInfo {
   avatar: string;
   songCount: number;
   albumCount: number;
-  hotSongs: NeteaseTrack[];
+  hotSongs: NeteaseApiSong[];
   albums: NeteaseArtistAlbum[];
 }
 

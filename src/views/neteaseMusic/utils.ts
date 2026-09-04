@@ -1,16 +1,18 @@
 import type {
   NeteaseApiPrivilege,
   NeteaseApiSong,
-  NeteaseSongDownloadData,
   NeteaseSongQualityData,
   NeteaseSongQualityItem,
-  ParseNeteasePlaylistResponseData,
-  ParseNeteaseSongResponseData,
-  ParseNeteaseSongUrl,
+  NeteaseSoundQualityLevel,
 } from '@/types/netease';
 import { QUALITY_LABEL_MAP, QUALITY_SLOT_ORDER } from './constants/index';
-import { PLACEHOLDER_COVER } from './mock';
-import type { NeteasePlaylistInfo, NeteaseSongInfo, NeteaseTrack, NeteaseUrl } from './types';
+
+/** 音质列表行（保留接口原始档位字段） */
+export interface NeteaseQualitySlotRow {
+  key: string;
+  level: NeteaseSoundQualityLevel;
+  item: NeteaseSongQualityItem;
+}
 
 /**
  * 格式化文件大小
@@ -66,87 +68,46 @@ export const formatSampleRate = (sr = 0) => {
 };
 
 /**
- * 将接口 quality 摊平为页面音质列表；download.level 对应档位会挂上可播地址
+ * 拼接艺人名称
  * @example
- * flattenNeteaseQuality(data.quality, data.download)
+ * formatNeteaseArtistNames([{ id: 1, name: 'Beyond' }]) // => 'Beyond'
  */
-export const flattenNeteaseQuality = (
-  quality: NeteaseSongQualityData | null | undefined,
-  download?: ParseNeteaseSongUrl | null,
-): NeteaseUrl[] => {
-  const downloadLevel = download?.level || '';
-  const downloadUrl = toHttpsUrl(download?.url || '') || download?.url || '';
-  const downloadFormat = download?.encodeType || download?.type || '';
-
-  const toRow = (level: string, item: NeteaseSongQualityItem, attachUrl: boolean): NeteaseUrl => ({
-    quality: level,
-    format: item.it || (attachUrl ? downloadFormat : '') || '',
-    size: item.size || 0,
-    url: attachUrl ? downloadUrl : '',
-    encryptionMethod: 'none',
-    br: item.br,
-    sr: item.sr,
-    playable: attachUrl && Boolean(downloadUrl),
-  });
-
-  const rows: NeteaseUrl[] = [];
-
-  if (quality) {
-    for (const { slot, level } of QUALITY_SLOT_ORDER) {
-      if (slot === 'sk' && quality.sks?.length) {
-        const formatLower = downloadFormat.toLowerCase();
-        const matchIndex = quality.sks.findIndex(
-          (item) => item.it && formatLower && item.it.toLowerCase() === formatLower,
-        );
-        quality.sks.forEach((item, index) => {
-          const attach =
-            downloadLevel === 'sky' && (matchIndex >= 0 ? index === matchIndex : index === 0);
-          rows.push(toRow(level, item, attach));
-        });
-        continue;
-      }
-
-      const item = quality[slot];
-      if (!item) continue;
-      rows.push(toRow(level, item, downloadLevel === level));
-    }
-  }
-
-  if (rows.length) return rows;
-  if (!download) return [];
-
-  return [
-    {
-      quality: download.level || '',
-      format: downloadFormat,
-      size: download.size || 0,
-      url: downloadUrl,
-      encryptionMethod: 'none',
-      playable: Boolean(downloadUrl),
-    },
-  ];
-};
+export const formatNeteaseArtistNames = (artists?: { name?: string }[] | null) =>
+  artists
+    ?.map((item) => item.name)
+    .filter(Boolean)
+    .join(' / ') || '';
 
 /**
- * 将下载接口结果写回音质行
+ * 按接口音质字段列出可展示档位，item 保持后端原始结构
  * @example
- * applyNeteaseDownloadToUrl(row, res.data)
+ * listNeteaseQualitySlots(data.quality)
  */
-export const applyNeteaseDownloadToUrl = (
-  row: NeteaseUrl,
-  data: NeteaseSongDownloadData,
-): NeteaseUrl => {
-  const url = toHttpsUrl(data.url || '') || data.url || '';
-  return {
-    ...row,
-    url,
-    size: data.size || row.size,
-    format: data.type || row.format,
-    br: data.br || row.br,
-    sr: data.sr || row.sr,
-    quality: data.level || row.quality,
-    playable: Boolean(url),
-  };
+export const listNeteaseQualitySlots = (
+  quality?: NeteaseSongQualityData | null,
+): NeteaseQualitySlotRow[] => {
+  if (!quality) return [];
+  const rows: NeteaseQualitySlotRow[] = [];
+  for (const { slot, level } of QUALITY_SLOT_ORDER) {
+    if (slot === 'sk' && quality.sks?.length) {
+      quality.sks.forEach((item, index) => {
+        rows.push({
+          key: `${level}-${item.it || index}`,
+          level: level as NeteaseSoundQualityLevel,
+          item,
+        });
+      });
+      continue;
+    }
+    const item = quality[slot as keyof NeteaseSongQualityData];
+    if (!item || typeof item === 'number' || Array.isArray(item)) continue;
+    rows.push({
+      key: `${level}-${item.it || ''}`,
+      level: level as NeteaseSoundQualityLevel,
+      item,
+    });
+  }
+  return rows;
 };
 
 /**
@@ -186,7 +147,7 @@ export const formatPlayCount = (count = 0) => {
  * @example
  * isNeteasePreviewOnly(song, privilege)
  */
-const isNeteasePreviewOnly = (song: NeteaseApiSong, privilege?: NeteaseApiPrivilege) => {
+export const isNeteasePreviewOnly = (song: NeteaseApiSong, privilege?: NeteaseApiPrivilege) => {
   if (song.noCopyrightRcmd) return true;
   if (!privilege) return false;
   if ((privilege.st ?? 0) < 0) return true;
@@ -194,88 +155,3 @@ const isNeteasePreviewOnly = (song: NeteaseApiSong, privilege?: NeteaseApiPrivil
   return false;
 };
 
-/**
- * 将网易云歌单解析接口数据映射为页面结构
- * @example
- * const playlist = mapNeteasePlaylistParseResult(res.data);
- */
-export const mapNeteasePlaylistParseResult = (
-  data: ParseNeteasePlaylistResponseData | null | undefined,
-): NeteasePlaylistInfo | null => {
-  const playlist = data?.detail?.playlist;
-  if (!playlist?.id) return null;
-
-  const songs = data?.all?.songs?.length ? data.all.songs : playlist.tracks || [];
-  const privileges = data?.all?.privileges || data?.detail?.privileges || [];
-  const privilegeMap = new Map(privileges.map((item) => [item.id, item]));
-  const cover = toHttpsUrl(playlist.coverImgUrl) || PLACEHOLDER_COVER;
-
-  const tracks: NeteaseTrack[] = songs.map((song) => {
-    const privilege = privilegeMap.get(song.id);
-    const previewOnly = isNeteasePreviewOnly(song, privilege);
-    return {
-      id: String(song.id),
-      title: song.name || '未知歌曲',
-      artist:
-        song.ar
-          ?.map((item) => item.name)
-          .filter(Boolean)
-          .join(' / ') || '未知艺人',
-      album: song.al?.name || '未知专辑',
-      cover: toHttpsUrl(song.al?.picUrl) || cover,
-      duration: Math.round((song.dt || 0) / 1000),
-      isPreviewOnly: previewOnly,
-      previewDuration: previewOnly ? 30 : undefined,
-    };
-  });
-
-  return {
-    id: String(playlist.id),
-    title: playlist.name || '未命名歌单',
-    cover,
-    owner: playlist.creator?.nickname || '未知',
-    ownerAvatar: toHttpsUrl(playlist.creator?.avatarUrl),
-    countTracks: playlist.trackCount ?? tracks.length,
-    playCount: playlist.playCount,
-    subscribedCount: playlist.subscribedCount,
-    description: playlist.description,
-    tags: playlist.tags || [],
-    createTime: playlist.createTime,
-    tracks,
-  };
-};
-
-/**
- * 将网易云单曲解析接口数据映射为页面结构
- * @example
- * const song = mapNeteaseSongParseResult(res.data);
- */
-export const mapNeteaseSongParseResult = (
-  data: ParseNeteaseSongResponseData | null | undefined,
-): NeteaseSongInfo | null => {
-  const song = data?.song;
-  if (!song?.id) return null;
-
-  const artists = (song.ar || []).map((item) => ({
-    id: String(item.id),
-    name: item.name,
-    avatar: '',
-  }));
-  const urls = flattenNeteaseQuality(data?.quality, data?.download);
-
-  return {
-    trackId: String(song.id),
-    title: song.name || '未知歌曲',
-    artist:
-      artists
-        .map((item) => item.name)
-        .filter(Boolean)
-        .join(' / ') || '未知歌手',
-    artists,
-    album: song.al?.name || '未知专辑',
-    cover: toHttpsUrl(song.al?.picUrl) || PLACEHOLDER_COVER,
-    urls,
-    lrc: data?.lyric?.lrc || '',
-    lrcText: data?.lyric?.lrcText || '',
-  };
-};

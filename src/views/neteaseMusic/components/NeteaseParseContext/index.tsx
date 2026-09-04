@@ -1,9 +1,7 @@
 import { createContext } from 'react';
-import type { NeteaseParseMode, TocSection } from '../../types';
+import type { TocSection } from '../../types';
 
 interface NeteaseParseContextValue {
-  mode: NeteaseParseMode;
-  setMode: (mode: NeteaseParseMode) => void;
   tocSections: TocSection[];
   setTocSections: (sections: TocSection[]) => void;
 }
@@ -24,13 +22,9 @@ interface NeteaseParseProviderProps {
  * ```
  */
 export const NeteaseParseProvider: React.FC<NeteaseParseProviderProps> = ({ children }) => {
-  const [mode, setMode] = useState<NeteaseParseMode>('song');
   const [tocSections, setTocSections] = useState<TocSection[]>([]);
 
-  const value = useMemo(
-    () => ({ mode, setMode, tocSections, setTocSections }),
-    [mode, tocSections],
-  );
+  const value = useMemo(() => ({ tocSections, setTocSections }), [tocSections]);
 
   return <NeteaseParseContext.Provider value={value}>{children}</NeteaseParseContext.Provider>;
 };
@@ -39,7 +33,7 @@ export const NeteaseParseProvider: React.FC<NeteaseParseProviderProps> = ({ chil
  * 读取网易云解析页共享状态
  * @example
  * ```ts
- * const { mode, setMode } = useNeteaseParseContext();
+ * const { tocSections, setTocSections } = useNeteaseParseContext();
  * ```
  */
 export const useNeteaseParseContext = () => {

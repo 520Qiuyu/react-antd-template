@@ -1,13 +1,19 @@
 import { resolveDownloadBasename } from '@/hooks/useConfig';
 import type { EmbedAudioMetadataOptions, EmbedOutputFormat } from '@/hooks/useEmbedAudioMetadata';
+import type { ParseNeteaseSongResponseData } from '@/types/netease';
 import { downloadBlob, getCoverBlob, getDownloadProgress } from '@/utils/download';
-import type { NeteaseSongInfo, NeteaseUrl } from './types';
+import { formatNeteaseArtistNames, toHttpsUrl } from './utils';
 
 export type DownloadProgressPhase = 'downloading' | 'embedding';
 
+export interface DownloadNeteaseAudioItem {
+  url: string;
+  format?: string;
+}
+
 export interface DownloadNeteaseSongAudioOptions {
-  data: NeteaseSongInfo;
-  item: NeteaseUrl;
+  data: ParseNeteaseSongResponseData;
+  item: DownloadNeteaseAudioItem;
   embedMetadata?: (options: EmbedAudioMetadataOptions) => Promise<Blob>;
   onProgress?: (phase: DownloadProgressPhase, progress: number) => void;
   /** 歌单列表序号（从 1 起）；单曲不传 */
@@ -21,7 +27,7 @@ const CONTAINER_EXTS = new Set(['mp3', 'flac', 'm4a', 'aac', 'wav', 'ogg']);
  * @example
  * resolveNeteaseAudioExt({ url: 'https://music.163.com/song/1234567890.mp3' }) // 'mp3'
  */
-export const resolveNeteaseAudioExt = (item: Pick<NeteaseUrl, 'format' | 'url'>) => {
+export const resolveNeteaseAudioExt = (item: { url?: string | null; format?: string }) => {
   const url = item.url?.split('?')[0];
   const ext = url?.split('.').pop()?.toLowerCase();
   if (ext && CONTAINER_EXTS.has(ext)) return ext;
@@ -44,19 +50,20 @@ export const resolveNeteaseEmbedFormat = (format?: string): EmbedOutputFormat | 
 /**
  * 生成网易云音频下载文件名
  * @example
- * buildNeteaseSongFilename({ title: '海阔天空', artist: 'Beyond', album: '海阔天空' }, item)
+ * buildNeteaseSongFilename(data, item)
  */
 export const buildNeteaseSongFilename = (
-  data: Pick<NeteaseSongInfo, 'title' | 'artist' | 'album'>,
-  item: NeteaseUrl,
+  data: ParseNeteaseSongResponseData,
+  item: { url?: string | null; format?: string },
   forceExt?: string,
   index?: number,
 ) => {
+  const song = data.song;
   const basename = resolveDownloadBasename({
     index,
-    title: data.title,
-    album: data.album,
-    artist: data.artist,
+    title: song?.name,
+    album: song?.al?.name,
+    artist: formatNeteaseArtistNames(song?.ar),
   });
   const ext = forceExt || resolveNeteaseAudioExt(item) || 'mp3';
   return `${basename}.${ext}`;
@@ -96,25 +103,26 @@ export const downloadNeteaseSongAudio = async ({
   let embedded = false;
   const sourceExt = resolveNeteaseAudioExt(item);
   const outputFormat = resolveNeteaseEmbedFormat(sourceExt);
+  const cover = toHttpsUrl(data.song?.al?.picUrl) || data.song?.al?.picUrl || '';
 
   if (embedMetadata && outputFormat) {
     try {
       onProgress?.('embedding', 0);
-      const coverBlob = data.cover ? await getCoverBlob(data.cover) : null;
+      const coverBlob = cover ? await getCoverBlob(cover) : null;
       resultBlob = await embedMetadata({
         audio: resultBlob,
         cover: coverBlob,
         audioName: buildNeteaseSongFilename(data, item, outputFormat, index),
         coverName: coverBlob
-          ? `cover.${data.cover?.split('?')[0].split('.').pop()?.toLowerCase() || 'jpg'}`
+          ? `cover.${cover.split('?')[0].split('.').pop()?.toLowerCase() || 'jpg'}`
           : undefined,
         outputFormat,
         sourceCodec: sourceExt,
         metadata: {
-          title: data.title,
-          artist: data.artist,
-          lyrics: data.lrc,
-          album: data.album,
+          title: data.song?.name,
+          artist: formatNeteaseArtistNames(data.song?.ar),
+          lyrics: data.lyric?.lrc,
+          album: data.song?.al?.name,
         },
         onProgress: (percent) => onProgress?.('embedding', percent),
       });

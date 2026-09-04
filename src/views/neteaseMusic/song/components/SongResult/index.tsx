@@ -1,6 +1,11 @@
 import { reqGetNeteaseSongDownload } from '@/apis';
 import { useEmbedAudioMetadata, useSearchParams } from '@/hooks';
-import type { NeteaseSoundQualityLevel } from '@/types/netease';
+import type {
+  NeteaseSongDownloadData,
+  NeteaseSongQualityItem,
+  ParseNeteaseSongResponseData,
+  ParseNeteaseSongUrl,
+} from '@/types/netease';
 import copy from '@/utils/copy';
 import { msgError, msgSuccess } from '@/utils/modal';
 import { useSongParseStore } from '@/views/neteaseMusic/store/useSongParseStore';
@@ -15,37 +20,43 @@ import {
 import classNames from 'classnames';
 import shared from '../../../components/shared.module.less';
 import { downloadNeteaseSongAudio } from '../../../downloadSong';
-import type { NeteaseSongInfo, NeteaseUrl } from '../../../types';
+import { PLACEHOLDER_COVER } from '../../../mock';
+import type { NeteaseQualitySlotRow } from '../../../utils';
 import {
-  applyNeteaseDownloadToUrl,
   formatBitrate,
+  formatNeteaseArtistNames,
   formatSampleRate,
   formatSize,
+  listNeteaseQualitySlots,
   qualityLabel,
+  toHttpsUrl,
 } from '../../../utils';
-import styles from './index.module.less';
 import type { SearchParams } from '../..';
+import styles from './index.module.less';
 
 interface SongResultProps {
-  data: NeteaseSongInfo;
+  data: ParseNeteaseSongResponseData;
 }
 
 /**
  * 单曲解析结果卡片
  * @example
  * ```tsx
- * <SongResult data={MOCK_SONG} />
+ * <SongResult data={result} />
  * ```
  */
 const SongResult: React.FC<SongResultProps> = ({ data }) => {
   const [copyIdDone, setCopyIdDone] = useState(false);
   const [copyLrcDone, setCopyLrcDone] = useState(false);
-  const avatar = data.artists?.[0]?.avatar;
+  const song = data.song;
+  const cover = toHttpsUrl(song?.al?.picUrl) || song?.al?.picUrl || PLACEHOLDER_COVER;
+  const artistName = formatNeteaseArtistNames(song?.ar) || '未知歌手';
+  const qualityCount = listNeteaseQualitySlots(data.quality).length;
 
   const handleCopyId = async () => {
-    if (!data.trackId) return;
+    if (!song?.id) return;
     try {
-      await copy(data.trackId);
+      await copy(String(song.id));
       setCopyIdDone(true);
       msgSuccess('已复制歌曲 ID');
       setTimeout(() => setCopyIdDone(false), 1400);
@@ -56,7 +67,7 @@ const SongResult: React.FC<SongResultProps> = ({ data }) => {
   };
 
   const handleCopyLrc = async () => {
-    const text = data.lrc || data.lrcText || '';
+    const text = data.lyric?.lrc || data.lyric?.lrcText || '';
     if (!text) return;
     try {
       await copy(text);
@@ -74,18 +85,17 @@ const SongResult: React.FC<SongResultProps> = ({ data }) => {
       <article className={styles['songCard']}>
         <div className={styles['coverWrap']}>
           <div className={styles['coverGlow']} aria-hidden='true' />
-          <img className={styles['cover']} src={data.cover} alt='专辑封面' />
+          <img className={styles['cover']} src={cover} alt='专辑封面' />
         </div>
         <div className={styles['meta']}>
-          <span className={styles['album']}>{data.album || '未知专辑'}</span>
-          <h3 className={styles['title']} title={data.title || '未知歌曲'}>
-            {data.title || '未知歌曲'}
+          <span className={styles['album']}>{song?.al?.name || '未知专辑'}</span>
+          <h3 className={styles['title']} title={song?.name || '未知歌曲'}>
+            {song?.name || '未知歌曲'}
           </h3>
           <div className={styles['artist']}>
-            {avatar ? <img className={styles['avatar']} src={avatar} alt='' /> : null}
-            <span>{data.artist || '未知歌手'}</span>
+            <span>{artistName}</span>
           </div>
-          <code className={styles['trackId']}>{data.trackId || '—'}</code>
+          <code className={styles['trackId']}>{song?.id || '—'}</code>
           <div className={styles['actions']}>
             <button
               className={classNames(shared['btn'], shared['btnPrimary'], shared['btnSm'])}
@@ -109,9 +119,9 @@ const SongResult: React.FC<SongResultProps> = ({ data }) => {
 
       <div className={styles['infoGrid']}>
         {[
-          ['艺人', data.artist || '—'],
-          ['专辑', data.album || '—'],
-          ['音质数', `${data.urls?.length || 0} 档`],
+          ['艺人', artistName],
+          ['专辑', song?.al?.name || '—'],
+          ['音质数', `${qualityCount} 档`],
         ].map(([label, value]) => (
           <div key={label} className={styles['infoChip']}>
             <span className={styles['infoLabel']}>{label}</span>
@@ -123,40 +133,53 @@ const SongResult: React.FC<SongResultProps> = ({ data }) => {
   );
 };
 
+type QualityDownload = NeteaseSongDownloadData | ParseNeteaseSongUrl;
+
 /**
  * 拼接音质元信息
  * @example
- * formatQualityMeta(item) // => '320 kbps · 44.1 kHz · MP3 · 5.2 MB'
+ * formatQualityMeta(item, download) // => '320 kbps · 44.1 kHz · MP3 · 5.2 MB'
  */
-const formatQualityMeta = (item: NeteaseUrl) => {
+const formatQualityMeta = (item: NeteaseSongQualityItem, download?: QualityDownload | null) => {
+  const format = download && 'encodeType' in download ? download.encodeType : undefined;
   const parts = [
-    formatBitrate(item.br),
-    formatSampleRate(item.sr),
-    item.format ? item.format.toUpperCase() : '',
-    item.size ? formatSize(item.size) : '',
+    formatBitrate(download && 'br' in download ? download.br : item.br),
+    formatSampleRate(download && 'sr' in download ? download.sr : item.sr),
+    (download?.type || format || item.it || '').toUpperCase(),
+    download?.size || item.size ? formatSize(download?.size || item.size) : '',
   ].filter(Boolean);
   return parts.join(' · ') || '—';
 };
 
 /**
- * 拼接音质 ID
+ * 取当前档位已解析到的下载信息
  * @example
- * formatQualityId(item) // => '320-mp3-0'
+ * resolveQualityDownload(row, downloads, result.download)
  */
-const formatQualityId = (item: NeteaseUrl) => {
-  return `${item.quality}-${item.format}`;
+const resolveQualityDownload = (
+  row: NeteaseQualitySlotRow,
+  downloads: Record<string, NeteaseSongDownloadData>,
+  initial?: ParseNeteaseSongUrl | null,
+): QualityDownload | undefined => {
+  if (downloads[row.key]?.url) return downloads[row.key];
+  if (!initial?.url || initial.level !== row.level) return undefined;
+  const encodeType = initial.encodeType || initial.type || '';
+  if (row.item.it && encodeType && row.item.it.toLowerCase() !== encodeType.toLowerCase()) {
+    return undefined;
+  }
+  return initial;
 };
 
 /**
  * 音质列表
  * @example
  * ```tsx
- * <SongQualityList trackId={data.trackId} urls={data.urls} />
+ * <SongQualityList />
  * ```
  */
 export const SongQualityList: React.FC = () => {
   const { searchParams } = useSearchParams<SearchParams>();
-  const { result, setResult } = useSongParseStore();
+  const { result, downloads, setDownload } = useSongParseStore();
   const [parsingIds, setParsingIds] = useState<string[]>([]);
   const [downloadStates, setDownloadStates] = useState<
     Record<
@@ -183,9 +206,14 @@ export const SongQualityList: React.FC = () => {
     }));
   };
 
-  const handleDownload = async (item: NeteaseUrl, key: string) => {
+  const handleDownload = async (
+    row: NeteaseQualitySlotRow,
+    download: QualityDownload | undefined,
+    key: string,
+  ) => {
     if (!result) return;
-    if (!item.url) {
+    const url = toHttpsUrl(download?.url || '') || download?.url || '';
+    if (!url) {
       msgError('缺少播放地址');
       return;
     }
@@ -196,7 +224,10 @@ export const SongQualityList: React.FC = () => {
     try {
       await downloadNeteaseSongAudio({
         data: result,
-        item,
+        item: {
+          url,
+          format: download?.type || download?.encodeType || row.item.it || '',
+        },
         embedMetadata,
         onProgress: (phase, progress) => {
           if (phase === 'downloading') {
@@ -224,10 +255,11 @@ export const SongQualityList: React.FC = () => {
     }
   };
 
-  const handleCopyUrl = async (item: NeteaseUrl) => {
-    if (!item.url) return;
+  const handleCopyUrl = async (download: QualityDownload | undefined) => {
+    const url = download?.url;
+    if (!url) return;
     try {
-      await copy(item.url);
+      await copy(url);
       msgSuccess('已复制播放地址');
     } catch (error) {
       console.log('error', error);
@@ -235,10 +267,10 @@ export const SongQualityList: React.FC = () => {
     }
   };
 
-  const handleParseUrl = async (item: NeteaseUrl, key: string) => {
-    const { trackId } = result || {};
-    if (!trackId) return;
-    if (!item.quality) {
+  const handleParseUrl = async (row: NeteaseQualitySlotRow, key: string) => {
+    const songId = result?.song?.id;
+    if (!songId) return;
+    if (!row.level) {
       msgError('缺少音质档位');
       return;
     }
@@ -249,8 +281,8 @@ export const SongQualityList: React.FC = () => {
     setParsingIds((prev) => [...prev, key]);
     try {
       const res = await reqGetNeteaseSongDownload({
-        id: trackId,
-        level: item.quality as NeteaseSoundQualityLevel,
+        id: String(songId),
+        level: row.level,
         cardSecret: searchParams.cardSecret,
       });
       const download = res.data;
@@ -258,15 +290,7 @@ export const SongQualityList: React.FC = () => {
         msgError(res.message || '解析地址失败');
         return;
       }
-      const latestResult = useSongParseStore.getState().result;
-      if (!latestResult) return;
-      setResult({
-        ...latestResult,
-        urls: latestResult.urls?.map((row) => {
-          const id = formatQualityId(row);
-          return id === key ? applyNeteaseDownloadToUrl(row, download) : row;
-        }),
-      });
+      setDownload(key, download);
       msgSuccess('解析成功');
     } catch (error) {
       console.log('error', error);
@@ -276,16 +300,21 @@ export const SongQualityList: React.FC = () => {
     }
   };
 
-  const urls = useMemo(() => [...(result?.urls || [])]?.reverse(), [result]);
+  const rows = useMemo(
+    () => [...listNeteaseQualitySlots(result?.quality)].reverse(),
+    [result?.quality],
+  );
 
-  if (!urls.length) {
+  if (!rows.length) {
     return <p className={styles['qualityEmpty']}>暂无音质信息</p>;
   }
 
   return (
     <div className={styles['qualityList']}>
-      {urls.map((item) => {
-        const key = formatQualityId(item);
+      {rows.map((row) => {
+        const key = row.key;
+        const download = resolveQualityDownload(row, downloads, result?.download);
+        const playable = Boolean(download?.url);
         const downloadState = downloadStates[key];
         const downloadStatus = downloadState?.status ?? 'idle';
         const downloadProgress = downloadState?.progress ?? 0;
@@ -296,8 +325,8 @@ export const SongQualityList: React.FC = () => {
           <div
             key={key}
             className={classNames(styles['qualityItem'], {
-              [styles['qualityItemPlayable']]: item.playable,
-              [styles['qualityItemLoading']]: parsingIds.includes(key),
+              [styles['qualityItemPlayable']]: playable,
+              [styles['qualityItemLoading']]: parsing,
               [styles['qualityItemProgress']]: downloading,
               [styles['qualityItemDone']]: downloadStatus === 'done',
               [styles['qualityItemError']]: downloadStatus === 'error',
@@ -307,27 +336,25 @@ export const SongQualityList: React.FC = () => {
                 ? ({ '--progress': `${downloadProgress}%` } as React.CSSProperties)
                 : undefined
             }>
-            <span className={styles['qualityBadge']}>{qualityLabel(item.quality)}</span>
+            <span className={styles['qualityBadge']}>{qualityLabel(row.level)}</span>
             <span className={styles['qualityMeta']}>
-              {formatQualityMeta(item)}
+              {formatQualityMeta(row.item, download)}
               {downloading
                 ? ` · ${downloadStatus === 'embedding' ? '写入中' : `${downloadProgress.toFixed(0)}%`}`
                 : null}
               {downloadStatus === 'done' ? ' · 已完成' : null}
             </span>
             <span className={styles['qualityStatus']}>
-              {item.playable ? (
-                <span className={styles['qualityPlayableTag']}>当前可播</span>
-              ) : null}
+              {playable ? <span className={styles['qualityPlayableTag']}>当前可播</span> : null}
             </span>
-            {item.url ? (
+            {playable ? (
               <div className={styles['qualityActions']}>
                 <button
                   className={classNames(shared['btn'], shared['btnGhost'], shared['btnSm'])}
                   type='button'
-                  aria-label={`下载${qualityLabel(item.quality)}音质`}
+                  aria-label={`下载${qualityLabel(row.level)}音质`}
                   disabled={downloading}
-                  onClick={() => handleDownload(item, key)}>
+                  onClick={() => handleDownload(row, download, key)}>
                   {downloading ? (
                     <LoadingOutlined />
                   ) : downloadStatus === 'done' ? (
@@ -347,7 +374,7 @@ export const SongQualityList: React.FC = () => {
                   className={classNames(shared['btn'], shared['btnGhost'], shared['btnSm'])}
                   type='button'
                   aria-label='复制播放地址'
-                  onClick={() => handleCopyUrl(item)}>
+                  onClick={() => handleCopyUrl(download)}>
                   复制链接
                 </button>
                 {/* 重新解析 */}
@@ -355,7 +382,7 @@ export const SongQualityList: React.FC = () => {
                   className={classNames(shared['btn'], shared['btnGhost'], shared['btnSm'])}
                   type='button'
                   aria-label='重新解析'
-                  onClick={() => handleParseUrl(item, key)}>
+                  onClick={() => handleParseUrl(row, key)}>
                   重新解析
                 </button>
               </div>
@@ -368,8 +395,8 @@ export const SongQualityList: React.FC = () => {
                   styles['qualityCopy'],
                 )}
                 type='button'
-                aria-label={`解析${qualityLabel(item.quality)}音质地址`}
-                onClick={() => handleParseUrl(item, key)}>
+                aria-label={`解析${qualityLabel(row.level)}音质地址`}
+                onClick={() => handleParseUrl(row, key)}>
                 {parsing ? <LoadingOutlined /> : <ThunderboltOutlined />}
                 {parsing ? '解析中' : '解析'}
               </button>
