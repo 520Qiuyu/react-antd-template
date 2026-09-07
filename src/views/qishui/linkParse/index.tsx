@@ -77,24 +77,6 @@ const LinkParse: React.FC = () => {
           </button>
 
           <nav className={styles['navLinks']} aria-label='顶部导航'>
-            <button
-              className={classNames(styles['navLink'], {
-                [styles['isActive']]: searchParams.currentView === 'song',
-              })}
-              type='button'
-              onClick={() => setSearchParams({ ...searchParams, currentView: 'song' })}>
-              <CustomerServiceOutlined />
-              歌曲解析
-            </button>
-            <button
-              className={classNames(styles['navLink'], {
-                [styles['isActive']]: searchParams.currentView === 'playlist',
-              })}
-              type='button'
-              onClick={() => setSearchParams({ ...searchParams, currentView: 'playlist' })}>
-              <UnorderedListOutlined />
-              歌单解析
-            </button>
             <a
               className={styles['navLink']}
               href={QISHUI_HOME_URL}

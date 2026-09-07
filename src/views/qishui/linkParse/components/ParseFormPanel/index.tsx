@@ -9,6 +9,8 @@ import styles from './index.module.less';
 
 interface ParseFormPanelProps {
   hint: React.ReactNode;
+  /** 顶部自定义区域（如解析类型切换） */
+  header?: React.ReactNode;
   label: string;
   inputId: string;
   placeholder: string;
@@ -26,6 +28,7 @@ interface ParseFormPanelProps {
  */
 const ParseFormPanel: React.FC<ParseFormPanelProps> = ({
   hint,
+  header,
   label,
   inputId,
   placeholder,
@@ -44,6 +47,7 @@ const ParseFormPanel: React.FC<ParseFormPanelProps> = ({
 
   return (
     <section className={styles['panel']} aria-label={ariaLabel}>
+      {header}
       <p className={styles['hint']}>
         <InfoCircleOutlined />
         <span>{hint}</span>

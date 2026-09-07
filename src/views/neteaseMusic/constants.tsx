@@ -1,8 +1,21 @@
+import type { ModeSegmentItem } from '@/components/ModeSegment';
+import {
+  AppstoreOutlined,
+  CustomerServiceOutlined,
+  UnorderedListOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import type { NeteaseModeCopy, NeteaseParseMode } from './types';
 
 export const NETEASE_HOME_URL = 'https://music.163.com/';
 
-export const NETEASE_MODES: NeteaseParseMode[] = ['song', 'playlist', 'album', 'artist'];
+/** 解析类型切换项 */
+export const PARSE_MODE_ITEMS: ModeSegmentItem<NeteaseParseMode>[] = [
+  { value: 'song', label: '单曲', icon: <CustomerServiceOutlined /> },
+  { value: 'playlist', label: '歌单', icon: <UnorderedListOutlined /> },
+  { value: 'album', label: '专辑', icon: <AppstoreOutlined /> },
+  { value: 'artist', label: '歌手', icon: <UserOutlined /> },
+];
 
 export const MODE_COPY: Record<NeteaseParseMode, NeteaseModeCopy> = {
   song: {

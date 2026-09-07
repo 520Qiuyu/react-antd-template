@@ -33,7 +33,6 @@ export default function Main() {
       );
     });
   }, [userInfo, isSuperAdmin]);
-  console.log('authRoutes',authRoutes)
 
   const handleTabClose = (tab: ITab) => {
     /**

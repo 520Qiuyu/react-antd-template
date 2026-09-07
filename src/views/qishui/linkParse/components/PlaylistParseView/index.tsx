@@ -1,8 +1,9 @@
 import { reqParsePlaylistShareLink } from '@/apis';
+import { ModeSegment } from '@/components';
 import { useSearchParams } from '@/hooks';
 import { PlusSquareOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import type { SearchParams } from '../..';
-import { DEFAULT_PLAYLIST_LINK } from '../../constants';
+import { DEFAULT_PLAYLIST_LINK, PARSE_MODE_ITEMS, type LinkParseView } from '../../constants';
 import { useParseStore, usePlaylistParseStore, type TocSection } from '../../store';
 import DocSectionTitle from '../DocSectionTitle';
 import ParseFormPanel from '../ParseFormPanel';
@@ -14,7 +15,7 @@ import styles from './index.module.less';
  * 歌单解析视图
  */
 const PlaylistParseView: React.FC = () => {
-  const { searchParams } = useSearchParams<SearchParams>();
+  const { searchParams, setSearchParams } = useSearchParams<SearchParams>();
   /** 设置歌单解析结果 */
   const setPlaylistHasResult = usePlaylistParseStore((state) => state.setPlaylistHasResult);
   /** 歌单解析结果 */
@@ -72,6 +73,10 @@ const PlaylistParseView: React.FC = () => {
     setError('');
   };
 
+  const handleModeChange = (currentView: LinkParseView) => {
+    setSearchParams({ ...searchParams, currentView });
+  };
+
   useEffect(() => {
     if (searchParams.currentView === 'playlist') {
       const sections: TocSection[] = [
@@ -100,6 +105,13 @@ const PlaylistParseView: React.FC = () => {
       {/* 链接输入表单 */}
       <DocSectionTitle title='输入链接' id='playlist-input' first>
         <ParseFormPanel
+          header={
+            <ModeSegment
+              items={PARSE_MODE_ITEMS}
+              value={searchParams.currentView}
+              onChange={handleModeChange}
+            />
+          }
           hint='请使用歌单分享链接；歌曲链接请切换到「歌曲解析」栏目。'
           label='分享链接'
           inputId='playlistLink'

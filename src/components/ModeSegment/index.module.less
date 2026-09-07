@@ -1,0 +1,93 @@
+.segment {
+  --ms-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  display: grid;
+  grid-template-columns: repeat(var(--ms-columns, 2), minmax(0, 1fr));
+  gap: 4px;
+  margin: 0 0 14px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--ms-soda-rgb), 0.18);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  &[data-theme='qishui'] {
+    --ms-soda-rgb: 0, 194, 122;
+    --ms-brand: #00c27a;
+    --ms-brand-softer: rgba(0, 194, 122, 0.08);
+    --ms-text-3: #6b8f82;
+    --ms-gradient-btn: linear-gradient(135deg, #00b87a 0%, #00c9a7 48%, #00b4d8 100%);
+  }
+
+  &[data-theme='netease'] {
+    --ms-soda-rgb: 194, 12, 12;
+    --ms-brand: #c20c0c;
+    --ms-brand-softer: rgba(194, 12, 12, 0.06);
+    --ms-text-3: #8a7d7a;
+    --ms-gradient-btn: linear-gradient(180deg, #d41414 0%, #c20c0c 52%, #a50b0b 100%);
+  }
+
+  &[data-columns='1'] {
+    --ms-columns: 1;
+  }
+
+  &[data-columns='2'] {
+    --ms-columns: 2;
+  }
+
+  &[data-columns='3'] {
+    --ms-columns: 3;
+  }
+
+  &[data-columns='4'] {
+    --ms-columns: 4;
+  }
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--ms-text-3);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color 0.2s var(--ms-ease),
+    background 0.2s var(--ms-ease),
+    box-shadow 0.2s var(--ms-ease);
+
+  &:hover:not(.isActive),
+  &:focus-visible:not(.isActive) {
+    color: var(--ms-brand);
+    background: var(--ms-brand-softer);
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ms-brand);
+    outline-offset: 2px;
+  }
+
+  &.isActive {
+    color: #fff;
+    background: var(--ms-gradient-btn);
+    box-shadow: 0 4px 16px rgba(var(--ms-soda-rgb), 0.35);
+  }
+}
+
+@media (max-width: 560px) {
+  .segment[data-columns='3'],
+  .segment[data-columns='4'] {
+    --ms-columns: 2;
+
+    border-radius: 16px;
+  }
+}

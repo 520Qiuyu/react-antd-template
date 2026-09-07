@@ -32,6 +32,31 @@
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
 }
 
+.btnCountOk {
+  background: rgba(16, 185, 129, 0.16);
+  color: #059669;
+}
+
+.btnCountFail {
+  background: rgba(239, 68, 68, 0.14);
+  color: #dc2626;
+}
+
+/** 红底主按钮上的实心徽标，避免半透明绿/红贴在品牌红上发糊 */
+.btnCountPrimary.btnCountOk {
+  color: #fff;
+  background: #059669;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  text-shadow: none;
+}
+
+.btnCountPrimary.btnCountFail {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  text-shadow: none;
+}
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -236,8 +261,10 @@
 }
 
 .item {
+  --progress: 0%;
+
   display: grid;
-  grid-template-columns: 36px 44px minmax(0, 1fr) 56px auto;
+  grid-template-columns: 36px 44px minmax(0, 1fr) 64px auto;
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
@@ -254,6 +281,51 @@
       rgba(var(--lp-soda-rgb), 0.08),
       rgba(var(--lp-bubble-rgb), 0.04)
     );
+  }
+}
+
+/** 下载进度：左侧填充到 --progress */
+.itemProgress {
+  background: linear-gradient(
+    to right,
+    rgba(var(--lp-soda-rgb), 0.24) 0%,
+    rgba(var(--lp-soda-rgb), 0.24) var(--progress),
+    transparent var(--progress),
+    transparent 100%
+  );
+
+  &:hover {
+    background: linear-gradient(
+      to right,
+      rgba(var(--lp-soda-rgb), 0.32) 0%,
+      rgba(var(--lp-soda-rgb), 0.32) var(--progress),
+      rgba(var(--lp-bubble-rgb), 0.04) var(--progress),
+      rgba(var(--lp-bubble-rgb), 0.04) 100%
+    );
+  }
+}
+
+.itemDone {
+  background: linear-gradient(
+    90deg,
+    rgba(var(--lp-soda-rgb), 0.14),
+    rgba(var(--lp-bubble-rgb), 0.08)
+  );
+
+  &:hover {
+    background: linear-gradient(
+      90deg,
+      rgba(var(--lp-soda-rgb), 0.18),
+      rgba(var(--lp-bubble-rgb), 0.1)
+    );
+  }
+}
+
+.itemError {
+  background: rgba(220, 70, 70, 0.08);
+
+  &:hover {
+    background: rgba(220, 70, 70, 0.12);
   }
 }
 
@@ -295,12 +367,54 @@
 }
 
 .artist {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 2px 0 0;
   color: var(--lp-text-3);
   font-size: 12px;
+  min-width: 0;
+}
+
+.artistName {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.downloadMarkOk {
+  flex-shrink: 0;
+  color: #10b981;
+  font-size: 13px;
+}
+
+.downloadMarkFail {
+  flex-shrink: 0;
+  color: #ef4444;
+  font-size: 13px;
+}
+
+.downloadMarkLoading {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  color: var(--lp-brand);
+  font-size: 13px;
+}
+
+.downloadProgressText {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.metaCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
 }
 
 .duration {
@@ -308,6 +422,15 @@
   font-size: 12.5px;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/** 解析后才有的文件大小 */
+.size {
+  color: var(--lp-brand);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .previewTag {
@@ -349,7 +472,7 @@
     grid-area: info;
   }
 
-  .duration {
+  .metaCol {
     display: none;
   }
 

@@ -1,9 +1,10 @@
 import { reqParseSongShareLink } from '@/apis';
+import { ModeSegment } from '@/components';
 import { useSearchParams } from '@/hooks';
 import { confirm, msgError, msgSuccess } from '@/utils/modal';
 import { CustomerServiceOutlined, StarOutlined } from '@ant-design/icons';
 import type { SearchParams } from '../..';
-import { DEFAULT_SONG_LINK } from '../../constants';
+import { DEFAULT_SONG_LINK, PARSE_MODE_ITEMS, type LinkParseView } from '../../constants';
 import { useParseStore, useSongParseStore, type TocSection } from '../../store';
 import DocSectionTitle from '../DocSectionTitle';
 import ParseFormPanel from '../ParseFormPanel';
@@ -97,6 +98,10 @@ const SongParseView: React.FC<SongParseViewProps> = () => {
     setError('');
   };
 
+  const handleModeChange = (currentView: LinkParseView) => {
+    setSearchParams({ ...searchParams, currentView });
+  };
+
   useEffect(() => {
     if (searchParams.currentView === 'song') {
       const sections: TocSection[] = [
@@ -131,6 +136,13 @@ const SongParseView: React.FC<SongParseViewProps> = () => {
 
       <DocSectionTitle title='输入链接' id='song-input' first>
         <ParseFormPanel
+          header={
+            <ModeSegment
+              items={PARSE_MODE_ITEMS}
+              value={searchParams.currentView}
+              onChange={handleModeChange}
+            />
+          }
           hint={
             <>
               支持完整分享文案或纯链接，例如：

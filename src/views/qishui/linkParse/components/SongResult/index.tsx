@@ -1,5 +1,5 @@
 import { SongLyricBox as SharedSongLyricBox } from '@/components';
-import { useEmbedAudioMetadata } from '@/hooks';
+import { DEFAULT_CONFIG, useConfig, useEmbedAudioMetadata } from '@/hooks';
 import type { MusicInfo, QishuiUrl } from '@/types/qishui';
 import copy from '@/utils/copy';
 import { msgError, msgSuccess } from '@/utils/modal';
@@ -137,6 +137,7 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
   const [downloadStates, setDownloadStates] = useState<
     Record<number, { progress: number; status: QualityDownloadStatus }>
   >({});
+  const { config } = useConfig();
 
   const patchDownloadState = (
     index: number,
@@ -186,7 +187,7 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
           }
           if (phase === 'embedding') {
             patchDownloadState(index, { progress, status: 'embedding' });
-            console.log('progress',progress)
+            console.log('progress', progress);
           }
         },
       });
@@ -206,18 +207,18 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
         const progress = state?.progress ?? 0;
         const status = state?.status ?? 'idle';
         const busy = isDownloadBusy(status);
-        const progressText = (() => {
-          if (status === 'downloading') {
-            return `下载中 ${progress}%`;
-          }
-          if (status === 'decrypting') {
-            return '解密中';
-          }
-          if (status === 'embedding') {
-            return `写入元数据中 ${progress}%`;
-          }
+        const statusText = (() => {
+          if (status === 'downloading') return `下载中 ${progress}%`;
+          if (status === 'decrypting') return '解密中';
+          if (status === 'embedding') return `转码写入 ${progress}%`;
+          if (status === 'done') return '已完成';
+          if (status === 'error') return '下载失败';
           return null;
         })();
+        /** 源格式 → 落盘格式 */
+        const sourceFormat = (item.format || '').toUpperCase() || '—';
+        const targetFormat = (config?.downloadFormat || DEFAULT_CONFIG.downloadFormat).toUpperCase();
+        const transcoded = sourceFormat !== targetFormat;
 
         return (
           <div
@@ -230,12 +231,35 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
             style={busy ? ({ '--progress': `${progress}%` } as Record<string, string>) : undefined}>
             <span className={styles['qualityBadge']}>{qualityLabel(item.quality)}</span>
             <span className={styles['qualityMeta']}>
-              {(item.format || '').toUpperCase()} · {formatSize(item.size)}
-              {busy
-                ? `  ${progressText ? ` · ${progressText}` : ''}`
-                : status === 'done'
-                  ? ' · 已完成'
-                  : null}
+              <span
+                className={styles['formatFlow']}
+                aria-label={
+                  transcoded ? `源格式 ${sourceFormat}，下载格式 ${targetFormat}` : `格式 ${sourceFormat}`
+                }>
+                <span className={styles['formatCode']}>{sourceFormat}</span>
+                {transcoded ? (
+                  <>
+                    <span className={styles['formatArrow']} aria-hidden='true'>
+                      →
+                    </span>
+                    <span className={classNames(styles['formatCode'], styles['formatCodeOut'])}>
+                      {targetFormat}
+                    </span>
+                  </>
+                ) : null}
+              </span>
+              <span className={styles['metaDivider']} aria-hidden='true' />
+              <span className={styles['sizeText']} title='源文件大小'>
+                {formatSize(item.size)}
+              </span>
+              {statusText ? (
+                <>
+                  <span className={styles['metaDivider']} aria-hidden='true' />
+                  <span className={styles['statusText']} data-status={status}>
+                    {statusText}
+                  </span>
+                </>
+              ) : null}
             </span>
             <div className={styles['qualityActions']}>
               <button

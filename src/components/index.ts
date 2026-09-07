@@ -7,6 +7,7 @@ export { default as DownloadConcurrencyField, DOWNLOAD_CONCURRENCY_OPTIONS} from
 export { default as DownloadNameFormatField} from './DownloadNameFormatField/index.tsx';
 export { default as EngineStatus} from './EngineStatus/index.tsx';
 export { default as Loading} from './Loading/index.tsx';
+export { default as ModeSegment} from './ModeSegment/index.tsx';
 export { default as MyButton} from './MyButton/index.tsx';
 export { default as MyIcon} from './MyIcon/index.tsx';
 export { default as MyModal} from './MyModal/index.tsx';

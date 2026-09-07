@@ -1,5 +1,14 @@
+import type { ModeSegmentItem } from '@/components/ModeSegment';
+import { CustomerServiceOutlined, UnorderedListOutlined } from '@ant-design/icons';
+
 /** 链接解析视图类型 */
 export type LinkParseView = 'song' | 'playlist';
+
+/** 解析类型切换项 */
+export const PARSE_MODE_ITEMS: ModeSegmentItem<LinkParseView>[] = [
+  { value: 'song', label: '歌曲', icon: <CustomerServiceOutlined /> },
+  { value: 'playlist', label: '歌单', icon: <UnorderedListOutlined /> },
+];
 
 export const DEFAULT_SONG_LINK = '《一点》@汽水音乐 https://qishui.douyin.com/s/ia4MqU3p/';
 

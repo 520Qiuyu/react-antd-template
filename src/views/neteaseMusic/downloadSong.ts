@@ -138,3 +138,73 @@ export const downloadNeteaseSongAudio = async ({
     buildNeteaseSongFilename(data, item, embedded ? outputFormat || undefined : undefined, index),
   );
 };
+
+/**
+ * 生成网易云歌词下载文件名
+ * @example
+ * buildNeteaseLyricFilename(data, 'lrc', 1)
+ */
+export const buildNeteaseLyricFilename = (
+  data: ParseNeteaseSongResponseData,
+  ext: 'lrc' | 'txt',
+  index?: number,
+) => {
+  const song = data.song;
+  const basename = resolveDownloadBasename({
+    index,
+    title: song?.name,
+    album: song?.al?.name,
+    artist: formatNeteaseArtistNames(song?.ar),
+  });
+  return `${basename}.${ext}`;
+};
+
+/**
+ * 下载网易云单曲歌词（lrc 带时间轴 / txt 用后端 lrcText）
+ * @example
+ * ```ts
+ * downloadNeteaseSongLyric(data, 'lrc', 1);
+ * ```
+ */
+export const downloadNeteaseSongLyric = (
+  data: ParseNeteaseSongResponseData,
+  mode: 'lrc' | 'txt',
+  index?: number,
+) => {
+  const lyricText = mode === 'lrc' ? data.lyric?.lrc : data.lyric?.lrcText;
+  if (!lyricText?.trim()) {
+    throw new Error('暂无歌词可保存');
+  }
+
+  downloadBlob(
+    new Blob([lyricText], { type: 'text/plain;charset=utf-8' }),
+    buildNeteaseLyricFilename(data, mode, index),
+  );
+};
+
+/**
+ * 限制并发执行任务列表
+ * @example
+ * ```ts
+ * await runWithConcurrency(tracks, 2, async (track) => { await downloadOne(track); });
+ * ```
+ */
+export const runWithConcurrency = async <T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<void>,
+) => {
+  if (items.length === 0) return;
+  const limit = Math.max(1, concurrency);
+  let nextIndex = 0;
+
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const current = nextIndex;
+      nextIndex += 1;
+      await worker(items[current], current);
+    }
+  });
+
+  await Promise.all(runners);
+};
