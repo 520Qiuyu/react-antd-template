@@ -1,4 +1,5 @@
 import type {
+  ParseNeteaseAlbumResponseData,
   ParseNeteasePlaylistResponseData,
   ParseNeteaseShareLinkParams,
   ParseNeteaseSongResponseData,
@@ -24,3 +25,13 @@ export const reqParseNeteaseSong = (params: ParseNeteaseShareLinkParams) =>
  */
 export const reqParseNeteasePlaylist = (params: ParseNeteaseShareLinkParams) =>
   get<ParseNeteasePlaylistResponseData>('/netease/parse/playlist', params);
+
+/**
+ * 网易云专辑解析
+ * @example
+ * ```ts
+ * const res = await reqParseNeteaseAlbum({ shareLink: 'https://music.163.com/album?id=31532' });
+ * ```
+ */
+export const reqParseNeteaseAlbum = (params: ParseNeteaseShareLinkParams) =>
+  get<ParseNeteaseAlbumResponseData>('/netease/parse/album', params);

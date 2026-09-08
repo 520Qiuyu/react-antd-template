@@ -1,6 +1,9 @@
 /** 解析日志类型：单曲 / 歌单 */
 export type ParseLogType = 'song' | 'playlist' | 'video';
 
+/** 解析平台 */
+export type ParseLogPlatform = 'qishui' | 'netease';
+
 /** 解析结果状态 */
 export type ParseLogStatus = 'success' | 'fail';
 
@@ -12,7 +15,10 @@ export interface ListParseLogParams {
   sortOrder?: 'asc' | 'desc';
   keyword?: string;
   type?: ParseLogType | string;
+  platform?: ParseLogPlatform | string;
   status?: ParseLogStatus | string;
+  startTime?: string;
+  endTime?: string;
 }
 
 /** 解析日志列表项 */
@@ -22,6 +28,8 @@ export interface ParseLogListItem {
   cardSecret: string;
   /** 解析类型 */
   type: ParseLogType;
+  /** 解析平台 */
+  platform: ParseLogPlatform;
   /** 目标名称（歌名 / 歌单名） */
   targetName: string;
   /** 目标 ID */

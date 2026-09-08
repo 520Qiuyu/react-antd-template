@@ -1,0 +1,260 @@
+.player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: calc(var(--lp-radius) + 2px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background:
+    linear-gradient(135deg, rgba(var(--lp-soda-rgb), 0.08), rgba(var(--lp-bubble-rgb), 0.05)),
+    rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 8px 24px rgba(var(--lp-soda-rgb), 0.1);
+}
+
+.playBtn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--lp-gradient-btn);
+  box-shadow: 0 8px 22px rgba(var(--lp-soda-rgb), 0.34);
+  cursor: pointer;
+  transition:
+    transform 0.2s var(--lp-ease),
+    box-shadow 0.2s var(--lp-ease),
+    filter 0.2s var(--lp-ease);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow: 0 12px 28px rgba(var(--lp-bubble-rgb), 0.32);
+    filter: brightness(1.05);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
+  }
+
+  :global(.anticon) {
+    font-size: 18px;
+  }
+}
+
+.playBtnBusy {
+  animation: pulseGlow 1.2s var(--lp-ease) infinite;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progressTrack {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(var(--lp-soda-rgb), 0.12);
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+    pointer-events: none;
+  }
+}
+
+.progressBuffer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--lp-bubble-rgb), 0.28),
+    rgba(var(--lp-bubble-rgb), 0.42)
+  );
+  transition: width 0.15s linear;
+}
+
+.progressPlayed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--lp-gradient-btn);
+  box-shadow: 0 0 12px rgba(var(--lp-soda-rgb), 0.35);
+  transition: width 0.08s linear;
+}
+
+.progressThumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--lp-brand);
+  box-shadow: 0 2px 8px rgba(var(--lp-soda-rgb), 0.35);
+  transform: translate(-50%, -50%);
+  transition:
+    transform 0.15s var(--lp-ease),
+    box-shadow 0.15s var(--lp-ease);
+  pointer-events: none;
+}
+
+.progressTrack:hover .progressThumb,
+.progressTrack:focus-visible .progressThumb {
+  transform: translate(-50%, -50%) scale(1.12);
+  box-shadow: 0 4px 12px rgba(var(--lp-bubble-rgb), 0.4);
+}
+
+.progressPreparing {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--lp-soda-rgb), 0.08) 0%,
+    rgba(var(--lp-soda-rgb), 0.42) 50%,
+    rgba(var(--lp-soda-rgb), 0.08) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--lp-text-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.timeSep {
+  color: var(--lp-text-3);
+  opacity: 0.7;
+}
+
+.statusWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.qualityTag {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--lp-brand);
+  background: rgba(var(--lp-soda-rgb), 0.1);
+  border: 1px solid rgba(var(--lp-soda-rgb), 0.18);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.statusText {
+  color: var(--lp-text-3);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statusTextBusy {
+  color: var(--lp-brand);
+  font-weight: 600;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lp-brand-3);
+  animation: blink 1s ease-in-out infinite;
+}
+
+.empty {
+  padding: 10px 12px;
+  border-radius: var(--lp-radius-sm);
+  border: 1px dashed rgba(var(--lp-soda-rgb), 0.22);
+  color: var(--lp-text-3);
+  font-size: 12.5px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 8px 22px rgba(var(--lp-soda-rgb), 0.34);
+  }
+
+  50% {
+    box-shadow: 0 8px 28px rgba(var(--lp-bubble-rgb), 0.45);
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 560px) {
+  .player {
+    flex-wrap: wrap;
+  }
+
+  .main {
+    width: 100%;
+  }
+}

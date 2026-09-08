@@ -1,9 +1,12 @@
+import { reqParseNeteaseAlbum } from '@/apis';
+import { useSearchParams } from '@/hooks';
+import { msgError } from '@/utils/modal';
 import { AppstoreOutlined } from '@ant-design/icons';
 import ParsePageFrame from '../components/ParsePageFrame';
 import TrackList from '../components/TrackList';
 import { BASE_TOC_SECTIONS, GUIDE_TOC_SECTIONS, MODE_COPY } from '../constants';
-import { useNeteaseParse } from '../hooks/useNeteaseParse';
-import { MOCK_ALBUM } from '../mock';
+import type { SearchParams } from '../song';
+import { useAlbumParseStore } from '../store/useAlbumParseStore';
 import AlbumHero from './components/AlbumHero';
 
 /**
@@ -14,14 +17,54 @@ import AlbumHero from './components/AlbumHero';
  * ```
  */
 const NeteaseAlbumPage: React.FC = () => {
-  const parse = useNeteaseParse({
-    mock: MOCK_ALBUM,
-    defaultLink: MODE_COPY.album.defaultLink,
-    storageKey: 'netease-album-link',
-    delay: 780,
+  const { searchParams } = useSearchParams<SearchParams>();
+  const [link, setLink] = useLocalStorageState<string>('netease-album-link', {
+    defaultValue: MODE_COPY.album.defaultLink,
   });
 
+  const { result, setResult } = useAlbumParseStore();
+
+  /** 解析专辑 */
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const handleParse = async () => {
+    try {
+      setLoading(true);
+      if (!searchParams.cardSecret) {
+        return msgError('请先绑定卡密');
+      }
+      setError('');
+      if (!link?.trim()) {
+        throw new Error('请先粘贴专辑分享链接');
+      }
+      const res = await reqParseNeteaseAlbum({
+        shareLink: link,
+        cardSecret: searchParams.cardSecret,
+      });
+      if (res.code !== 200) {
+        throw new Error(res.message || '解析失败');
+      }
+      if (!res.data?.album?.id) {
+        throw new Error('未解析到有效专辑信息');
+      }
+      setResult(res.data);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '解析失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** 清空 */
+  const handleClear = () => {
+    setLink('');
+    setResult(null);
+  };
+
   const tocSections = useMemo(() => [...BASE_TOC_SECTIONS, ...GUIDE_TOC_SECTIONS], []);
+  const album = result?.album;
+  const songs = result?.songs || [];
+  const privileges = result?.privileges;
 
   return (
     <ParsePageFrame
@@ -29,17 +72,22 @@ const NeteaseAlbumPage: React.FC = () => {
       badgeIcon={<AppstoreOutlined />}
       emptyIcon={<AppstoreOutlined />}
       tocSections={tocSections}
-      link={parse.link}
-      loading={parse.loading}
-      error={parse.error}
-      hasResult={Boolean(parse.result)}
-      onChange={parse.setLink}
-      onSubmit={parse.handleParse}
-      onClear={parse.handleClear}>
-      {parse.result ? (
+      link={link || ''}
+      loading={loading}
+      error={error}
+      hasResult={Boolean(album)}
+      onChange={setLink}
+      onSubmit={handleParse}
+      onClear={handleClear}>
+      {album ? (
         <>
-          <AlbumHero data={parse.result} />
-          <TrackList tracks={parse.result.tracks} />
+          <AlbumHero data={album} />
+          <TrackList
+            tracks={songs}
+            privileges={privileges}
+            source='album'
+            collectionTitle={album.name}
+          />
         </>
       ) : null}
     </ParsePageFrame>

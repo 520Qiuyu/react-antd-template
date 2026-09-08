@@ -5,6 +5,7 @@ import { useCompRef, useGetList, useSearchParams } from '@/hooks';
 import type {
   ParseLogListItem,
   ParseLogListStats,
+  ParseLogPlatform,
   ParseLogStatus,
   ParseLogType,
 } from '@/types/parseLog';
@@ -19,6 +20,9 @@ import { maskCardSecretMiddle } from '../cardSecret/utils/maskCardSecret';
 import ParseLogDetailModal from './components/ParseLogDetailModal';
 import ParseLogStat from './components/ParseLogStat';
 import {
+  PARSE_LOG_PLATFORM_COLOR_MAP,
+  PARSE_LOG_PLATFORM_OPTIONS,
+  PARSE_LOG_PLATFORM_TEXT_MAP,
   PARSE_LOG_STATUS_COLOR_MAP,
   PARSE_LOG_STATUS_OPTIONS,
   PARSE_LOG_STATUS_TEXT_MAP,
@@ -41,10 +45,13 @@ const ParseLogs: React.FC = () => {
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
 
   const usedSearchParams = useMemo(() => {
-    const { sortOrder, ...rest } = searchParams;
+    const { sortOrder, dateRange, ...rest } = searchParams;
+    const [startTime, endTime] = Array.isArray(dateRange) ? dateRange : [];
     return {
       ...rest,
       sortOrder: sortOrder === 'ascend' ? 'asc' : 'desc',
+      ...(startTime ? { startTime } : {}),
+      ...(endTime ? { endTime } : {}),
     };
   }, [searchParams]);
 
@@ -65,6 +72,16 @@ const ParseLogs: React.FC = () => {
       },
     },
     {
+      name: 'platform',
+      label: '平台',
+      type: 'select',
+      options: PARSE_LOG_PLATFORM_OPTIONS,
+      inputProps: {
+        mode: undefined,
+        placeholder: '请选择平台',
+      },
+    },
+    {
       name: 'status',
       label: '状态',
       type: 'select',
@@ -72,6 +89,14 @@ const ParseLogs: React.FC = () => {
       inputProps: {
         mode: undefined,
         placeholder: '请选择状态',
+      },
+    },
+    {
+      name: 'dateRange',
+      label: '解析时间',
+      type: 'rangePicker',
+      inputProps: {
+        placeholder: ['开始日期', '结束日期'],
       },
     },
   ];
@@ -129,6 +154,18 @@ const ParseLogs: React.FC = () => {
       sortOrder: searchParams.sortField === 'type' ? searchParams.sortOrder : undefined,
       render: (type: ParseLogType) => (
         <Tag color={PARSE_LOG_TYPE_COLOR_MAP[type]}>{PARSE_LOG_TYPE_TEXT_MAP[type]}</Tag>
+      ),
+    },
+    {
+      title: '平台',
+      dataIndex: 'platform',
+      width: 120,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'platform' ? searchParams.sortOrder : undefined,
+      render: (platform: ParseLogPlatform) => (
+        <Tag color={PARSE_LOG_PLATFORM_COLOR_MAP[platform] || 'default'}>
+          {PARSE_LOG_PLATFORM_TEXT_MAP[platform] || platform || '-'}
+        </Tag>
       ),
     },
     {
@@ -270,7 +307,7 @@ const ParseLogs: React.FC = () => {
           dataSource={list}
           loading={loading}
           pagination={false}
-          scroll={{ x: 2000 }}
+          scroll={{ x: 2120 }}
           onChange={(_, __, sorter) => {
             const { field, order } = sorter as SorterResult<ParseLogListItem>;
             setSearchParams({
@@ -298,5 +335,7 @@ export default ParseLogs;
 interface SearchParams extends PaginationParams {
   keyword?: string;
   type?: ParseLogType | string;
+  platform?: ParseLogPlatform | string;
   status?: ParseLogStatus | string;
+  dateRange?: [string, string] | string[] | null;
 }

@@ -55,11 +55,11 @@ export const MODE_COPY: Record<NeteaseParseMode, NeteaseModeCopy> = {
     hint: (
       <>
         请使用专辑分享链接，例如：
-        <code>https://music.163.com/album?id=31532</code>
+        <code>https://music.163.com/album?id=34746073</code>
       </>
     ),
     placeholder: '粘贴网易云专辑分享链接…',
-    defaultLink: 'https://music.163.com/album?id=31532',
+    defaultLink: 'https://music.163.com/album?id=34746073',
     parseLabel: '解析专辑',
     inputAria: '专辑分享链接',
     emptyText: '解析结果将显示在这里',

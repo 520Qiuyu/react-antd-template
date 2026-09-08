@@ -1,4 +1,4 @@
-import type { ParseLogStatus, ParseLogType } from '@/types/parseLog';
+import type { ParseLogPlatform, ParseLogStatus, ParseLogType } from '@/types/parseLog';
 
 /** 解析类型文案 */
 export const PARSE_LOG_TYPE_TEXT_MAP: Record<ParseLogType, string> = {
@@ -19,6 +19,24 @@ export const PARSE_LOG_TYPE_OPTIONS = [
   { label: '单曲', value: 'song' },
   { label: '歌单', value: 'playlist' },
   { label: '视频', value: 'video' },
+];
+
+/** 解析平台文案 */
+export const PARSE_LOG_PLATFORM_TEXT_MAP: Record<ParseLogPlatform, string> = {
+  qishui: '汽水音乐',
+  netease: '网易云',
+};
+
+/** 解析平台颜色 */
+export const PARSE_LOG_PLATFORM_COLOR_MAP: Record<ParseLogPlatform, string> = {
+  qishui: '#009e68',
+  netease: 'red',
+};
+
+/** 解析平台筛选项 */
+export const PARSE_LOG_PLATFORM_OPTIONS = [
+  { label: '汽水音乐', value: 'qishui' },
+  { label: '网易云', value: 'netease' },
 ];
 
 /** 解析状态文案 */

@@ -1,5 +1,6 @@
+import type { NeteaseApiAlbumInfo } from './album';
 import type { NeteasePlaylistDetailData, NeteasePlaylistTrackAllData } from './playlist';
-import type { NeteaseApiSong, NeteaseSongLyric, NeteaseSongQualityData } from './song';
+import type { NeteaseApiPrivilege, NeteaseApiSong, NeteaseSongLyric, NeteaseSongQualityData } from './song';
 
 /** 网易云解析查询参数 */
 export interface ParseNeteaseShareLinkParams {
@@ -28,4 +29,11 @@ export interface ParseNeteaseSongResponseData {
 export interface ParseNeteasePlaylistResponseData {
   detail: NeteasePlaylistDetailData | null;
   all: NeteasePlaylistTrackAllData | null;
+}
+
+/** 网易云专辑解析响应 */
+export interface ParseNeteaseAlbumResponseData {
+  album: NeteaseApiAlbumInfo;
+  songs: NeteaseApiSong[];
+  privileges: NeteaseApiPrivilege[];
 }

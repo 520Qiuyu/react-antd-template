@@ -13,7 +13,6 @@ import {
   CheckOutlined,
   CloudDownloadOutlined,
   CopyOutlined,
-  FileTextOutlined,
   LoadingOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
@@ -32,7 +31,9 @@ import {
   toHttpsUrl,
 } from '../../../utils';
 import type { SearchParams } from '../..';
+import SongPlayer from '../SongPlayer';
 import styles from './index.module.less';
+import eventBus from '@/utils/eventBus';
 
 interface SongResultProps {
   data: ParseNeteaseSongResponseData;
@@ -46,8 +47,9 @@ interface SongResultProps {
  * ```
  */
 const SongResult: React.FC<SongResultProps> = ({ data }) => {
+  const { downloads } = useSongParseStore();
   const [copyIdDone, setCopyIdDone] = useState(false);
-  const [copyLrcDone, setCopyLrcDone] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const song = data.song;
   const cover = toHttpsUrl(song?.al?.picUrl) || song?.al?.picUrl || PLACEHOLDER_COVER;
   const artistName = formatNeteaseArtistNames(song?.ar) || '未知歌手';
@@ -66,24 +68,13 @@ const SongResult: React.FC<SongResultProps> = ({ data }) => {
     }
   };
 
-  const handleCopyLrc = async () => {
-    const text = data.lyric?.lrc || data.lyric?.lrcText || '';
-    if (!text) return;
-    try {
-      await copy(text);
-      setCopyLrcDone(true);
-      msgSuccess('已复制歌词');
-      setTimeout(() => setCopyLrcDone(false), 1400);
-    } catch (error) {
-      console.log('error', error);
-      msgError('复制失败');
-    }
-  };
-
   return (
     <>
       <article className={styles['songCard']}>
-        <div className={styles['coverWrap']}>
+        <div
+          className={classNames(styles['coverWrap'], {
+            [styles['coverWrapPlaying']]: isPlaying,
+          })}>
           <div className={styles['coverGlow']} aria-hidden='true' />
           <img className={styles['cover']} src={cover} alt='专辑封面' />
         </div>
@@ -95,24 +86,21 @@ const SongResult: React.FC<SongResultProps> = ({ data }) => {
           <div className={styles['artist']}>
             <span>{artistName}</span>
           </div>
-          <code className={styles['trackId']}>{song?.id || '—'}</code>
+          <code className={styles['trackId']}>
+            {song?.id || '—'}{' '}
+            {copyIdDone ? (
+              <CheckOutlined onClick={handleCopyId} />
+            ) : (
+              <CopyOutlined onClick={handleCopyId} />
+            )}
+          </code>
           <div className={styles['actions']}>
-            <button
-              className={classNames(shared['btn'], shared['btnPrimary'], shared['btnSm'])}
-              type='button'
-              aria-label='复制歌曲 ID'
-              onClick={handleCopyId}>
-              {copyIdDone ? <CheckOutlined /> : <CopyOutlined />}
-              {copyIdDone ? '已复制' : '复制 ID'}
-            </button>
-            <button
-              className={classNames(shared['btn'], shared['btnGhost'], shared['btnSm'])}
-              type='button'
-              aria-label='复制歌词'
-              onClick={handleCopyLrc}>
-              {copyLrcDone ? <CheckOutlined /> : <FileTextOutlined />}
-              {copyLrcDone ? '已复制' : '复制歌词'}
-            </button>
+            <SongPlayer
+              songId={song?.id}
+              initialDownload={data.download}
+              downloads={downloads}
+              onPlayingChange={setIsPlaying}
+            />
           </div>
         </div>
       </article>
@@ -134,6 +122,15 @@ const SongResult: React.FC<SongResultProps> = ({ data }) => {
 };
 
 type QualityDownload = NeteaseSongDownloadData | ParseNeteaseSongUrl;
+
+/** 音质下载状态 */
+type QualityDownloadStatus = 'idle' | 'downloading' | 'embedding' | 'done' | 'error';
+
+/** 音质下载进度 */
+type QualityDownloadState = {
+  progress: number;
+  status: QualityDownloadStatus;
+};
 
 /**
  * 拼接音质元信息
@@ -181,21 +178,10 @@ export const SongQualityList: React.FC = () => {
   const { searchParams } = useSearchParams<SearchParams>();
   const { result, downloads, setDownload } = useSongParseStore();
   const [parsingIds, setParsingIds] = useState<string[]>([]);
-  const [downloadStates, setDownloadStates] = useState<
-    Record<
-      string,
-      { progress: number; status: 'idle' | 'downloading' | 'embedding' | 'done' | 'error' }
-    >
-  >({});
+  const [downloadStates, setDownloadStates] = useState<Record<string, QualityDownloadState>>({});
   const { embedMetadata } = useEmbedAudioMetadata();
 
-  const patchDownloadState = (
-    id: string,
-    patch: Partial<{
-      progress: number;
-      status: 'idle' | 'downloading' | 'embedding' | 'done' | 'error';
-    }>,
-  ) => {
+  const patchDownloadState = (id: string, patch: Partial<QualityDownloadState>) => {
     setDownloadStates((prev) => ({
       ...prev,
       [id]: {
@@ -286,12 +272,11 @@ export const SongQualityList: React.FC = () => {
         cardSecret: searchParams.cardSecret,
       });
       const download = res.data;
-      if (res.code !== 200 || !download?.url) {
-        msgError(res.message || '解析地址失败');
-        return;
+      if (download?.url) {
+        setDownload(key, download);
+        msgSuccess('解析成功');
+        eventBus.emit('cardSecretRefresh');
       }
-      setDownload(key, download);
-      msgSuccess('解析成功');
     } catch (error) {
       console.log('error', error);
       msgError('解析地址失败');

@@ -25,13 +25,21 @@ import {
 } from '@ant-design/icons';
 import { Pagination } from 'antd';
 import classNames from 'classnames';
-import { downloadNeteaseSongAudio, downloadNeteaseSongLyric, runWithConcurrency } from '../../downloadSong';
-import { PLACEHOLDER_COVER } from '../../mock';
 import {
-  usePlaylistParseStore,
-  type TrackDownloadStatus,
-} from '../../store/usePlaylistParseStore';
-import { formatDuration, formatNeteaseArtistNames, formatSize, sleep, toHttpsUrl } from '../../utils';
+  downloadNeteaseSongAudio,
+  downloadNeteaseSongLyric,
+  runWithConcurrency,
+} from '../../downloadSong';
+import { PLACEHOLDER_COVER } from '../../mock';
+import { useAlbumParseStore } from '../../store/useAlbumParseStore';
+import { usePlaylistParseStore, type TrackDownloadStatus } from '../../store/usePlaylistParseStore';
+import {
+  formatDuration,
+  formatNeteaseArtistNames,
+  formatSize,
+  sleep,
+  toHttpsUrl,
+} from '../../utils';
 import shared from '../shared.module.less';
 import styles from './index.module.less';
 
@@ -89,10 +97,71 @@ const defaultSearchParams: SearchParams = {
   pageSize: PAGE_SIZE,
 };
 
+export type TrackListSource = 'playlist' | 'album';
+
 interface TrackListProps {
   tracks: NeteaseApiSong[];
   privileges?: NeteaseApiPrivilege[];
+  /** 曲目来源，决定读写哪一份解析 store */
+  source?: TrackListSource;
+  /** JSON 导出文件名 / 标题，缺省时从对应 store 取 */
+  collectionTitle?: string;
 }
+
+/**
+ * 按曲目来源取解析 / 下载 store，避免专辑和歌单互相覆盖
+ * @example
+ * ```ts
+ * const collection = useTrackCollectionStore('album');
+ * ```
+ */
+const useTrackCollectionStore = (source: TrackListSource) => {
+  const playlistPatch = usePlaylistParseStore((state) => state.patchTrackParseInfo);
+  const playlistDownloadMap = usePlaylistParseStore((state) => state.trackDownloadMap);
+  const playlistSetDownload = usePlaylistParseStore((state) => state.setTrackDownload);
+  const playlistClearDownloads = usePlaylistParseStore((state) => state.clearTrackDownloads);
+  const albumPatch = useAlbumParseStore((state) => state.patchTrackParseInfo);
+  const albumDownloadMap = useAlbumParseStore((state) => state.trackDownloadMap);
+  const albumSetDownload = useAlbumParseStore((state) => state.setTrackDownload);
+  const albumClearDownloads = useAlbumParseStore((state) => state.clearTrackDownloads);
+
+  if (source === 'album') {
+    return {
+      patchTrackParseInfo: albumPatch,
+      trackDownloadMap: albumDownloadMap,
+      setTrackDownload: albumSetDownload,
+      clearTrackDownloads: albumClearDownloads,
+      getLatestTrack: (trackId: number) =>
+        useAlbumParseStore.getState().result?.songs.find((song) => song.id === trackId),
+      getTrackDownloadStatus: (trackId: number) =>
+        useAlbumParseStore.getState().trackDownloadMap[trackId]?.status ?? 'idle',
+      resolveCollectionTitle: (fallback?: string) =>
+        fallback?.trim() ||
+        useAlbumParseStore.getState().result?.album?.name?.trim() ||
+        '网易云专辑',
+    };
+  }
+
+  return {
+    patchTrackParseInfo: playlistPatch,
+    trackDownloadMap: playlistDownloadMap,
+    setTrackDownload: playlistSetDownload,
+    clearTrackDownloads: playlistClearDownloads,
+    getLatestTrack: (trackId: number) => {
+      const { result } = usePlaylistParseStore.getState();
+      return (
+        result?.all?.songs?.find((song) => song.id === trackId) ||
+        result?.detail?.playlist?.tracks?.find((song) => song.id === trackId)
+      );
+    },
+    getTrackDownloadStatus: (trackId: number) =>
+      usePlaylistParseStore.getState().trackDownloadMap[trackId]?.status ?? 'idle',
+    resolveCollectionTitle: (fallback?: string) =>
+      fallback?.trim() ||
+      usePlaylistParseStore.getState().result?.detail?.playlist?.name?.trim() ||
+      '网易云歌单',
+  };
+};
 
 interface SearchParams {
   range?: [number | null, number | null];
@@ -101,6 +170,7 @@ interface SearchParams {
   album?: string[];
   pageNum: number;
   pageSize: number;
+  downloaded?: boolean;
 }
 
 /**
@@ -110,7 +180,12 @@ interface SearchParams {
  * <TrackList tracks={songs} privileges={privileges} />
  * ```
  */
-const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
+const TrackList: React.FC<TrackListProps> = ({
+  tracks,
+  privileges,
+  source = 'playlist',
+  collectionTitle,
+}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(defaultSearchParams);
   const { searchParams: queryParams } = useSearchParams<{ cardSecret?: string }>();
   const { config } = useConfig();
@@ -118,10 +193,15 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
     ...DEFAULT_CONFIG,
     ...config,
   };
-  const patchTrackParseInfo = usePlaylistParseStore((state) => state.patchTrackParseInfo);
-  const trackDownloadMap = usePlaylistParseStore((state) => state.trackDownloadMap);
-  const setTrackDownload = usePlaylistParseStore((state) => state.setTrackDownload);
-  const clearTrackDownloads = usePlaylistParseStore((state) => state.clearTrackDownloads);
+  const {
+    patchTrackParseInfo,
+    trackDownloadMap,
+    setTrackDownload,
+    clearTrackDownloads,
+    getLatestTrack,
+    getTrackDownloadStatus,
+    resolveCollectionTitle,
+  } = useTrackCollectionStore(source);
   const [parsingIds, setParsingIds] = useState<Set<number>>(() => new Set());
   const [batchAction, setBatchAction] = useState<BatchAction>(null);
   const [batchProgress, setBatchProgress] = useState({ success: 0, failed: 0 });
@@ -175,6 +255,19 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
         placeholder: ['最小值', '最大值'],
         trigger: 'onBlur',
       },
+      // 是否已下载
+      {
+        label: '是否已下载',
+        name: 'downloaded',
+        type: 'select',
+        options: [
+          { label: '是', value: true },
+          { label: '否', value: false },
+        ],
+        inputProps: {
+          mode: undefined,
+        },
+      },
     ] as SearchFormOption[];
   }, [tracks]);
 
@@ -191,7 +284,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
 
   /** 筛选之后的曲目（保留原始序号） */
   const filteredTracks = useMemo(() => {
-    const { name, artist, album, range } = searchParams;
+    const { name, artist, album, range, downloaded } = searchParams;
     return tracks
       .map((item, index) => ({ ...item, index }))
       .filter((track) => {
@@ -201,9 +294,14 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
         const [min, max] = range || [null, null];
         if (min !== null && track.index + 1 < min) return false;
         if (max !== null && track.index + 1 > max) return false;
+        if (
+          downloaded !== undefined &&
+          downloaded !== (trackDownloadMap[track.id!]?.status === 'success')
+        )
+          return false;
         return true;
       });
-  }, [tracks, searchParams]);
+  }, [tracks, searchParams, trackDownloadMap]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTracks.length / PAGE_SIZE));
   const currentPage = Math.min(searchParams.pageNum, totalPages);
@@ -264,7 +362,6 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
         getDownloadUrl: true,
       });
       if (res.code !== 200) {
-        if (!silent) msgError(res.message || '解析失败');
         return false;
       }
       const parseInfo = res.data;
@@ -284,15 +381,6 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
     }
   };
 
-  /** 读取 store 中最新的曲目（含刚写入的 parseInfo） */
-  const getLatestTrack = (trackId: number) => {
-    const { result } = usePlaylistParseStore.getState();
-    return (
-      result?.all?.songs?.find((song) => song.id === trackId) ||
-      result?.detail?.playlist?.tracks?.find((song) => song.id === trackId)
-    );
-  };
-
   /**
    * 单曲下载：已解析则直接下，否则先解析再下。silent=true 时不弹单条 toast（批量用）
    * @example
@@ -304,7 +392,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
       if (!silent) msgError('缺少歌曲 ID');
       return false;
     }
-    if (isDownloadBusy(usePlaylistParseStore.getState().trackDownloadMap[trackId]?.status ?? 'idle')) {
+    if (isDownloadBusy(getTrackDownloadStatus(trackId))) {
       return false;
     }
 
@@ -507,9 +595,11 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
         };
       });
 
-      const playlistTitle =
-        usePlaylistParseStore.getState().result?.detail?.playlist?.name?.trim() || '网易云歌单';
-      downloadAsJson({ 歌单名: playlistTitle, list }, playlistTitle.replace(/[\\/:*?"<>|]/g, '_'));
+      const title = resolveCollectionTitle(collectionTitle);
+      downloadAsJson(
+        source === 'album' ? { 专辑名: title, list } : { 歌单名: title, list },
+        title.replace(/[\\/:*?"<>|]/g, '_'),
+      );
 
       const parsedCount = list.filter((item) => item.download || item.lyric).length;
       msgSuccess(
@@ -787,7 +877,9 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
                     <span className={styles['downloadMarkLoading']} aria-label='下载中'>
                       <LoadingOutlined />
                       {downloadProgressText ? (
-                        <span className={styles['downloadProgressText']}>{downloadProgressText}</span>
+                        <span className={styles['downloadProgressText']}>
+                          {downloadProgressText}
+                        </span>
                       ) : null}
                     </span>
                   ) : null}
@@ -795,7 +887,10 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
                     <CheckCircleFilled className={styles['downloadMarkOk']} aria-label='下载成功' />
                   ) : null}
                   {!downloading && downloadStatus === 'error' ? (
-                    <CloseCircleFilled className={styles['downloadMarkFail']} aria-label='下载失败' />
+                    <CloseCircleFilled
+                      className={styles['downloadMarkFail']}
+                      aria-label='下载失败'
+                    />
                   ) : null}
                 </p>
               </div>

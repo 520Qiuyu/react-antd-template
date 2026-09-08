@@ -17,6 +17,8 @@ import { Button, Tag } from 'antd';
 import dayjs from 'dayjs';
 import { forwardRef, useMemo, useState } from 'react';
 import {
+  PARSE_LOG_PLATFORM_COLOR_MAP,
+  PARSE_LOG_PLATFORM_TEXT_MAP,
   PARSE_LOG_STATUS_COLOR_MAP,
   PARSE_LOG_STATUS_TEXT_MAP,
   PARSE_LOG_TYPE_COLOR_MAP,
@@ -112,6 +114,9 @@ function ParseLogDetailModal(_props: Props, ref: React.ForwardedRef<Ref<void, Pa
                   <Tag color={PARSE_LOG_TYPE_COLOR_MAP[record.type]}>
                     {PARSE_LOG_TYPE_TEXT_MAP[record.type]}
                   </Tag>
+                  <Tag color={PARSE_LOG_PLATFORM_COLOR_MAP[record.platform] || 'default'}>
+                    {PARSE_LOG_PLATFORM_TEXT_MAP[record.platform] || record.platform || '-'}
+                  </Tag>
                   <Tag color={PARSE_LOG_STATUS_COLOR_MAP[record.status]}>
                     {PARSE_LOG_STATUS_TEXT_MAP[record.status]}
                   </Tag>
@@ -140,6 +145,14 @@ function ParseLogDetailModal(_props: Props, ref: React.ForwardedRef<Ref<void, Pa
             <SubTitle title='基础信息' className={styles['sectionTitle']} />
             <div className={styles['grid']}>
               <DetailItem label='日志 ID' value={<CopyText text={record.id} />} />
+              <DetailItem
+                label='平台'
+                value={
+                  <Tag color={PARSE_LOG_PLATFORM_COLOR_MAP[record.platform] || 'default'}>
+                    {PARSE_LOG_PLATFORM_TEXT_MAP[record.platform] || record.platform || '-'}
+                  </Tag>
+                }
+              />
               <DetailItem
                 label='账号'
                 value={record.userAccount || <span className={styles['muted']}>游客</span>}
