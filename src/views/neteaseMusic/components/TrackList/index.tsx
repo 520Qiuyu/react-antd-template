@@ -657,8 +657,19 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
           disabled={emptyList || batchBusy}
           onClick={() => handleDownloadAllLyrics('lrc')}>
           {batchAction === 'lrc' ? <LoadingOutlined /> : <FileTextOutlined />}
-          下载全部 lrc 歌词{' '}
-          <span className={styles['btnCount']}>{filteredTracks.length}</span>
+          下载全部 lrc 歌词
+          {batchAction === 'lrc' ? (
+            <>
+              <span className={classNames(styles['btnCount'], styles['btnCountOk'])}>
+                {batchProgress.success}
+              </span>
+              <span className={classNames(styles['btnCount'], styles['btnCountFail'])}>
+                {batchProgress.failed}
+              </span>
+            </>
+          ) : (
+            <span className={styles['btnCount']}>{filteredTracks.length}</span>
+          )}
         </button>
         <button
           className={classNames(shared['btn'], shared['btnGhost'])}
@@ -666,8 +677,19 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, privileges }) => {
           disabled={emptyList || batchBusy}
           onClick={() => handleDownloadAllLyrics('txt')}>
           {batchAction === 'txt' ? <LoadingOutlined /> : <FileTextOutlined />}
-          下载全部 txt 歌词{' '}
-          <span className={styles['btnCount']}>{filteredTracks.length}</span>
+          下载全部 txt 歌词
+          {batchAction === 'txt' ? (
+            <>
+              <span className={classNames(styles['btnCount'], styles['btnCountOk'])}>
+                {batchProgress.success}
+              </span>
+              <span className={classNames(styles['btnCount'], styles['btnCountFail'])}>
+                {batchProgress.failed}
+              </span>
+            </>
+          ) : (
+            <span className={styles['btnCount']}>{filteredTracks.length}</span>
+          )}
         </button>
       </div>
 

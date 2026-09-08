@@ -34,7 +34,9 @@ const DownloadConcurrencyField: React.FC<DownloadConcurrencyFieldProps> = ({
           '下载并发量大于3时，可能会导致电脑负载过高，是否继续？对电脑性能、内存有自信的可以尝试！',
           '温馨提示',
           {
-            wrapClassName: 'confirmWrap',
+            wrapClassName: classNames('confirmWrap', {
+              confirmWrapNetease: theme === 'netease',
+            }),
             okButtonProps: {
               type: 'primary',
               className: 'confirmOk',
