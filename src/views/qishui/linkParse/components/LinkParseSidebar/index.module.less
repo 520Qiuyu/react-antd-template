@@ -127,6 +127,22 @@
   }
 }
 
+.outbound {
+  display: none;
+}
+
+.outboundLink {
+  text-decoration: none;
+
+  &.isQishui {
+    box-shadow: inset 3px 0 0 #00c27a;
+  }
+
+  &.isNetease {
+    box-shadow: inset 3px 0 0 #c20c0c;
+  }
+}
+
 @media (max-width: 960px) {
   .sidebar {
     position: fixed;
@@ -145,5 +161,9 @@
 
   .sidebar.isOpen {
     transform: none;
+  }
+
+  .outbound {
+    display: block;
   }
 }

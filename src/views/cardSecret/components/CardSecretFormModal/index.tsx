@@ -4,7 +4,7 @@ import SubTitle from '@/components/SubTitle';
 import { useUser, useVisible } from '@/hooks';
 import type { Ref } from '@/hooks/useVisible';
 import type { CardSecretFormValues, CardSecretListItem, CardSecretType } from '@/types/cardSecret';
-import { msgError, msgSuccess } from '@/utils/modal';
+import { msgSuccess } from '@/utils/modal';
 import { Form, InputNumber, Radio, Slider } from 'antd';
 import classNames from 'classnames';
 import dayjs from 'dayjs';
@@ -27,11 +27,6 @@ const VALID_DAYS_PRESETS = [
   { label: '半年', days: 180 },
   { label: '1年', days: 365 },
 ] as const;
-
-const normalizeOptionalText = (value?: string) => {
-  const text = value?.trim();
-  return text || undefined;
-};
 
 function CardSecretFormModal(
   props: Props,
@@ -82,36 +77,10 @@ function CardSecretFormModal(
 
   const [submitting, setSubmitting] = useState(false);
 
-  /**
-   * 解析认证信息：齐全则返回对象，全空返回 null，部分填写返回 false（非法）
-   */
-  const resolveAuthInfo = (values: Record<string, any>) => {
-    const normalizedAuth = {
-      deviceId: normalizeOptionalText(values.deviceId),
-      cookie: normalizeOptionalText(values.cookie),
-      xHelios: normalizeOptionalText(values.xHelios),
-      xMedusa: normalizeOptionalText(values.xMedusa),
-    };
-    const filledCount = Object.values(normalizedAuth).filter(Boolean).length;
-    if (filledCount === 0) return null;
-    if (filledCount < 4) return false;
-    return {
-      deviceId: normalizedAuth.deviceId!,
-      cookie: normalizedAuth.cookie!,
-      xHelios: normalizedAuth.xHelios!,
-      xMedusa: normalizedAuth.xMedusa!,
-    };
-  };
-
   const handleSave = async () => {
     try {
       setSubmitting(true);
       const values = await formRef.validateFields();
-      const authInfo = resolveAuthInfo(values);
-      if (authInfo === false) {
-        msgError('认证信息需四项全部填写，或全部留空');
-        return;
-      }
 
       const payload: CardSecretFormValues = {
         createCount: isEdit ? 1 : values.createCount,
@@ -126,7 +95,6 @@ function CardSecretFormModal(
               ? null
               : values.dailyParseLimit
             : null,
-        authInfo: authInfo ?? undefined,
       };
 
       if (isEdit) {
@@ -136,8 +104,6 @@ function CardSecretFormModal(
           validDays: payload.validDays,
           parseLimit: payload.parseLimit,
           dailyParseLimit: payload.dailyParseLimit,
-          // null 表示清空认证信息；有对象则更新
-          authInfo: authInfo,
         });
         if (res.code === 200) {
           msgSuccess('更新成功');
@@ -150,7 +116,6 @@ function CardSecretFormModal(
           validDays: payload.validDays,
           parseLimit: payload.parseLimit,
           dailyParseLimit: payload.dailyParseLimit,
-          authInfo: payload.authInfo,
         });
         if (res.code === 200) {
           msgSuccess(`创建成功（${res.data?.count ?? payload.createCount} 条）`);
@@ -314,42 +279,6 @@ function CardSecretFormModal(
             )}
           </div>
         </div>
-
-        {/*  <div className={styles['section']}>
-          <SubTitle title='认证信息' className={styles['sectionTitle']} />
-          <div className={styles['formGrid']}>
-            <Form.Item label='Device ID' name='deviceId' className={styles['fullWidth']}>
-              <Input placeholder='例如：device-xxxx-001' allowClear />
-            </Form.Item>
-            <Form.Item label='Cookie' name='cookie' className={styles['fullWidth']}>
-              <Input.TextArea
-                placeholder='例如：sessionid=xxx; uid=xxx'
-                rows={3}
-                showCount
-                maxLength={2000}
-                allowClear
-              />
-            </Form.Item>
-            <Form.Item label='X-Helios' name='xHelios'>
-              <Input.TextArea
-                placeholder='例如：helios token'
-                rows={3}
-                showCount
-                maxLength={2000}
-                allowClear
-              />
-            </Form.Item>
-            <Form.Item label='X-Medusa' name='xMedusa'>
-              <Input.TextArea
-                placeholder='例如：medusa token'
-                rows={3}
-                showCount
-                maxLength={2000}
-                allowClear
-              />
-            </Form.Item>
-          </div>
-        </div> */}
       </Form>
     </MyModal>
   );

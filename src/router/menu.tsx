@@ -32,6 +32,7 @@ export const routes: IMenu[] = [
     path: 'auth-info',
     name: '认证信息管理',
     icon: 'customer-certified',
+    auth: ['auth-info-management'],
     component: lazy(() => import('@/views/authInfo')),
   },
   {
@@ -55,11 +56,6 @@ export const routes: IMenu[] = [
         component: lazy(() => import('@/views/quickCreateCard')),
         hiddenLayout: true,
         hidden: true,
-      },
-      {
-        path: 'auth-info',
-        name: '认证信息管理',
-        component: lazy(() => import('@/views/authInfo')),
       },
       {
         path: 'link-parse',

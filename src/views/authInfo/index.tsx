@@ -1,56 +1,92 @@
+import {
+  reqDeleteAuthInfo,
+  reqListAuthInfos,
+  reqUpdateAuthInfoStatus,
+} from '@/apis/authManagement';
 import { CopyText, MyButton, MyPagination, SearchForm } from '@/components';
-import { useCompRef, useSearchParams } from '@/hooks';
-import type { AuthInfoFormValues, AuthInfoListItem } from '@/types/authInfo';
+import type { Option as SearchFormOption } from '@/components/SearchForm';
+import { Status, STATUS_OPTIONS } from '@/constants';
+import { useCompRef, useGetList, useSearchParams } from '@/hooks';
+import type {
+  AuthInfoCompleteStatus,
+  AuthInfoListItem,
+  AuthInfoListStats,
+  AuthPlatform,
+} from '@/types/authInfo';
 import { confirm, msgSuccess } from '@/utils/modal';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
-import { Card, Space, Table, Tag } from 'antd';
+import { Card, Space, Switch, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import AuthInfoFormModal from './components/AuthInfoFormModal';
 import AuthInfoStat from './components/AuthInfoStat';
+import {
+  AUTH_COMPLETE_OPTIONS,
+  AUTH_PLATFORM_COLOR_MAP,
+  AUTH_PLATFORM_OPTIONS,
+  AUTH_PLATFORM_TEXT_MAP,
+} from './constants';
 import styles from './index.module.less';
-import { createMockAuthInfos } from './mock';
-import { isAuthInfoComplete } from './utils';
+import { isAuthInfoComplete, stringifyAuthInfoJson } from './utils';
 
 const defaultSearchParams: SearchParams = {
   pageNum: 1,
   pageSize: 10,
 };
 
-const COMPLETE_OPTIONS = [
-  { label: '完整', value: 'complete' },
-  { label: '不完整', value: 'incomplete' },
-];
-
 /**
  * 认证信息管理
  */
 const AuthInfo: React.FC = () => {
   const formModalRef = useCompRef(AuthInfoFormModal);
-  const [dataSource, setDataSource] = useState<AuthInfoListItem[]>(() => createMockAuthInfos());
-  const [loading, setLoading] = useState(false);
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
 
-  const filteredList = useMemo(() => {
-    const keyword = searchParams.keyword?.trim().toLowerCase();
-    return dataSource.filter((item) => {
-      const complete = isAuthInfoComplete(item);
-      if (searchParams.completeStatus === 'complete' && !complete) return false;
-      if (searchParams.completeStatus === 'incomplete' && complete) return false;
-      if (!keyword) return true;
-      return (
-        item.name.toLowerCase().includes(keyword) ||
-        item.id.toLowerCase().includes(keyword) ||
-        item.deviceId.toLowerCase().includes(keyword) ||
-        item.cookie.toLowerCase().includes(keyword)
-      );
-    });
-  }, [dataSource, searchParams.keyword, searchParams.completeStatus]);
+  const usedSearchParams = useMemo(() => {
+    const { sortOrder, ...rest } = searchParams;
+    return {
+      ...rest,
+      sortOrder: sortOrder === 'ascend' ? 'asc' : 'desc',
+    };
+  }, [searchParams]);
 
-  const pagedList = useMemo(() => {
-    const start = (searchParams.pageNum - 1) * searchParams.pageSize;
-    return filteredList.slice(start, start + searchParams.pageSize);
-  }, [filteredList, searchParams.pageNum, searchParams.pageSize]);
+  const searchFormOptions: SearchFormOption[] = [
+    {
+      name: 'keyword',
+      label: '关键词',
+      inputProps: { placeholder: '名称 / ID / 备注' },
+    },
+    {
+      name: 'platform',
+      label: '平台',
+      type: 'select',
+      options: AUTH_PLATFORM_OPTIONS,
+      inputProps: {
+        mode: undefined,
+        placeholder: '请选择平台',
+      },
+    },
+    {
+      name: 'status',
+      label: '状态',
+      type: 'select',
+      options: STATUS_OPTIONS,
+      inputProps: {
+        mode: undefined,
+        placeholder: '请选择状态',
+      },
+    },
+    {
+      name: 'completeStatus',
+      label: '完整性',
+      type: 'select',
+      options: AUTH_COMPLETE_OPTIONS,
+      inputProps: {
+        mode: undefined,
+        placeholder: '请选择完整性',
+      },
+    },
+  ];
 
   const handleSearch = (values: SearchParams) => {
     setSearchParams({ ...searchParams, ...values, pageNum: 1 });
@@ -58,47 +94,43 @@ const AuthInfo: React.FC = () => {
 
   const handleDelete = async (record: AuthInfoListItem) => {
     try {
-      await confirm(`确定要删除认证信息「${record.name}」吗？`, '提示');
-      setLoading(true);
-      setDataSource((prev) => prev.filter((item) => item.id !== record.id));
-      msgSuccess('删除成功');
+      await confirm(`确定要删除认证信息「${record.name || record.id}」吗？`, '提示');
+      const res = await reqDeleteAuthInfo(record.id);
+      if (res.code === 200) {
+        msgSuccess('删除成功');
+        setSearchParams({ ...searchParams });
+      }
     } catch (error) {
       console.log('error', error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleFormSuccess = async (values: AuthInfoFormValues, record?: AuthInfoListItem) => {
-    const now = new Date().toISOString();
-
-    if (record) {
-      setDataSource((prev) =>
-        prev.map((item) =>
-          item.id === record.id
-            ? {
-                ...item,
-                ...values,
-                utime: now,
-              }
-            : item,
-        ),
-      );
-      return;
+  const handleStatusChange = async (record: AuthInfoListItem, checked: boolean) => {
+    const nextStatus = checked ? Status.NORMAL : Status.DISABLED;
+    const actionText = checked ? '启用' : '禁用';
+    try {
+      await confirm(`确定要${actionText}认证信息「${record.name || record.id}」吗？`, '提示');
+      const res = await reqUpdateAuthInfoStatus(record.id, { status: nextStatus });
+      if (res.code === 200) {
+        msgSuccess(`${actionText}成功`);
+        setSearchParams({ ...searchParams });
+      }
+    } catch (error) {
+      console.log('error', error);
     }
-
-    const newItem: AuthInfoListItem = {
-      id: `auth-${Date.now()}`,
-      ...values,
-      ctime: now,
-      utime: now,
-    };
-    setDataSource((prev) => [newItem, ...prev]);
-    setSearchParams({ ...searchParams, pageNum: 1 });
   };
 
   const renderOptionalText = (val?: string) =>
     val ? <CopyText text={val} /> : <span className={styles['emptyText']}>-</span>;
+
+  const renderAuthInfoJson = (payload?: AuthInfoListItem['authInfo']) => {
+    const prettyText = stringifyAuthInfoJson(payload, ['name']);
+    const compactText = prettyText.replace(/\s+/g, ' ').trim();
+    if (compactText === '{}') {
+      return <span className={styles['emptyText']}>-</span>;
+    }
+    return <CopyText className={styles['jsonCell']} text={prettyText} showText={compactText} />;
+  };
 
   const columns: ColumnsType<AuthInfoListItem> = [
     {
@@ -106,6 +138,8 @@ const AuthInfo: React.FC = () => {
       dataIndex: 'id',
       width: 140,
       ellipsis: true,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'id' ? searchParams.sortOrder : undefined,
       render: (val: string) => <span className={styles['idCell']}>{val}</span>,
     },
     {
@@ -116,32 +150,21 @@ const AuthInfo: React.FC = () => {
       ellipsis: true,
     },
     {
-      title: 'Device ID',
-      dataIndex: 'deviceId',
-      width: 180,
-      ellipsis: true,
-      render: (val: string) => <CopyText text={val} />,
+      title: '平台',
+      dataIndex: 'platform',
+      width: 120,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'platform' ? searchParams.sortOrder : undefined,
+      render: (platform: AuthPlatform) => (
+        <Tag color={AUTH_PLATFORM_COLOR_MAP[platform]}>{AUTH_PLATFORM_TEXT_MAP[platform] || platform}</Tag>
+      ),
     },
     {
-      title: 'Cookie',
-      dataIndex: 'cookie',
-      width: 220,
+      title: '认证 JSON',
+      dataIndex: 'authInfo',
+      width: 360,
       ellipsis: true,
-      render: renderOptionalText,
-    },
-    {
-      title: 'X-Helios',
-      dataIndex: 'xHelios',
-      width: 180,
-      ellipsis: true,
-      render: renderOptionalText,
-    },
-    {
-      title: 'X-Medusa',
-      dataIndex: 'xMedusa',
-      width: 180,
-      ellipsis: true,
-      render: renderOptionalText,
+      render: (val: AuthInfoListItem['authInfo']) => renderAuthInfoJson(val),
     },
     {
       title: '完整性',
@@ -155,15 +178,39 @@ const AuthInfo: React.FC = () => {
         ),
     },
     {
+      title: '是否启用',
+      dataIndex: 'status',
+      width: 110,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'status' ? searchParams.sortOrder : undefined,
+      render: (_, record) => (
+        <Switch
+          checked={record.status === Status.NORMAL}
+          onChange={(checked) => handleStatusChange(record, checked)}
+        />
+      ),
+    },
+    {
+      title: '备注',
+      dataIndex: 'remark',
+      width: 180,
+      ellipsis: true,
+      render: (val?: string | null) => renderOptionalText(val || ''),
+    },
+    {
       title: '创建时间',
       dataIndex: 'ctime',
       width: 180,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'ctime' ? searchParams.sortOrder : undefined,
       render: (val: string) => (val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'),
     },
     {
       title: '更新时间',
       dataIndex: 'utime',
       width: 180,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'utime' ? searchParams.sortOrder : undefined,
       render: (val: string) => (val ? dayjs(val).format('YYYY-MM-DD HH:mm:ss') : '-'),
     },
     {
@@ -180,6 +227,7 @@ const AuthInfo: React.FC = () => {
             color='primary'
             icon={<EditOutlined />}
             toolTip='编辑'
+            permissionCode='auth_management_update'
             onClick={() => formModalRef.current?.open(record)}
           />
           <MyButton
@@ -188,6 +236,7 @@ const AuthInfo: React.FC = () => {
             danger
             icon={<DeleteOutlined />}
             toolTip='删除'
+            permissionCode='auth_management_remove'
             onClick={() => handleDelete(record)}
           />
         </Space>
@@ -195,9 +244,12 @@ const AuthInfo: React.FC = () => {
     },
   ];
 
+  const { list, loading, total, otherInfo } = useGetList(reqListAuthInfos, usedSearchParams);
+  const stats = otherInfo as Partial<AuthInfoListStats>;
+
   return (
     <div className={styles['page']}>
-      <AuthInfoStat list={dataSource} />
+      <AuthInfoStat total={total} stats={stats} />
 
       <Card
         className={styles['listCard']}
@@ -206,6 +258,7 @@ const AuthInfo: React.FC = () => {
           <MyButton
             type='primary'
             icon={<PlusOutlined />}
+            permissionCode='auth_management_create'
             onClick={() => formModalRef.current?.open()}>
             创建认证信息
           </MyButton>
@@ -215,42 +268,34 @@ const AuthInfo: React.FC = () => {
             searchParams={searchParams}
             loading={loading}
             onSearch={handleSearch}
-            options={[
-              {
-                name: 'keyword',
-                label: '关键词',
-                inputProps: { placeholder: '名称 / ID / Device ID' },
-              },
-              {
-                name: 'completeStatus',
-                label: '完整性',
-                type: 'select',
-                options: COMPLETE_OPTIONS,
-                inputProps: {
-                  mode: undefined,
-                  placeholder: '请选择完整性',
-                },
-              },
-            ]}
+            options={searchFormOptions}
           />
         </div>
         <Table
           rowKey='id'
           columns={columns}
-          dataSource={pagedList}
+          dataSource={list}
           loading={loading}
           pagination={false}
-          scroll={{ x: 1620 }}
+          scroll={{ x: 1480 }}
+          onChange={(_, __, sorter) => {
+            const { field, order } = sorter as SorterResult<AuthInfoListItem>;
+            setSearchParams({
+              ...searchParams,
+              sortField: field as string,
+              sortOrder: order as SortOrder,
+            });
+          }}
         />
         <MyPagination
           current={searchParams.pageNum}
           pageSize={searchParams.pageSize}
-          total={filteredList.length}
+          total={total}
           onChange={(pageNum, pageSize) => setSearchParams({ ...searchParams, pageNum, pageSize })}
         />
       </Card>
 
-      <AuthInfoFormModal ref={formModalRef} onSuccess={handleFormSuccess} />
+      <AuthInfoFormModal ref={formModalRef} onSuccess={() => setSearchParams({ ...searchParams })} />
     </div>
   );
 };
@@ -259,5 +304,7 @@ export default AuthInfo;
 
 interface SearchParams extends PaginationParams {
   keyword?: string;
-  completeStatus?: 'complete' | 'incomplete';
+  platform?: AuthPlatform | string;
+  status?: string;
+  completeStatus?: AuthInfoCompleteStatus;
 }

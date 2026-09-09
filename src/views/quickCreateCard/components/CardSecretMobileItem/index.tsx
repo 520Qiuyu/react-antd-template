@@ -99,8 +99,6 @@ const CardSecretMobileItem: React.FC<Props> = ({
     : 0;
 
   const dailyIsPrimary = hasDailyLimit && type === 'time';
-  const auth = record.authInfo;
-  const hasAuth = Boolean(auth?.deviceId || auth?.cookie);
   const isEnabled = record.status === Status.NORMAL;
 
   const handleCopyText = () => onCopyText(record);
@@ -258,16 +256,6 @@ const CardSecretMobileItem: React.FC<Props> = ({
           <div className={styles['row']}>
             <span className={styles['label']}>ID</span>
             <span className={classNames(styles['value'], styles['mono'])}>{record.id}</span>
-          </div>
-          <div className={styles['row']}>
-            <span className={styles['label']}>认证信息</span>
-            <span className={styles['value']}>
-              {hasAuth ? (
-                <CopyText text={auth?.deviceId || auth?.cookie || '已配置'} />
-              ) : (
-                <span className={styles['muted']}>未配置</span>
-              )}
-            </span>
           </div>
           <div className={styles['row']}>
             <span className={styles['label']}>备注</span>

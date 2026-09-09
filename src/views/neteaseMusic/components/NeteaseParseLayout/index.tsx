@@ -1,8 +1,14 @@
 import { CardSecretModal, maskCardSecret } from '@/components';
-import { useSearchParams } from '@/hooks';
+import { getSearchFromObject, useSearchParams } from '@/hooks';
 import eventBus from '@/utils/eventBus';
-import { CustomerServiceOutlined, ExportOutlined, KeyOutlined, MenuOutlined } from '@ant-design/icons';
+import {
+  CustomerServiceOutlined,
+  ExportOutlined,
+  KeyOutlined,
+  MenuOutlined,
+} from '@ant-design/icons';
 import classNames from 'classnames';
+import { useHref } from 'react-router';
 import { NETEASE_HOME_URL } from '../../constants';
 import { useNeteaseParseContext } from '../NeteaseParseContext';
 import PageAside from '../PageAside';
@@ -25,10 +31,14 @@ interface NeteaseParseLayoutProps {
  */
 const NeteaseParseLayout: React.FC<NeteaseParseLayoutProps> = ({ children }) => {
   const { tocSections } = useNeteaseParseContext();
-  const { searchParams,setSearchParams } = useSearchParams<SearchParams>();
+  const { searchParams, setSearchParams } = useSearchParams<SearchParams>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const cardSecret = searchParams.cardSecret?.trim() || '';
   const hasCardSecret = Boolean(cardSecret);
+  const qishuiParseHref = useHref({
+    pathname: '/music-parse/qishui-music-parse',
+    search: `?${getSearchFromObject({ cardSecret })}`,
+  });
 
   const handleToggleSidebar = () => {
     setSidebarOpen((open) => !open);
@@ -39,7 +49,7 @@ const NeteaseParseLayout: React.FC<NeteaseParseLayoutProps> = ({ children }) => 
   };
 
   const handleBrandClick = () => {
-    setSearchParams({...searchParams, currentView: 'song' });
+    setSearchParams({ ...searchParams, currentView: 'song' });
   };
 
   const handleGuideClick = (id: string) => {
@@ -84,11 +94,19 @@ const NeteaseParseLayout: React.FC<NeteaseParseLayoutProps> = ({ children }) => 
           <nav className={styles['navLinks']} aria-label='顶部导航'>
             <a
               className={styles['navLink']}
+              href={qishuiParseHref}
+              target='_blank'
+              rel='noopener noreferrer'>
+              <ExportOutlined />
+              汽水音乐解析
+            </a>
+            <a
+              className={styles['navLink']}
               href={NETEASE_HOME_URL}
               target='_blank'
               rel='noopener noreferrer'>
               <ExportOutlined />
-              网易云音乐
+              网易云音乐官网
             </a>
           </nav>
 
@@ -104,16 +122,17 @@ const NeteaseParseLayout: React.FC<NeteaseParseLayoutProps> = ({ children }) => 
         </div>
       </header>
 
-      <div
-        className={classNames(styles['overlay'], { [styles['isOpen']]: sidebarOpen })}
-        onClick={handleCloseSidebar}
-      />
-
       <div className={styles['layout']}>
         <ParseSidebar
           open={sidebarOpen}
           onClose={handleCloseSidebar}
           onGuideClick={handleGuideClick}
+          qishuiParseHref={qishuiParseHref}
+          neteaseHomeUrl={NETEASE_HOME_URL}
+        />
+        <div
+          className={classNames(styles['overlay'], { [styles['isOpen']]: sidebarOpen })}
+          onClick={handleCloseSidebar}
         />
         <div className={styles['content']}>
           <div className={styles['docArea']}>{children}</div>

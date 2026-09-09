@@ -2,7 +2,7 @@ import { DownloadConcurrencyField, DownloadNameFormatField } from '@/components'
 import { useClickOutside } from '@/hooks';
 import { DEFAULT_CONFIG, useConfig } from '@/hooks/useConfig';
 import type { NeteaseSoundQualityLevel } from '@/types/netease';
-import { ProfileOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { ExportOutlined, ProfileOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { Select } from 'antd';
 import classNames from 'classnames';
 import { NETEASE_DOWNLOAD_QUALITY_OPTIONS, QUALITY_LABEL_MAP } from '../../constants/index';
@@ -12,6 +12,8 @@ interface ParseSidebarProps {
   open: boolean;
   onClose: () => void;
   onGuideClick: (id: string) => void;
+  qishuiParseHref: string;
+  neteaseHomeUrl: string;
 }
 
 /**
@@ -21,7 +23,13 @@ interface ParseSidebarProps {
  * <ParseSidebar open={open} onClose={handleClose} onGuideClick={handleGuideClick} />
  * ```
  */
-const ParseSidebar: React.FC<ParseSidebarProps> = ({ open, onClose, onGuideClick }) => {
+const ParseSidebar: React.FC<ParseSidebarProps> = ({
+  open,
+  onClose,
+  onGuideClick,
+  qishuiParseHref,
+  neteaseHomeUrl,
+}) => {
   const siderBarRef = useClickOutside<HTMLElement>(() => {
     if (open) onClose();
   });
@@ -56,6 +64,28 @@ const ParseSidebar: React.FC<ParseSidebarProps> = ({ open, onClose, onGuideClick
           字段说明
         </button>
       </div>
+
+      <nav className={classNames(styles['group'], styles['outbound'])} aria-label='前往'>
+        <p className={styles['heading']}>前往</p>
+        <a
+          className={classNames(styles['item'], styles['outboundLink'], styles['isQishui'])}
+          href={qishuiParseHref}
+          target='_blank'
+          rel='noopener noreferrer'
+          onClick={onClose}>
+          <ExportOutlined />
+          汽水音乐解析
+        </a>
+        <a
+          className={classNames(styles['item'], styles['outboundLink'])}
+          href={neteaseHomeUrl}
+          target='_blank'
+          rel='noopener noreferrer'
+          onClick={onClose}>
+          <ExportOutlined />
+          网易云音乐官网
+        </a>
+      </nav>
 
       <div className={styles['settings']}>
         <strong className={styles['settingsTitle']}>下载设置</strong>

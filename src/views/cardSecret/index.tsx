@@ -263,19 +263,6 @@ const CardSecret: React.FC = () => {
       ),
     },
     {
-      title: '认证信息',
-      key: 'auth',
-      width: 180,
-      ellipsis: true,
-      render: (_, record) => {
-        const auth = record.authInfo;
-        if (!auth?.deviceId && !auth?.cookie) {
-          return <span className={styles['cookieEmpty']}>未配置</span>;
-        }
-        return <CopyText text={auth.deviceId || auth.cookie || '已配置'} />;
-      },
-    },
-    {
       title: '是否启用',
       dataIndex: 'status',
       width: 120,

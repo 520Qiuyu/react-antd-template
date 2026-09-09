@@ -1,17 +1,11 @@
 import { CardSecretModal, maskCardSecret } from '@/components';
-import { useEmbedAudioMetadata, useSearchParams } from '@/hooks';
+import { getSearchFromObject, useEmbedAudioMetadata, useSearchParams } from '@/hooks';
 import { useParseStore } from '@/store';
 import eventBus from '@/utils/eventBus';
-import {
-  AppstoreOutlined,
-  CustomerServiceOutlined,
-  ExportOutlined,
-  KeyOutlined,
-  MenuOutlined,
-  UnorderedListOutlined,
-} from '@ant-design/icons';
+import { AppstoreOutlined, ExportOutlined, KeyOutlined, MenuOutlined } from '@ant-design/icons';
 import classNames from 'classnames';
 import { useCallback } from 'react';
+import { useHref } from 'react-router';
 import HelpFab from './components/HelpFab';
 import LinkParseSidebar from './components/LinkParseSidebar';
 import PageAside from './components/PageAside';
@@ -32,7 +26,10 @@ const LinkParse: React.FC = () => {
   const cardSecret = searchParams.cardSecret?.trim() || '';
   const hasCardSecret = Boolean(cardSecret);
   useEmbedAudioMetadata();
-
+  const neteaseParseHref = useHref({
+    pathname: '/music-parse/netease-music-parse',
+    search: `?${getSearchFromObject({ cardSecret })}`,
+  });
   const handleGuideClick = useCallback(() => {
     if (searchParams.currentView !== 'song') {
       setSearchParams({ ...searchParams, currentView: 'song' });
@@ -77,13 +74,22 @@ const LinkParse: React.FC = () => {
           </button>
 
           <nav className={styles['navLinks']} aria-label='顶部导航'>
+            {/* 网易云解析 */}
+            <a
+              className={styles['navLink']}
+              href={neteaseParseHref}
+              target='_blank'
+              rel='noopener noreferrer'>
+              <ExportOutlined />
+              网易云解析
+            </a>
             <a
               className={styles['navLink']}
               href={QISHUI_HOME_URL}
               target='_blank'
               rel='noopener noreferrer'>
               <ExportOutlined />
-              汽水音乐
+              汽水音乐官网
             </a>
           </nav>
 
@@ -100,7 +106,11 @@ const LinkParse: React.FC = () => {
       </header>
 
       <div className={styles['layout']}>
-        <LinkParseSidebar onGuideClick={handleGuideClick} />
+        <LinkParseSidebar
+          onGuideClick={handleGuideClick}
+          neteaseParseHref={neteaseParseHref}
+          qishuiHomeUrl={QISHUI_HOME_URL}
+        />
 
         <div className={styles['content']}>
           <div className={styles['docArea']}>

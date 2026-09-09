@@ -3,6 +3,7 @@ import { useClickOutside, useSearchParams } from '@/hooks';
 import { DEFAULT_CONFIG, useConfig } from '@/hooks/useConfig';
 import {
   CustomerServiceOutlined,
+  ExportOutlined,
   ProfileOutlined,
   QuestionCircleOutlined,
   UnorderedListOutlined,
@@ -21,12 +22,18 @@ import styles from './index.module.less';
 
 interface LinkParseSidebarProps {
   onGuideClick: () => void;
+  neteaseParseHref: string;
+  qishuiHomeUrl: string;
 }
 
 /**
  * 链接解析侧边栏
  */
-const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => {
+const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({
+  onGuideClick,
+  neteaseParseHref,
+  qishuiHomeUrl,
+}) => {
   const { setSearchParams, searchParams } = useSearchParams<SearchParams>();
   const sidebarOpen = useParseStore((state) => state.sidebarOpen);
   const setSidebarOpen = useParseStore((state) => state.setSidebarOpen);
@@ -90,6 +97,28 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({ onGuideClick }) => 
           字段说明
         </button>
       </div>
+
+      <nav className={classNames(styles['group'], styles['outbound'])} aria-label='前往'>
+        <p className={styles['heading']}>前往</p>
+        <a
+          className={classNames(styles['item'], styles['outboundLink'], styles['isNetease'])}
+          href={neteaseParseHref}
+          target='_blank'
+          rel='noopener noreferrer'
+          onClick={() => setSidebarOpen(false)}>
+          <ExportOutlined />
+          网易云解析
+        </a>
+        <a
+          className={classNames(styles['item'], styles['outboundLink'])}
+          href={qishuiHomeUrl}
+          target='_blank'
+          rel='noopener noreferrer'
+          onClick={() => setSidebarOpen(false)}>
+          <ExportOutlined />
+          汽水音乐官网
+        </a>
+      </nav>
 
       <div className={styles['settings']}>
         <strong className={styles['settingsTitle']}>下载设置</strong>

@@ -4,14 +4,6 @@ export type CardSecretType = 'time' | 'count';
 /** 卡密状态 */
 export type CardSecretStatus = 'normal' | 'disabled';
 
-/** 卡密认证信息 */
-export interface CardSecretAuthInfo {
-  deviceId: string;
-  cookie: string;
-  xHelios: string;
-  xMedusa: string;
-}
-
 /** 根据卡密查询详情（链接解析侧） */
 export interface CardSecretDetail {
   id: string;
@@ -79,10 +71,6 @@ export interface CardSecretListItem {
   dailyParsedCount?: number;
   /** 当日计数对应日期 */
   dailyParseDate?: string | null;
-  /** 认证信息 ID */
-  authInfoId?: string | null;
-  /** 认证信息 */
-  authInfo?: CardSecretAuthInfo | null;
   /** 状态 */
   status: CardSecretStatus | string;
   /** 备注 */
@@ -118,7 +106,6 @@ export interface CreateCardSecretParams {
   parseLimit?: number;
   /** 每日最多解析数量（按时长；null 表示不限制） */
   dailyParseLimit?: number | null;
-  authInfo?: CardSecretAuthInfo;
   remark?: string;
   status?: CardSecretStatus;
 }
@@ -132,7 +119,6 @@ export interface UpdateCardSecretParams {
   parseLimit?: number;
   /** 每日最多解析数量（按时长；null 表示不限制） */
   dailyParseLimit?: number | null;
-  authInfo?: CardSecretAuthInfo | null;
   remark?: string | null;
   status?: CardSecretStatus;
 }
@@ -157,5 +143,4 @@ export interface CardSecretFormValues {
   parseLimit?: number;
   /** 每日最多解析数量（按时长；null 表示不限制） */
   dailyParseLimit?: number | null;
-  authInfo?: CardSecretAuthInfo;
 }
