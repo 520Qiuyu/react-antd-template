@@ -13,8 +13,7 @@ const REQUEST_HEADERS = {
 };
 
 /** 清理文件名非法字符 */
-export const sanitizeFilenamePart = (value: string) =>
-  value.replace(/[\\/:*?"<>|]/g, '_').trim();
+export const sanitizeFilenamePart = (value: string) => value.replace(/[\\/:*?"<>|]/g, '_').trim();
 
 /**
  * 按模板生成不含扩展名的文件名。
@@ -35,7 +34,9 @@ export const resolveBasename = (
   const basename = nameFormat
     .replace(/【(序号|歌名|专辑名|歌手)】/g, (_, key: string) => values[key] ?? '')
     .trim();
-  return basename || '未知歌曲';
+  // 去除文件管理不允许的字符或者表情符号等
+  const cleanedBasename = basename.replace(/[\\/:*?"<>|]/g, '_').trim();
+  return cleanedBasename || '未知歌曲';
 };
 
 /**
