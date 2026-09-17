@@ -7,6 +7,7 @@ import classNames from 'classnames';
 import { useCallback } from 'react';
 import { useHref } from 'react-router';
 import HelpFab from './components/HelpFab';
+import NeteaseParseFab from './components/NeteaseParseFab';
 import LinkParseSidebar from './components/LinkParseSidebar';
 import PageAside from './components/PageAside';
 import PlaylistParseView from './components/PlaylistParseView';
@@ -121,7 +122,9 @@ const LinkParse: React.FC = () => {
       </div>
 
       <CardSecretModal theme='qishui' />
-      <HelpFab />
+      <HelpFab>
+        <NeteaseParseFab href={neteaseParseHref} />
+      </HelpFab>
     </div>
   );
 };

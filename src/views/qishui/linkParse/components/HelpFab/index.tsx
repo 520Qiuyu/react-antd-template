@@ -6,14 +6,20 @@ import styles from './index.module.less';
 
 const AUTO_COLLAPSE_MS = 10000;
 
+interface HelpFabProps {
+  children?: React.ReactNode;
+}
+
 /**
  * 右下角使用教程帮助浮层
  * @example
  * ```tsx
- * <HelpFab />
+ * <HelpFab>
+ *   <NeteaseParseFab href={neteaseParseHref} />
+ * </HelpFab>
  * ```
  */
-const HelpFab: React.FC = () => {
+const HelpFab: React.FC<HelpFabProps> = ({ children }) => {
   const rootRef = useRef<HTMLDivElement>(null);
   const autoTimerRef = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
@@ -137,6 +143,8 @@ const HelpFab: React.FC = () => {
           查看教程
         </button>
       </div>
+
+      {children}
 
       <button
         className={classNames(styles['fab'], {
