@@ -2,12 +2,12 @@ import type {
   AuthInfoListItem,
   AuthInfoListStats,
   CreateAuthInfoParams,
+  ImportAuthInfoItem,
   ListAuthInfoParams,
   UpdateAuthInfoParams,
   UpdateAuthInfoStatusParams,
 } from '@/types/authInfo';
-import type { IPageData } from '@/types/request';
-import { del, get, post, put } from 'utils/request';
+import type { BatchImportResult, IPageData } from '@/types/request';import { del, get, post, put } from 'utils/request';
 
 /**
  * 获取认证信息列表
@@ -67,3 +67,15 @@ export const reqUpdateAuthInfoStatus = (id: string, data: UpdateAuthInfoStatusPa
  * ```
  */
 export const reqDeleteAuthInfo = (id: string) => del<{ id: string }>(`/auth-management/${id}`);
+
+/**
+ * 批量导入认证信息
+ * @example
+ * ```ts
+ * const res = await reqImportAuthInfos(list);
+ * ```
+ */
+export const reqImportAuthInfos = (list: ImportAuthInfoItem[]) =>
+  post<BatchImportResult, { list: ImportAuthInfoItem[] }>('/auth-management/import/batch', {
+    list,
+  });

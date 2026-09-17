@@ -41,6 +41,8 @@ export interface AuthInfoListItem {
   isAvailable: boolean;
   /** 状态 */
   status: AuthInfoStatus | string;
+  /** 使用次数 */
+  useCount: number;
   /** 备注 */
   remark?: string | null;
   /** 认证 JSON 是否非空 */
@@ -82,6 +84,16 @@ export interface UpdateAuthInfoParams {
 /** 更新认证信息状态参数 */
 export interface UpdateAuthInfoStatusParams {
   status: AuthInfoStatus;
+}
+
+/** 导入 / 导出认证信息项 */
+export interface ImportAuthInfoItem {
+  id?: string | null;
+  platform: AuthPlatform;
+  authInfo: AuthInfoPayload;
+  isAvailable?: boolean;
+  status?: AuthInfoStatus;
+  remark?: string | null;
 }
 
 /** 新建 / 编辑表单参数 */

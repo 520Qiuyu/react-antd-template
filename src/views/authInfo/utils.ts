@@ -1,4 +1,9 @@
-import type { AuthInfoListItem, AuthInfoPayload } from '@/types/authInfo';
+import type {
+  AuthInfoListItem,
+  AuthInfoPayload,
+  AuthPlatform,
+  ImportAuthInfoItem,
+} from '@/types/authInfo';
 
 /**
  * 规范化文本
@@ -66,3 +71,19 @@ export const parseAuthInfoJson = (value?: string): AuthInfoPayload => {
  */
 export const isAuthInfoComplete = (item: Pick<AuthInfoListItem, 'complete' | 'isAvailable'>) =>
   item.complete || item.isAvailable;
+
+/**
+ * 把列表项转成可导入的导出 JSON
+ * @example
+ * ```ts
+ * selectedRows.map(toExportAuthInfoItem);
+ * ```
+ */
+export const toExportAuthInfoItem = (record: AuthInfoListItem): ImportAuthInfoItem => ({
+  id: record.id,
+  platform: (record.platform === 'netease' ? 'netease' : 'qishui') as AuthPlatform,
+  authInfo: record.authInfo || {},
+  isAvailable: record.isAvailable,
+  status: record.status === 'disabled' ? 'disabled' : 'normal',
+  remark: record.remark ?? null,
+});

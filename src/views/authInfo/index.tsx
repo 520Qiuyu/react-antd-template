@@ -13,14 +13,16 @@ import type {
   AuthInfoListStats,
   AuthPlatform,
 } from '@/types/authInfo';
-import { confirm, msgSuccess } from '@/utils/modal';
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { downloadAsJson } from '@/utils/download';
+import { confirm, msgError, msgSuccess } from '@/utils/modal';
+import { DeleteOutlined, EditOutlined, ExportOutlined, ImportOutlined, PlusOutlined } from '@ant-design/icons';
 import { Card, Space, Switch, Table, Tag } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnsType, TableProps } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import AuthInfoFormModal from './components/AuthInfoFormModal';
 import AuthInfoStat from './components/AuthInfoStat';
+import ImportAuthInfoModal from './components/ImportAuthInfoModal';
 import {
   AUTH_COMPLETE_OPTIONS,
   AUTH_PLATFORM_COLOR_MAP,
@@ -28,7 +30,7 @@ import {
   AUTH_PLATFORM_TEXT_MAP,
 } from './constants';
 import styles from './index.module.less';
-import { isAuthInfoComplete, stringifyAuthInfoJson } from './utils';
+import { isAuthInfoComplete, stringifyAuthInfoJson, toExportAuthInfoItem } from './utils';
 
 const defaultSearchParams: SearchParams = {
   pageNum: 1,
@@ -40,6 +42,9 @@ const defaultSearchParams: SearchParams = {
  */
 const AuthInfo: React.FC = () => {
   const formModalRef = useCompRef(AuthInfoFormModal);
+  const importModalRef = useCompRef(ImportAuthInfoModal);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [selectedRows, setSelectedRows] = useState<AuthInfoListItem[]>([]);
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
 
   const usedSearchParams = useMemo(() => {
@@ -120,6 +125,33 @@ const AuthInfo: React.FC = () => {
     }
   };
 
+  const rowSelection: TableProps<AuthInfoListItem>['rowSelection'] = {
+    selectedRowKeys,
+    preserveSelectedRowKeys: true,
+    onChange: (keys, rows) => {
+      setSelectedRowKeys(keys as string[]);
+      setSelectedRows(rows as AuthInfoListItem[]);
+    },
+  };
+
+  const handleImport = () => {
+    importModalRef.current?.open();
+  };
+
+  const handleExport = () => {
+    if (!selectedRows.length) {
+      msgError('请至少选择一条认证信息');
+      return;
+    }
+
+    try {
+      downloadAsJson(selectedRows.map(toExportAuthInfoItem), 'authInfoList', { timestamp: true });
+      msgSuccess('导出成功');
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+
   const renderOptionalText = (val?: string) =>
     val ? <CopyText text={val} /> : <span className={styles['emptyText']}>-</span>;
 
@@ -176,6 +208,14 @@ const AuthInfo: React.FC = () => {
         ) : (
           <Tag color='warning'>不完整</Tag>
         ),
+    },
+    {
+      title: '使用次数',
+      dataIndex: 'useCount',
+      width: 110,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'useCount' ? searchParams.sortOrder : undefined,
+      render: (val?: number) => val ?? 0,
     },
     {
       title: '是否启用',
@@ -255,13 +295,29 @@ const AuthInfo: React.FC = () => {
         className={styles['listCard']}
         title='认证信息列表'
         extra={
-          <MyButton
-            type='primary'
-            icon={<PlusOutlined />}
-            permissionCode='auth_management_create'
-            onClick={() => formModalRef.current?.open()}>
-            创建认证信息
-          </MyButton>
+          <Space>
+            <MyButton
+              type='primary'
+              icon={<ImportOutlined />}
+              permissionCode='auth_management_create'
+              onClick={handleImport}>
+              导入认证信息
+            </MyButton>
+            <MyButton
+              type='primary'
+              icon={<ExportOutlined />}
+              onClick={handleExport}
+              disabled={!selectedRowKeys.length}>
+              导出认证信息 ({selectedRowKeys.length})
+            </MyButton>
+            <MyButton
+              type='primary'
+              icon={<PlusOutlined />}
+              permissionCode='auth_management_create'
+              onClick={() => formModalRef.current?.open()}>
+              创建认证信息
+            </MyButton>
+          </Space>
         }>
         <div className={styles['toolbar']}>
           <SearchForm
@@ -277,7 +333,8 @@ const AuthInfo: React.FC = () => {
           dataSource={list}
           loading={loading}
           pagination={false}
-          scroll={{ x: 1480 }}
+          rowSelection={rowSelection}
+          scroll={{ x: 1600 }}
           onChange={(_, __, sorter) => {
             const { field, order } = sorter as SorterResult<AuthInfoListItem>;
             setSearchParams({
@@ -296,6 +353,10 @@ const AuthInfo: React.FC = () => {
       </Card>
 
       <AuthInfoFormModal ref={formModalRef} onSuccess={() => setSearchParams({ ...searchParams })} />
+      <ImportAuthInfoModal
+        ref={importModalRef}
+        onSuccess={() => setSearchParams({ ...searchParams })}
+      />
     </div>
   );
 };
