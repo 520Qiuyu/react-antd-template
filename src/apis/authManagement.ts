@@ -79,3 +79,13 @@ export const reqImportAuthInfos = (list: ImportAuthInfoItem[]) =>
   post<BatchImportResult, { list: ImportAuthInfoItem[] }>('/auth-management/import/batch', {
     list,
   });
+
+/**
+ * 校验认证信息是否可用
+ * @example
+ * ```ts
+ * const res = await reqValidateAuthInfo({ id });
+ * ```
+ */
+export const reqValidateAuthInfo = (data: { id: string }) =>
+  post<AuthInfoListItem>('/auth-management/validate', data);

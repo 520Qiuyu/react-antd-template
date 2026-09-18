@@ -18,8 +18,8 @@ export const AUTH_PLATFORM_OPTIONS = [
   { label: '网易云', value: 'netease' },
 ];
 
-/** 完整性筛选项 */
-export const AUTH_COMPLETE_OPTIONS = [
-  { label: '完整', value: 'complete' },
-  { label: '不完整', value: 'incomplete' },
+/** 账号是否可用筛选项 */
+export const AUTH_AVAILABLE_OPTIONS = [
+  { label: '可用', value: true },
+  { label: '不可用', value: false },
 ];

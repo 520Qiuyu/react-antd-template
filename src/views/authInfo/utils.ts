@@ -63,16 +63,6 @@ export const parseAuthInfoJson = (value?: string): AuthInfoPayload => {
 };
 
 /**
- * 判断认证信息是否完整
- * @example
- * ```ts
- * isAuthInfoComplete(item) // true
- * ```
- */
-export const isAuthInfoComplete = (item: Pick<AuthInfoListItem, 'complete' | 'isAvailable'>) =>
-  item.complete || item.isAvailable;
-
-/**
  * 把列表项转成可导入的导出 JSON
  * @example
  * ```ts

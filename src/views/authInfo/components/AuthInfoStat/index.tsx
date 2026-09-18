@@ -29,18 +29,18 @@ const AuthInfoStat: React.FC<Props> = (props) => {
         <span className={styles['statLabel']}>认证总数</span>
         <span className={styles['statValue']}>{total}</span>
         <span className={`${styles['statDesc']} ${styles['statDescSuccess']}`}>
-          {complete > 0 ? '配置可用' : '暂无完整配置'}
+          {complete > 0 ? '有可用账号' : '暂无可用账号'}
         </span>
       </div>
       <div className={styles['statCard']}>
-        <span className={styles['statLabel']}>完整配置</span>
+        <span className={styles['statLabel']}>可用账号</span>
         <span className={styles['statValue']}>{complete}</span>
         <span className={`${styles['statDesc']} ${styles['statDescPrimary']}`}>
           {completePercent}%
         </span>
       </div>
       <div className={styles['statCard']}>
-        <span className={styles['statLabel']}>不完整</span>
+        <span className={styles['statLabel']}>不可用</span>
         <span className={styles['statValue']}>{incomplete}</span>
         <span className={`${styles['statDesc']} ${styles['statDescWarning']}`}>
           {incompletePercent}%

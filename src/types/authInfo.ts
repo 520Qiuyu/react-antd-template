@@ -4,9 +4,6 @@ export type AuthPlatform = 'qishui' | 'netease';
 /** 认证信息状态 */
 export type AuthInfoStatus = 'normal' | 'disabled';
 
-/** 完整性筛选 */
-export type AuthInfoCompleteStatus = 'complete' | 'incomplete';
-
 /** 写入 AuthInfo.authInfo 的 JSON，结构随平台变化 */
 export type AuthInfoPayload = Record<string, unknown>;
 
@@ -19,7 +16,7 @@ export interface ListAuthInfoParams {
   keyword?: string;
   platform?: AuthPlatform | string;
   status?: AuthInfoStatus | string;
-  completeStatus?: AuthInfoCompleteStatus;
+  isAvailable?: boolean;
 }
 
 /** 认证信息列表项 */

@@ -2,20 +2,23 @@ import {
   reqDeleteAuthInfo,
   reqListAuthInfos,
   reqUpdateAuthInfoStatus,
+  reqValidateAuthInfo,
 } from '@/apis/authManagement';
 import { CopyText, MyButton, MyPagination, SearchForm } from '@/components';
 import type { Option as SearchFormOption } from '@/components/SearchForm';
 import { Status, STATUS_OPTIONS } from '@/constants';
 import { useCompRef, useGetList, useSearchParams } from '@/hooks';
-import type {
-  AuthInfoCompleteStatus,
-  AuthInfoListItem,
-  AuthInfoListStats,
-  AuthPlatform,
-} from '@/types/authInfo';
+import type { AuthInfoListItem, AuthInfoListStats, AuthPlatform } from '@/types/authInfo';
 import { downloadAsJson } from '@/utils/download';
 import { confirm, msgError, msgSuccess } from '@/utils/modal';
-import { DeleteOutlined, EditOutlined, ExportOutlined, ImportOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  CheckOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  ExportOutlined,
+  ImportOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
 import { Card, Space, Switch, Table, Tag } from 'antd';
 import type { ColumnsType, TableProps } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
@@ -24,13 +27,13 @@ import AuthInfoFormModal from './components/AuthInfoFormModal';
 import AuthInfoStat from './components/AuthInfoStat';
 import ImportAuthInfoModal from './components/ImportAuthInfoModal';
 import {
-  AUTH_COMPLETE_OPTIONS,
+  AUTH_AVAILABLE_OPTIONS,
   AUTH_PLATFORM_COLOR_MAP,
   AUTH_PLATFORM_OPTIONS,
   AUTH_PLATFORM_TEXT_MAP,
 } from './constants';
 import styles from './index.module.less';
-import { isAuthInfoComplete, stringifyAuthInfoJson, toExportAuthInfoItem } from './utils';
+import { stringifyAuthInfoJson, toExportAuthInfoItem } from './utils';
 
 const defaultSearchParams: SearchParams = {
   pageNum: 1,
@@ -71,24 +74,25 @@ const AuthInfo: React.FC = () => {
         placeholder: '请选择平台',
       },
     },
+    // 是否可用
+    {
+      name: 'isAvailable',
+      label: '是否可用',
+      type: 'select',
+      options: AUTH_AVAILABLE_OPTIONS,
+      inputProps: {
+        mode: undefined,
+        placeholder: '请选择是否可用',
+      },
+    },
     {
       name: 'status',
-      label: '状态',
+      label: '是否启用',
       type: 'select',
       options: STATUS_OPTIONS,
       inputProps: {
         mode: undefined,
-        placeholder: '请选择状态',
-      },
-    },
-    {
-      name: 'completeStatus',
-      label: '完整性',
-      type: 'select',
-      options: AUTH_COMPLETE_OPTIONS,
-      inputProps: {
-        mode: undefined,
-        placeholder: '请选择完整性',
+        placeholder: '请选择是否启用',
       },
     },
   ];
@@ -103,6 +107,22 @@ const AuthInfo: React.FC = () => {
       const res = await reqDeleteAuthInfo(record.id);
       if (res.code === 200) {
         msgSuccess('删除成功');
+        setSearchParams({ ...searchParams });
+      }
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+
+  const handleValidate = async (record: AuthInfoListItem) => {
+    try {
+      const res = await reqValidateAuthInfo({ id: record.id });
+      if (res.code === 200) {
+        if (res.data?.isAvailable) {
+          msgSuccess(res.message || '账号可用');
+        } else {
+          msgError(res.message || '账号不可用');
+        }
         setSearchParams({ ...searchParams });
       }
     } catch (error) {
@@ -188,7 +208,9 @@ const AuthInfo: React.FC = () => {
       sorter: true,
       sortOrder: searchParams.sortField === 'platform' ? searchParams.sortOrder : undefined,
       render: (platform: AuthPlatform) => (
-        <Tag color={AUTH_PLATFORM_COLOR_MAP[platform]}>{AUTH_PLATFORM_TEXT_MAP[platform] || platform}</Tag>
+        <Tag color={AUTH_PLATFORM_COLOR_MAP[platform]}>
+          {AUTH_PLATFORM_TEXT_MAP[platform] || platform}
+        </Tag>
       ),
     },
     {
@@ -199,15 +221,13 @@ const AuthInfo: React.FC = () => {
       render: (val: AuthInfoListItem['authInfo']) => renderAuthInfoJson(val),
     },
     {
-      title: '完整性',
-      key: 'complete',
-      width: 100,
-      render: (_, record) =>
-        isAuthInfoComplete(record) ? (
-          <Tag color='success'>完整</Tag>
-        ) : (
-          <Tag color='warning'>不完整</Tag>
-        ),
+      title: '是否可用',
+      dataIndex: 'isAvailable',
+      width: 110,
+      sorter: true,
+      sortOrder: searchParams.sortField === 'isAvailable' ? searchParams.sortOrder : undefined,
+      render: (val: boolean) =>
+        val ? <Tag color='success'>可用</Tag> : <Tag color='default'>不可用</Tag>,
     },
     {
       title: '使用次数',
@@ -256,11 +276,20 @@ const AuthInfo: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 100,
+      width: 140,
       align: 'center',
       fixed: 'right',
       render: (_, record) => (
         <Space align='center' size={4}>
+          <MyButton
+            size='small'
+            variant='text'
+            color='primary'
+            icon={<CheckOutlined />}
+            toolTip='校验可用性'
+            permissionCode='auth_management_update'
+            onClick={() => handleValidate(record)}
+          />
           <MyButton
             size='small'
             variant='text'
@@ -352,7 +381,10 @@ const AuthInfo: React.FC = () => {
         />
       </Card>
 
-      <AuthInfoFormModal ref={formModalRef} onSuccess={() => setSearchParams({ ...searchParams })} />
+      <AuthInfoFormModal
+        ref={formModalRef}
+        onSuccess={() => setSearchParams({ ...searchParams })}
+      />
       <ImportAuthInfoModal
         ref={importModalRef}
         onSuccess={() => setSearchParams({ ...searchParams })}
@@ -367,5 +399,5 @@ interface SearchParams extends PaginationParams {
   keyword?: string;
   platform?: AuthPlatform | string;
   status?: string;
-  completeStatus?: AuthInfoCompleteStatus;
+  isAvailable?: boolean;
 }
