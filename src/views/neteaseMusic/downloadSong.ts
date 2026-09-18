@@ -1,7 +1,7 @@
 import { resolveDownloadBasename } from '@/hooks/useConfig';
 import type { EmbedAudioMetadataOptions, EmbedOutputFormat } from '@/hooks/useEmbedAudioMetadata';
 import type { ParseNeteaseSongResponseData } from '@/types/netease';
-import { downloadBlob, getCoverBlob, getDownloadProgress } from '@/utils/download';
+import { downloadBlob, getFileBlob, getDownloadProgress } from '@/utils/download';
 import { formatNeteaseArtistNames, toHttpsUrl } from './utils';
 
 export type DownloadProgressPhase = 'downloading' | 'embedding';
@@ -108,7 +108,7 @@ export const downloadNeteaseSongAudio = async ({
   if (embedMetadata && outputFormat) {
     try {
       onProgress?.('embedding', 0);
-      const coverBlob = cover ? await getCoverBlob(cover) : null;
+      const coverBlob = cover ? await getFileBlob(cover).catch(() => null) : null;
       resultBlob = await embedMetadata({
         audio: resultBlob,
         cover: coverBlob,

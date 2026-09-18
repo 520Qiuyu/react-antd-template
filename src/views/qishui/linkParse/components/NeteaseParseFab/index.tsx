@@ -18,6 +18,8 @@ const NeteaseParseFab: React.FC<NeteaseParseFabProps> = ({ href }) => {
       className={styles['fab']}
       href={href}
       aria-label='切换到网易云解析'
+      target='_blank'
+      rel='noopener noreferrer'
       tabIndex={0}>
       <img src={wangyiyunIcon} alt='' />
     </a>
