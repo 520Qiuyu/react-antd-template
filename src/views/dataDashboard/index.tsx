@@ -1,5 +1,6 @@
 import { reqGetDashboardOverview } from '@/apis/qishui/dashboard';
 import { reqGetCreateUserOptions } from '@/apis/qishui/cardSecret';
+import { getSearchFromObject } from '@/hooks';
 import { useUser } from '@/hooks/useUser';
 import type {
   DashboardCardRankItem,
@@ -13,6 +14,7 @@ import { Card, Segmented, Select, Spin, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import classNames from 'classnames';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TIME_RANGE_OPTIONS } from './constants';
 import styles from './index.module.less';
 
@@ -52,6 +54,7 @@ const EMPTY_OVERVIEW: DashboardOverview = {
  * ```
  */
 const DataDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { isAdmin, isSuperAdmin } = useUser();
   const canViewAll = isAdmin || isSuperAdmin;
   const [timeRange, setTimeRange] = useState<DashboardRange>('7d');
@@ -106,6 +109,26 @@ const DataDashboard: React.FC = () => {
     () => data.createTrend.reduce((sum, item) => sum + item.value, 0),
     [data.createTrend],
   );
+
+  /** 跳转解析日志，按当前卡密筛选 */
+  const handleGoParseLogs = (record: DashboardCardRankItem) => {
+    const search = getSearchFromObject({
+      pageNum: 1,
+      pageSize: 10,
+      keyword: record.secret,
+    });
+    navigate(`/logs?${search}`);
+  };
+
+  const handleSecretKeyDown = (
+    e: React.KeyboardEvent,
+    record: DashboardCardRankItem,
+  ) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleGoParseLogs(record);
+    }
+  };
 
   const creatorColumns: ColumnsType<DashboardCreatorRankItem> = [
     {
@@ -164,7 +187,17 @@ const DataDashboard: React.FC = () => {
       title: '卡号',
       dataIndex: 'secret',
       width: 130,
-      render: (val: string) => <span className={styles['secretCell']}>{val}</span>,
+      render: (val: string, record) => (
+        <span
+          className={styles['secretCell']}
+          role='link'
+          tabIndex={0}
+          aria-label={`查看卡密 ${val} 的解析日志`}
+          onClick={() => handleGoParseLogs(record)}
+          onKeyDown={(e) => handleSecretKeyDown(e, record)}>
+          {val}
+        </span>
+      ),
     },
     { title: '创建者', dataIndex: 'creator', width: 110 },
     {

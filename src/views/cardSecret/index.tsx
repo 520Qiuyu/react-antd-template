@@ -165,7 +165,7 @@ const CardSecret: React.FC = () => {
       pageSize: 10,
       keyword: record.secret,
     });
-    navigate(`/qishui/logs?${search}`);
+    navigate(`/logs?${search}`);
   };
 
   /** 直接使用：新标签打开该卡密的下载解析链接 */

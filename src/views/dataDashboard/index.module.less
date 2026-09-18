@@ -230,6 +230,24 @@
 .secretCell {
   font-family: var(--ant-font-family-code, 'SF Mono', Monaco, monospace);
   font-size: 12px;
+  color: var(--dash-accent);
+  cursor: pointer;
+  outline: none;
+  border-radius: 4px;
+  transition: opacity 120ms ease;
+
+  &:hover {
+    opacity: 0.78;
+    text-decoration: underline;
+  }
+
+  &:active {
+    opacity: 0.65;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px fade(@primary-color, 28%);
+  }
 }
 
 .riskTag {
