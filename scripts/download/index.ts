@@ -21,7 +21,7 @@ import {
 // ======================== 可调常量 ========================
 
 /** 要下载的歌单 json 路径（相对本脚本目录；也可 CLI 传参覆盖） */
-const DOWNLOAD_JSON_PATH = './1.json';
+const DOWNLOAD_JSON_PATH = './boli喜欢的音乐.json';
 /** 首选下载音质（缺失则按阶梯降级） */
 const PREFERRED_QUALITY = 'spatial' as const;
 /** 并发数 */
