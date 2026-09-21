@@ -128,24 +128,6 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
   const getLatestTrack = (trackId: string) =>
     usePlaylistParseStore.getState().playlistHasResult?.tracks?.find((item) => item.id === trackId);
 
-  /** 补齐未解析曲目（下载前用，跳过已解析） */
-  const ensureTracksParsed = useCallback(
-    async (targetTracks: PlaylistMusicInfo[]) => {
-      const pending = targetTracks.filter((track) => track.id && !isTrackParsed(track));
-      let success = 0;
-      let failed = 0;
-
-      await runWithConcurrency(pending, downloadConcurrency, async (track) => {
-        const ok = await parseTrack(track, true);
-        if (ok) success += 1;
-        else failed += 1;
-      });
-
-      return { success, failed, total: pending.length };
-    },
-    [parseTrack, downloadConcurrency],
-  );
-
   /**
    * 批量解析曲目
    * @example
@@ -438,35 +420,62 @@ const PlaylistResult: React.FC<PlaylistResultProps> = ({ data }) => {
     }
   };
 
+  /**
+   * 批量下载歌词：已解析则直接下，否则解析一首下载一首
+   * @example
+   * await handleDownloadAllLyrics(filteredTracks, 'lrc');
+   */
   const handleDownloadAllLyrics = async (
     targetTracks: PlaylistMusicInfo[],
     mode: 'lrc' | 'txt',
   ) => {
-    await ensureTracksParsed(targetTracks);
-    const targetTrackIds = targetTracks.map((track) => track.id);
-    const latestTracks =
-      usePlaylistParseStore
-        .getState()
-        .playlistHasResult?.tracks.filter((track) => targetTrackIds.includes(track.id)) ||
-      targetTracks;
-    let success = 0;
-    let failed = 0;
+    if (targetTracks.length === 0) return;
+    setBatchProgress({ success: 0, failed: 0 });
+    try {
+      let success = 0;
+      let failed = 0;
 
-    for (const track of latestTracks) {
-      if (!isTrackParsed(track) || !track.fullInfo) {
-        failed += 1;
-        continue;
-      }
-      try {
-        downloadSongLyric(track.fullInfo, mode, resolvePlaylistIndex(track));
-        success += 1;
-        await mockParseDelay(166);
-      } catch {
-        failed += 1;
-      }
+      await runWithConcurrency(targetTracks, 1, async (track) => {
+        const trackId = track.id;
+        if (!trackId) {
+          failed += 1;
+          bumpBatchProgress(false);
+          return;
+        }
+
+        let latest = getLatestTrack(trackId) || track;
+        if (!isTrackParsed(latest)) {
+          const ok = await parseTrack(latest, true);
+          if (!ok) {
+            failed += 1;
+            bumpBatchProgress(false);
+            return;
+          }
+          latest = getLatestTrack(trackId) || latest;
+        }
+
+        const fullInfo = latest.fullInfo;
+        if (!fullInfo) {
+          failed += 1;
+          bumpBatchProgress(false);
+          return;
+        }
+
+        try {
+          downloadSongLyric(fullInfo, mode, resolvePlaylistIndex(latest));
+          success += 1;
+          bumpBatchProgress(true);
+          await mockParseDelay(166);
+        } catch {
+          failed += 1;
+          bumpBatchProgress(false);
+        }
+      });
+
+      msgSuccess(`${mode === 'lrc' ? 'lrc' : 'txt'} 下载完成：成功 ${success}，失败 ${failed}`);
+    } catch (error) {
+      console.log('handleDownloadAllLyrics error', error);
     }
-
-    msgSuccess(`${mode === 'lrc' ? 'lrc' : 'txt'} 下载完成：成功 ${success}，失败 ${failed}`);
   };
 
   return (
