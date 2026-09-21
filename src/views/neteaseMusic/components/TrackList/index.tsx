@@ -347,7 +347,7 @@ const TrackList: React.FC<TrackListProps> = ({
       if (!silent) msgError('缺少歌曲 ID，无法解析');
       return false;
     }
-    if (!force && track.parseInfo) return true;
+    if (!force && track.parseInfo?.download?.url) return true;
     if (!queryParams.cardSecret) {
       if (!silent) msgError('请先绑定卡密');
       return false;
@@ -399,8 +399,8 @@ const TrackList: React.FC<TrackListProps> = ({
     setTrackDownload(trackId, { status: 'downloading', progress: 0 });
     try {
       let latest: NeteaseApiSong = getLatestTrack(trackId) || track;
-      if (!latest.parseInfo) {
-        const ok = await handleParse(latest, false, silent);
+      if (!latest.parseInfo?.download?.url) {
+        const ok = await handleParse(latest, true, silent);
         if (!ok) {
           setTrackDownload(trackId, { status: 'error', progress: 0 });
           if (!silent) msgError('解析失败，无法下载');
@@ -548,6 +548,7 @@ const TrackList: React.FC<TrackListProps> = ({
     if (batchBusy) return;
     setBatchAction('downloadUndownloaded');
     try {
+      console.log('undownloadedTracks', undownloadedTracks);
       await handleBatchDownload(undownloadedTracks);
     } finally {
       setBatchAction(null);

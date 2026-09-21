@@ -18,6 +18,7 @@ import {
   ExportOutlined,
   ImportOutlined,
   PlusOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { Card, Space, Switch, Table, Tag } from 'antd';
 import type { ColumnsType, TableProps } from 'antd/es/table';
@@ -31,9 +32,10 @@ import {
   AUTH_PLATFORM_COLOR_MAP,
   AUTH_PLATFORM_OPTIONS,
   AUTH_PLATFORM_TEXT_MAP,
+  VALIDATE_BATCH_INTERVAL_MS,
 } from './constants';
 import styles from './index.module.less';
-import { stringifyAuthInfoJson, toExportAuthInfoItem } from './utils';
+import { sleep, stringifyAuthInfoJson, toExportAuthInfoItem } from './utils';
 
 const defaultSearchParams: SearchParams = {
   pageNum: 1,
@@ -125,6 +127,53 @@ const AuthInfo: React.FC = () => {
         }
         setSearchParams({ ...searchParams });
       }
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+
+  /**
+   * 批量校验已选认证信息，每条间隔 200ms
+   * @example
+   * ```ts
+   * await handleValidateBatch();
+   * ```
+   */
+  const handleValidateBatch = async () => {
+    if (!selectedRowKeys.length) {
+      msgError('请至少选择一条认证信息');
+      return;
+    }
+    try {
+      await confirm(`确定要批量校验已选的 ${selectedRowKeys.length} 条认证信息吗？`, '提示');
+      let availableCount = 0;
+      let unavailableCount = 0;
+      let failCount = 0;
+      for (let i = 0; i < selectedRowKeys.length; i++) {
+        const id = selectedRowKeys[i];
+        try {
+          const res = await reqValidateAuthInfo({ id });
+          if (res.code === 200) {
+            if (res.data?.isAvailable) {
+              availableCount += 1;
+            } else {
+              unavailableCount += 1;
+            }
+          } else {
+            failCount += 1;
+          }
+        } catch (error) {
+          console.log('error', error);
+          failCount += 1;
+        }
+        if (i < selectedRowKeys.length - 1) {
+          await sleep(VALIDATE_BATCH_INTERVAL_MS);
+        }
+      }
+      msgSuccess(
+        `批量校验完成：可用 ${availableCount}，不可用 ${unavailableCount}，失败 ${failCount}`,
+      );
+      setSearchParams({ ...searchParams });
     } catch (error) {
       console.log('error', error);
     }
@@ -285,7 +334,7 @@ const AuthInfo: React.FC = () => {
             size='small'
             variant='text'
             color='primary'
-            icon={<CheckOutlined />}
+            icon={<SafetyCertificateOutlined />}
             toolTip='校验可用性'
             permissionCode='auth_management_update'
             onClick={() => handleValidate(record)}
@@ -325,6 +374,15 @@ const AuthInfo: React.FC = () => {
         title='认证信息列表'
         extra={
           <Space>
+            {/* 批量校验认证信息 */}
+            <MyButton
+              type='primary'
+              icon={<CheckOutlined />}
+              permissionCode='auth_management_update'
+              disabled={!selectedRowKeys.length}
+              onClick={handleValidateBatch}>
+              批量校验认证信息 ({selectedRowKeys.length})
+            </MyButton>
             <MyButton
               type='primary'
               icon={<ImportOutlined />}

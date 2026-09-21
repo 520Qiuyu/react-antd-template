@@ -77,3 +77,12 @@ export const toExportAuthInfoItem = (record: AuthInfoListItem): ImportAuthInfoIt
   status: record.status === 'disabled' ? 'disabled' : 'normal',
   remark: record.remark ?? null,
 });
+
+/**
+ * 延迟指定毫秒
+ * @example
+ * ```ts
+ * await sleep(200);
+ * ```
+ */
+export const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));

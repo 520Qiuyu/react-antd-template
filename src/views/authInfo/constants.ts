@@ -23,3 +23,6 @@ export const AUTH_AVAILABLE_OPTIONS = [
   { label: '可用', value: true },
   { label: '不可用', value: false },
 ];
+
+/** 批量校验间隔，避免对平台接口调用过快 */
+export const VALIDATE_BATCH_INTERVAL_MS = 200;
