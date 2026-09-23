@@ -65,7 +65,21 @@ export const resolveDownloadBasename = (parts: DownloadNameParts, nameFormat?: s
     (typeof window !== 'undefined' && window.config?.downloadNameFormat?.trim()) ||
     DEFAULT_CONFIG.downloadNameFormat;
 
-  const sanitizeFilenamePart = (value: string) => value.replace(/[\\/:*?"<>|]/g, '_').trim();
+  /**
+   * 去掉 Windows 非法字符和表情，避免文件名异常
+   * @example
+   * ```ts
+   * sanitizeFilenamePart('贝贝这首歌终于正式上线了🥹 #onecasualsong#贝贝李京泽');
+   * // '贝贝这首歌终于正式上线了 #onecasualsong#贝贝李京泽'
+   * ```
+   */
+  const sanitizeFilenamePart = (value: string) =>
+    value
+      .replace(/[\\/:*?"<>|]/g, '_')
+      .replace(/\p{Extended_Pictographic}/gu, '')
+      .replace(/[\uFE0F\u200D]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
 
   const values: Record<string, string> = {
     序号: parts.index == null ? '' : String(parts.index),

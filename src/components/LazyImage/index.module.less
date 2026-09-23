@@ -1,0 +1,13 @@
+.lazyImage {
+  --lazy-image-placeholder: rgba(0, 0, 0, 0.06);
+  --lazy-image-fade: 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+
+  display: block;
+  background: var(--lazy-image-placeholder);
+  opacity: 0.36;
+  transition: opacity var(--lazy-image-fade);
+
+  &.isLoaded {
+    opacity: 1;
+  }
+}

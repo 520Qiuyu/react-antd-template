@@ -1,5 +1,5 @@
 import { reqGetNeteaseSongDetail } from '@/apis';
-import { SearchForm } from '@/components';
+import { LazyImage, SearchForm } from '@/components';
 import type { Option as SearchFormOption } from '@/components/SearchForm';
 import { DEFAULT_CONFIG, useConfig, useEmbedAudioMetadata, useSearchParams } from '@/hooks';
 import type {
@@ -866,7 +866,7 @@ const TrackList: React.FC<TrackListProps> = ({
                   : undefined
               }>
               <span className={styles['index']}>{String(track.index + 1).padStart(2, '0')}</span>
-              <img className={styles['cover']} src={cover} alt='' />
+              <LazyImage className={styles['cover']} src={cover} alt='' />
               <div className={styles['info']}>
                 <p className={styles['title']}>{track.name || '未知歌曲'}</p>
                 <p className={styles['artist']}>

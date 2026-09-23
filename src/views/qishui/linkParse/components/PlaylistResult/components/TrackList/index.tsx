@@ -1,4 +1,4 @@
-import { SearchForm } from '@/components';
+import { LazyImage, SearchForm } from '@/components';
 import type { Option as SearchFormOption } from '@/components/SearchForm';
 import type { PlaylistMusicInfo } from '@/types/qishui';
 import { getOptions, isDebugging, isDev } from '@/utils';
@@ -473,7 +473,7 @@ const TrackList: React.FC<TrackListProps> = ({
               aria-disabled={noPlayUrl || undefined}>
               <span className={styles['index']}>{String(globalIndex + 1).padStart(2, '0')}</span>
               <div className={styles['itemCoverWrap']}>
-                <img className={styles['itemCover']} src={track.cover} alt='' />
+                <LazyImage className={styles['itemCover']} src={track.cover} alt='' />
                 {track.type === 'video' ? (
                   <span className={styles['videoBadge']} aria-label='视频歌曲'>
                     <VideoCameraOutlined />
