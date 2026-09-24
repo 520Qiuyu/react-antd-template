@@ -2,6 +2,7 @@ import { FFmpeg, type LogEventCallback, type ProgressEventCallback } from '@ffmp
 import { fetchFile } from '@ffmpeg/util';
 import CoreJsUrl from '@ffmpeg/core?url';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { coverMimeFromExt, injectWavId3 } from '@/utils/wavId3';
 import { getObjectFromSearch } from './useSearchParams';
 
 const isProduction = import.meta.env.PROD;
@@ -165,7 +166,7 @@ const createLoadedFfmpeg = async (handlers: {
 };
 
 /**
- * 使用 ffmpeg-wasm 为音频 Blob 写入元信息 / 封面，并可选转为 mp3 | m4a | flac
+ * 使用 ffmpeg-wasm 为音频 Blob 写入元信息 / 封面，并可选转为 mp3 | m4a | flac | wav
  *
  * @description
  * 仅共享 core/wasm 下载缓存；每次内嵌新建独立 FFmpeg 实例，结束（含失败）后 terminate，
@@ -373,8 +374,21 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
           temporaryFiles.push(outputName);
 
           const outputData = await ffmpeg.readFile(outputName);
+          let tagged = outputData;
+          if (outputFormat === 'wav') {
+            try {
+              tagged = injectWavId3(
+                toUint8Array(outputData),
+                metadata,
+                cover ? new Uint8Array(await cover.arrayBuffer()) : null,
+                coverMimeFromExt(coverExt),
+              );
+            } catch (error) {
+              console.warn('WAV ID3 写入失败，改为下载无封面歌词的音频', error);
+            }
+          }
           reportEmbedProgress(100);
-          return createOutputBlob(outputData, mimeType);
+          return createOutputBlob(tagged, mimeType);
         } catch (cause) {
           console.log('cause', cause);
           if (allowMemoryRetry && isFfmpegFatalMemoryError(cause)) {
@@ -422,7 +436,7 @@ export const useEmbedAudioMetadata = (options: UseEmbedAudioMetadataOptions = {}
 export type FFmpegStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 /** 支持写入元信息后的输出容器格式 */
-export type EmbedOutputFormat = 'mp3' | 'm4a' | 'flac';
+export type EmbedOutputFormat = 'mp3' | 'm4a' | 'flac' | 'wav';
 
 /** 后端返回的音轨 codec，如 aac / flac */
 export type EmbedSourceCodec = string;
@@ -475,6 +489,7 @@ const OUTPUT_MIME: Record<EmbedOutputFormat, string> = {
   mp3: 'audio/mpeg',
   m4a: 'audio/mp4',
   flac: 'audio/flac',
+  wav: 'audio/wav',
 };
 
 /** 视为视频容器的扩展名：需先抽音轨再嵌元数据 */
@@ -571,6 +586,10 @@ const buildAudioCodecArgs = (
   if (outputFormat === 'm4a') {
     return ['m4a', 'aac'].includes(inputExt) ? ['-c:a', 'copy'] : ['-c:a', 'aac', ...bitrateArgs];
   }
+  // WAV 只接受 PCM，不能 copy FLAC/AAC
+  if (outputFormat === 'wav') {
+    return inputExt === 'wav' ? ['-c:a', 'copy'] : ['-c:a', 'pcm_s24le'];
+  }
   return inputExt === 'flac' ? ['-c:a', 'copy'] : ['-c:a', 'flac'];
 };
 
@@ -601,6 +620,11 @@ const buildContainerArgs = (outputFormat: EmbedOutputFormat, coverExt: string | 
     if (hasCover) {
       args.push('-c:v', coverVideoCodec, '-frames:v', '1', '-disposition:v:0', 'attached_pic');
     }
+    return args;
+  }
+
+  // WAV 的歌词和封面在编码后写入 RIFF 的 id3 块，这里不再追加容器参数
+  if (outputFormat === 'wav') {
     return args;
   }
 
@@ -640,7 +664,7 @@ const buildMetadataArgs = (metadata: AudioMetadata) => {
 };
 
 /**
- * 按目标格式（mp3 / m4a / flac）构建 ffmpeg 参数，写入元信息与可选封面
+ * 按目标格式（mp3 / m4a / flac / wav）构建 ffmpeg 参数，写入元信息与可选封面
  * @example
  * ```ts
  * buildFfmpegArgs('extracted.m4a', 'm4a', 'jpeg', { title: '歌名' }, 'm4a');
@@ -655,7 +679,8 @@ const buildFfmpegArgs = (
   bitrateKbps: number = 320,
 ) => {
   const outputName = `output.${outputFormat}`;
-  const hasCover = Boolean(coverExt);
+  // WAV muxer 要求恰好一路流，封面不能作为 video stream 映射进去
+  const hasCover = Boolean(coverExt) && outputFormat !== 'wav';
   const args = ['-y', '-i', inputName];
 
   if (hasCover && coverExt) {
@@ -670,6 +695,13 @@ const buildFfmpegArgs = (
   args.push(outputName);
 
   return { args, outputName, mimeType: OUTPUT_MIME[outputFormat], outputFormat };
+};
+
+const toUint8Array = (data: Awaited<ReturnType<FFmpeg['readFile']>>) => {
+  if (typeof data === 'string') {
+    throw new Error('FFmpeg 返回了非二进制音频数据');
+  }
+  return Uint8Array.from(data);
 };
 
 /** 将 FFmpeg 文件系统返回值转换为可下载 Blob。 */

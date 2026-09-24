@@ -53,6 +53,8 @@ export const DOWNLOAD_FORMAT_OPTIONS = [
   { value: 'mp3', label: 'MP3' },
   { value: 'm4a', label: 'M4A' },
   { value: 'flac', label: 'FLAC' },
+  // wav
+  { value: 'wav', label: 'WAV' },
 ] as const;
 
 export type DownloadFormat = (typeof DOWNLOAD_FORMAT_OPTIONS)[number]['value'];

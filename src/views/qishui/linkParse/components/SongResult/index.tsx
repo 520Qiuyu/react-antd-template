@@ -155,8 +155,8 @@ export const SongQualityList: React.FC<SongCardProps> = ({ data }) => {
 
   const { embedMetadata } = useEmbedAudioMetadata({
     onLog: (message, type) => {
-      console.log('message', message);
-      console.log('type', type);
+      /* console.log('message', message);
+      console.log('type', type); */
     },
   });
   const handleDownload = async (item: QishuiUrl, index: number) => {

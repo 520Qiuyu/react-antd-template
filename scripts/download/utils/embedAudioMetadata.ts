@@ -20,9 +20,10 @@ import { mkdtemp, open, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { coverMimeFromExt, injectWavId3 } from '../../../src/utils/wavId3.ts';
 
 /** 支持写入元信息后的输出容器格式 */
-export type EmbedOutputFormat = 'mp3' | 'm4a' | 'flac';
+export type EmbedOutputFormat = 'mp3' | 'm4a' | 'flac' | 'wav';
 
 /** 后端返回的音轨 codec，如 aac / flac */
 export type EmbedSourceCodec = string;
@@ -75,6 +76,7 @@ const OUTPUT_MIME: Record<EmbedOutputFormat, string> = {
   mp3: 'audio/mpeg',
   m4a: 'audio/mp4',
   flac: 'audio/flac',
+  wav: 'audio/wav',
 };
 
 /** 视为视频容器的扩展名：需先抽音轨再嵌元数据 */
@@ -226,6 +228,9 @@ const buildAudioCodecArgs = (outputFormat: EmbedOutputFormat, inputExt: string) 
   if (outputFormat === 'm4a') {
     return ['m4a', 'aac'].includes(inputExt) ? ['-c:a', 'copy'] : ['-c:a', 'aac', '-b:a', '320k'];
   }
+  if (outputFormat === 'wav') {
+    return inputExt === 'wav' ? ['-c:a', 'copy'] : ['-c:a', 'pcm_s24le'];
+  }
   return inputExt === 'flac' ? ['-c:a', 'copy'] : ['-c:a', 'flac'];
 };
 
@@ -256,6 +261,10 @@ const buildContainerArgs = (outputFormat: EmbedOutputFormat, coverExt: string | 
     if (hasCover) {
       args.push('-c:v', coverVideoCodec, '-frames:v', '1', '-disposition:v:0', 'attached_pic');
     }
+    return args;
+  }
+
+  if (outputFormat === 'wav') {
     return args;
   }
 
@@ -309,8 +318,9 @@ const buildFfmpegArgs = (
   outputPath: string,
 ) => {
   const args = ['-y', '-i', inputPath];
+  const canMapCover = Boolean(coverPath && coverExt) && outputFormat !== 'wav';
 
-  if (coverPath && coverExt) {
+  if (canMapCover && coverPath) {
     args.push('-i', coverPath, '-map', '0:a:0', '-map', '1:v:0');
   } else {
     args.push('-map', '0:a:0');
@@ -420,7 +430,22 @@ export const embedMetadata = async ({
     onLog?.(`args ${JSON.stringify(args)}`);
     await runFfmpeg(args, onLog);
 
-    const buffer = await readFile(finalOutputPath);
+    const raw = await readFile(finalOutputPath);
+    let buffer = raw;
+    if (outputFormat === 'wav') {
+      try {
+        buffer = Buffer.from(
+          injectWavId3(
+            raw,
+            metadata,
+            coverPath ? await readFile(coverPath) : null,
+            coverMimeFromExt(coverExt),
+          ),
+        );
+      } catch (error) {
+        onLog?.(`WAV ID3 写入失败，保留无封面歌词的音频：${error instanceof Error ? error.message : error}`);
+      }
+    }
     if (outputPath) await writeFile(outputPath, buffer);
     return { buffer, outputFormat, outputPath };
   } finally {
