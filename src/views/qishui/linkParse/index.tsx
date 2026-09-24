@@ -6,6 +6,7 @@ import { AppstoreOutlined, ExportOutlined, KeyOutlined, MenuOutlined } from '@an
 import classNames from 'classnames';
 import { useCallback } from 'react';
 import { useHref } from 'react-router';
+import GroupJoinFab from './components/GroupJoinFab';
 import HelpFab from './components/HelpFab';
 import NeteaseParseFab from './components/NeteaseParseFab';
 import LinkParseSidebar from './components/LinkParseSidebar';
@@ -124,6 +125,8 @@ const LinkParse: React.FC = () => {
       <CardSecretModal theme='qishui' />
       <HelpFab>
         <NeteaseParseFab href={neteaseParseHref} />
+
+        <GroupJoinFab />
       </HelpFab>
     </div>
   );

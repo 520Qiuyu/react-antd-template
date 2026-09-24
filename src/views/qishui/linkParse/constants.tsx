@@ -23,6 +23,13 @@ export const HELP_DOC_URL =
 /** 首次帮助提示已展示标记 */
 export const HELP_TIP_SEEN_KEY = 'lp-help-tip-seen';
 
+/** 售后群二维码弹窗已展示标记，仅首次进入自动弹出 */
+export const GROUP_JOIN_SEEN_KEY = 'lp-group-join-seen';
+
+/** 汽水音乐下载售后群 */
+export const GROUP_JOIN_NAME = '汽水音乐下载售后群';
+export const GROUP_JOIN_NUMBER = '1106087501';
+
 /** 下载音质优先阶梯：从高到低，缺失则降一级 */
 export const DOWNLOAD_QUALITY_ORDER = [
   'lossless',
