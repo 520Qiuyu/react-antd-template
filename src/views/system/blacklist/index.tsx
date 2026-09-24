@@ -1,13 +1,22 @@
+import {
+  reqCreateIpBlacklist,
+  reqGetIpBlacklistEnabled,
+  reqListIpBlacklist,
+  reqUnblockIpBlacklist,
+  reqSetIpBlacklistRecordEnabled,
+  reqUpdateIpBlacklist,
+  reqUpdateIpBlacklistEnabled,
+} from '@/apis';
 import { CopyText, MyButton, MyPagination, SearchForm } from '@/components';
 import type { Option as SearchFormOption } from '@/components/SearchForm';
-import { useCompRef, useSearchParams, useUser } from '@/hooks';
+import { useCompRef, useGetList, useSearchParams } from '@/hooks';
 import type {
   BlacklistFormValues,
   BlacklistListItem,
   BlacklistSource,
   BlacklistStatus,
 } from '@/types/blacklist';
-import { confirm, msgError, msgSuccess, msgWarning } from '@/utils/modal';
+import { confirm, msgSuccess, msgWarning } from '@/utils/modal';
 import { PlusOutlined } from '@ant-design/icons';
 import { Card, Space, Switch, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -19,29 +28,14 @@ import {
   BLACKLIST_SOURCE_OPTIONS,
   BLACKLIST_SOURCE_TEXT_MAP,
   BLACKLIST_STATUS_OPTIONS,
-  IP_BLACKLIST_ENABLED_KEY,
 } from './constants';
 import styles from './index.module.less';
-import { createMockBlacklist } from './mock';
-import { filterBlacklistList, getExpireStatus, resolveExpireAt } from './utils';
+import { getExpireStatus, resolveExpireAt } from './utils';
 
 const defaultSearchParams: SearchParams = {
   pageNum: 1,
   pageSize: 10,
-  status: 'active',
-};
-
-/**
- * 读取拦截开关初始值
- * @example
- * ```ts
- * readEnabledFlag() // true
- * ```
- */
-const readEnabledFlag = () => {
-  const raw = localStorage.getItem(IP_BLACKLIST_ENABLED_KEY);
-  if (raw === null) return true;
-  return raw === 'true';
+  // status: 'active',
 };
 
 /**
@@ -49,40 +43,32 @@ const readEnabledFlag = () => {
  */
 const BlacklistManagement: React.FC = () => {
   const formModalRef = useCompRef(BlacklistFormModal);
-  const { userInfo } = useUser();
-  const [dataSource, setDataSource] = useState<BlacklistListItem[]>(() => createMockBlacklist());
-  const [loading, setLoading] = useState(false);
-  const [enabled, setEnabled] = useState(readEnabledFlag);
+  const [enabled, setEnabled] = useState(true);
+  const [switchLoading, setSwitchLoading] = useState(false);
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
 
-  const filteredList = useMemo(
-    () =>
-      filterBlacklistList(dataSource, {
-        keyword: searchParams.keyword,
-        source: searchParams.source,
-        status: searchParams.status,
-        dateRange: searchParams.dateRange as [string, string] | null | undefined,
-      }),
-    [dataSource, searchParams],
-  );
+  const usedSearchParams = useMemo(() => {
+    const { dateRange, source, status, keyword, ...rest } = searchParams;
+    const [startTime, endTime] = Array.isArray(dateRange) ? dateRange : [];
+    return {
+      ...rest,
+      ...(keyword?.trim() ? { keyword: keyword.trim() } : {}),
+      ...(source ? { source } : {}),
+      ...(status ? { status } : {}),
+      ...(startTime ? { startTime } : {}),
+      ...(endTime ? { endTime } : {}),
+    };
+  }, [searchParams]);
 
-  const pagedList = useMemo(() => {
-    const start = (searchParams.pageNum - 1) * searchParams.pageSize;
-    return filteredList.slice(start, start + searchParams.pageSize);
-  }, [filteredList, searchParams.pageNum, searchParams.pageSize]);
-
-  const totalActive = useMemo(
-    () => dataSource.filter((item) => item.status === 'active').length,
-    [dataSource],
+  const { list, loading, total, otherInfo } = useGetList<BlacklistListItem>(
+    reqListIpBlacklist,
+    usedSearchParams,
   );
-  const pageManualCount = useMemo(
-    () => pagedList.filter((item) => item.source === 'manual').length,
-    [pagedList],
-  );
-  const pageAutoCount = useMemo(
-    () => pagedList.filter((item) => item.source === 'rate_limit').length,
-    [pagedList],
-  );
+  const stats = otherInfo as {
+    activeCount?: number;
+    pageManualCount?: number;
+    pageAutoCount?: number;
+  };
 
   const searchFormOptions: SearchFormOption[] = [
     {
@@ -120,95 +106,87 @@ const BlacklistManagement: React.FC = () => {
     },
   ];
 
+  useEffect(() => {
+    const loadEnabled = async () => {
+      const res = await reqGetIpBlacklistEnabled();
+      if (res.code === 200 && res.data) {
+        setEnabled(res.data.enabled);
+      }
+    };
+    void loadEnabled();
+  }, []);
+
   const handleSearch = (values: SearchParams) => {
     setSearchParams({ ...searchParams, ...values, pageNum: 1 });
   };
 
-  const handleToggleEnabled = (checked: boolean) => {
+  const handleToggleEnabled = async (checked: boolean) => {
+    const previous = enabled;
     setEnabled(checked);
-    localStorage.setItem(IP_BLACKLIST_ENABLED_KEY, String(checked));
-    if (checked) {
-      msgSuccess('已开启黑名单拦截');
-      return;
+    setSwitchLoading(true);
+    try {
+      const res = await reqUpdateIpBlacklistEnabled(checked);
+      if (res.code !== 200) {
+        setEnabled(previous);
+        return;
+      }
+      if (checked) {
+        msgSuccess('已开启黑名单拦截');
+        return;
+      }
+      msgWarning('已关闭黑名单拦截，拉黑记录仍保留但不拦截');
+    } catch (error) {
+      setEnabled(previous);
+      console.log('error', error);
+    } finally {
+      setSwitchLoading(false);
     }
-    msgWarning('已关闭黑名单拦截，拉黑记录仍保留但不拦截');
+  };
+
+  const handleToggleRecordEnabled = async (record: BlacklistListItem, checked: boolean) => {
+    try {
+      const res = await reqSetIpBlacklistRecordEnabled(record.id, checked);
+      if (res.code !== 200) return;
+      msgSuccess(checked ? '已启用该规则' : '已暂时停用，记录保留但不再拦截');
+      setSearchParams({ ...searchParams });
+    } catch (error) {
+      console.log('error', error);
+    }
   };
 
   const handleUnblock = async (record: BlacklistListItem) => {
     try {
       await confirm(`确定解除拉黑「${record.ip}」吗？`, '提示');
-      setLoading(true);
-      const now = new Date().toISOString();
-      const operator = userInfo?.account || 'admin';
-      setDataSource((prev) =>
-        prev.map((item) =>
-          item.id === record.id
-            ? {
-                ...item,
-                status: 'unblocked',
-                unblockedAt: now,
-                unblockedBy: operator,
-                utime: now,
-              }
-            : item,
-        ),
-      );
+      const res = await reqUnblockIpBlacklist(record.id);
+      if (res.code !== 200) return;
       msgSuccess('已解除拉黑');
+      setSearchParams({ ...searchParams });
     } catch (error) {
       console.log('error', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleFormSuccess = async (values: BlacklistFormValues, record?: BlacklistListItem) => {
-    const now = new Date().toISOString();
-    const operator = userInfo?.account || 'admin';
-    const expireAt = resolveExpireAt(values.duration, values.customExpireAt);
-
-    const duplicated = dataSource.some(
-      (item) =>
-        item.status === 'active' &&
-        item.ip === values.ip &&
-        item.id !== record?.id,
-    );
-    if (duplicated) {
-      msgError('该 IP 已在黑名单中');
-      throw new Error('duplicate ip');
-    }
-
-    if (record) {
-      setDataSource((prev) =>
-        prev.map((item) =>
-          item.id === record.id
-            ? {
-                ...item,
-                ip: values.ip,
-                expireAt,
-                reason: values.reason,
-                remark: values.remark,
-                utime: now,
-              }
-            : item,
-        ),
-      );
-      return;
-    }
-
-    const newItem: BlacklistListItem = {
-      id: `bl-${Date.now()}`,
+    const payload = {
       ip: values.ip,
-      source: 'manual',
-      status: 'active',
-      expireAt,
+      expireAt: resolveExpireAt(values.duration, values.customExpireAt),
       reason: values.reason,
-      remark: values.remark,
-      createdBy: operator,
-      ctime: now,
-      utime: now,
+      ...(record
+        ? { remark: values.remark || null }
+        : values.remark
+          ? { remark: values.remark }
+          : {}),
     };
-    setDataSource((prev) => [newItem, ...prev]);
-    setSearchParams({ ...searchParams, status: 'active', pageNum: 1 });
+    const res = record
+      ? await reqUpdateIpBlacklist(record.id, payload)
+      : await reqCreateIpBlacklist(payload);
+    if (res.code !== 200) {
+      throw new Error(res.message || '保存失败');
+    }
+    setSearchParams({
+      ...searchParams,
+      ...(record ? {} : { status: 'active', pageNum: 1 }),
+    });
   };
 
   const columns: ColumnsType<BlacklistListItem> = [
@@ -237,6 +215,21 @@ const BlacklistManagement: React.FC = () => {
         if (status === 'expired') return <Tag>已过期</Tag>;
         return <Tag color='green'>未过期</Tag>;
       },
+    },
+    // 是否启用
+    {
+      title: '是否启用',
+      dataIndex: 'status',
+      width: 100,
+      render: (status: BlacklistStatus, record) => (
+        <Switch
+          checked={status === 'active'}
+          disabled={status === 'unblocked'}
+          checkedChildren='启用'
+          unCheckedChildren='停用'
+          onChange={(checked) => handleToggleRecordEnabled(record, checked)}
+        />
+      ),
     },
     {
       title: '拉黑时长 / 过期时间',
@@ -308,14 +301,14 @@ const BlacklistManagement: React.FC = () => {
       <div className={styles['pageHeader']}>
         <h1 className={styles['pageTitle']}>黑名单管理</h1>
         <p className={styles['pageDesc']}>
-          支持手动 / 自动拉黑恶意 IP；变更同步至 Redis，实时生效（一期为前端预览）
+          支持手动添加、编辑和解除拉黑；限流自动拉黑记录只展示，不可在此新增
         </p>
       </div>
 
       <BlacklistStat
-        totalActive={totalActive}
-        pageManualCount={pageManualCount}
-        pageAutoCount={pageAutoCount}
+        totalActive={stats.activeCount ?? 0}
+        pageManualCount={stats.pageManualCount ?? 0}
+        pageAutoCount={stats.pageAutoCount ?? 0}
       />
 
       <Card
@@ -325,7 +318,13 @@ const BlacklistManagement: React.FC = () => {
           <Space size={16}>
             <div className={styles['switchWrap']}>
               <span className={styles['switchLabel']}>黑名单拦截</span>
-              <Switch checked={enabled} checkedChildren='开启' unCheckedChildren='关闭' onChange={handleToggleEnabled} />
+              <Switch
+                checked={enabled}
+                loading={switchLoading}
+                checkedChildren='开启'
+                unCheckedChildren='关闭'
+                onChange={handleToggleEnabled}
+              />
             </div>
             <MyButton
               type='primary'
@@ -346,7 +345,7 @@ const BlacklistManagement: React.FC = () => {
         <Table
           rowKey='id'
           columns={columns}
-          dataSource={pagedList}
+          dataSource={list}
           loading={loading}
           pagination={false}
           scroll={{ x: 1680 }}
@@ -354,7 +353,7 @@ const BlacklistManagement: React.FC = () => {
         <MyPagination
           current={searchParams.pageNum}
           pageSize={searchParams.pageSize}
-          total={filteredList.length}
+          total={total}
           onChange={(pageNum, pageSize) => setSearchParams({ ...searchParams, pageNum, pageSize })}
         />
       </Card>

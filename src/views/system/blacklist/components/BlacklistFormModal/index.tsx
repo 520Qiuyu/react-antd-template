@@ -1,8 +1,14 @@
+import { reqGetLatestIpBlacklist } from '@/apis/ipBlacklist';
 import { MyModal } from '@/components';
 import SubTitle from '@/components/SubTitle';
 import { useVisible } from '@/hooks';
 import type { Ref } from '@/hooks/useVisible';
-import type { BlacklistDuration, BlacklistFormValues, BlacklistListItem } from '@/types/blacklist';
+import type {
+  BlacklistDuration,
+  BlacklistFormPreset,
+  BlacklistFormValues,
+  BlacklistListItem,
+} from '@/types/blacklist';
 import { msgSuccess } from '@/utils/modal';
 import { DatePicker, Form, Input, Select } from 'antd';
 import dayjs from 'dayjs';
@@ -21,29 +27,60 @@ import styles from './index.module.less';
 const normalizeText = (value?: string) => value?.trim() || '';
 
 /**
+ * 计算距离过期还剩多久
+ * @example
+ * ```ts
+ * formatRemainTime(dayjs().add(90, 'second')) // '剩余 1分钟30秒'
+ * formatRemainTime(dayjs().subtract(1, 'minute')) // '已过期'
+ * ```
+ */
+const formatRemainTime = (expireAt: dayjs.Dayjs, now = dayjs()) => {
+  const diff = expireAt.diff(now);
+  if (diff <= 0) return '已过期';
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  const parts = [
+    days ? `${days}天` : '',
+    hours ? `${hours}小时` : '',
+    minutes ? `${minutes}分钟` : '',
+    `${seconds}秒`,
+  ].filter(Boolean);
+  return `剩余 ${parts.join('')}`;
+};
+
+/**
  * 黑名单新建 / 编辑弹窗
  * @example
  * ```tsx
  * <BlacklistFormModal ref={formModalRef} onSuccess={handleSuccess} />
  * formModalRef.current?.open();
+ * formModalRef.current?.open({ ip: '1.1.1.1', reason: '解析日志拉黑' });
  * formModalRef.current?.open(record);
  * ```
  */
 function BlacklistFormModal(
   props: Props,
-  ref: React.ForwardedRef<Ref<void, BlacklistListItem | void>>,
+  ref: React.ForwardedRef<Ref<void, BlacklistListItem | BlacklistFormPreset | void>>,
 ) {
   const { onSuccess } = props;
   const [formRef] = Form.useForm();
   const [editingRecord, setEditingRecord] = useState<BlacklistListItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const duration = Form.useWatch('duration', formRef) as BlacklistDuration | undefined;
+  const customExpireAt = Form.useWatch('customExpireAt', formRef);
+  const [now, setNow] = useState(() => dayjs());
   const isEdit = !!editingRecord;
+  const remainText =
+    duration === 'custom' && customExpireAt ? formatRemainTime(dayjs(customExpireAt), now) : '';
 
   const { visible, close } = useVisible(
     {
-      onOpen: (record?: BlacklistListItem) => {
-        setEditingRecord(record ?? null);
+      onOpen: (payload?: BlacklistListItem | BlacklistFormPreset) => {
+        const record = payload && 'id' in payload ? payload : null;
+        const preset = payload && !('id' in payload) ? payload : undefined;
+        setEditingRecord(record);
         if (record) {
           const isPermanent = record.expireAt == null;
           formRef.setFieldsValue({
@@ -53,9 +90,17 @@ function BlacklistFormModal(
             reason: record.reason,
             remark: record.remark || undefined,
           });
-        } else {
-          formRef.resetFields();
-          formRef.setFieldsValue({ duration: '24h' });
+          return;
+        }
+        formRef.resetFields();
+        formRef.setFieldsValue({
+          duration: '24h',
+          ip: preset?.ip,
+          reason: preset?.reason,
+          remark: preset?.remark,
+        });
+        if (preset?.ip && isValidIpv4(preset.ip)) {
+          void fillLatestRecord(preset.ip);
         }
       },
       onReset: () => {
@@ -65,6 +110,34 @@ function BlacklistFormModal(
     },
     ref,
   );
+
+  useEffect(() => {
+    if (!visible || duration !== 'custom') return;
+    const timer = window.setInterval(() => setNow(dayjs()), 1000);
+    return () => window.clearInterval(timer);
+  }, [visible, duration]);
+
+  const fillLatestRecord = async (ip: string) => {
+    const normalizedIp = normalizeText(ip);
+    if (!isValidIpv4(normalizedIp)) return;
+    const res = await reqGetLatestIpBlacklist(normalizedIp);
+    if (res.code !== 200 || !res.data) return;
+    const latest = res.data;
+    const isPermanent = latest.expireAt == null;
+    const expireAt = latest.expireAt ? dayjs(latest.expireAt) : null;
+    const expireStillValid = !!expireAt && expireAt.isAfter(dayjs());
+    formRef.setFieldsValue({
+      duration: isPermanent ? 'permanent' : expireStillValid ? 'custom' : '24h',
+      customExpireAt: expireStillValid ? expireAt : undefined,
+      reason: latest.reason,
+      remark: latest.remark || undefined,
+    });
+  };
+
+  const handleIpBlur = async () => {
+    if (editingRecord) return;
+    await fillLatestRecord(formRef.getFieldValue('ip'));
+  };
 
   const handleSave = async () => {
     try {
@@ -117,14 +190,15 @@ function BlacklistFormModal(
                   },
                 },
               ]}
-              className={styles['fullWidth']}>
-              <Input placeholder='例如：203.0.113.88' allowClear />
+              className={styles['ipField']}>
+              <Input placeholder='例如：203.0.113.88' allowClear onBlur={handleIpBlur} />
             </Form.Item>
 
             <Form.Item
               label='拉黑时长'
               name='duration'
-              rules={[{ required: true, message: '请选择拉黑时长' }]}>
+              rules={[{ required: true, message: '请选择拉黑时长' }]}
+              className={styles['durationField']}>
               <Select
                 options={BLACKLIST_DURATION_OPTIONS}
                 placeholder='请选择拉黑时长'
@@ -138,7 +212,20 @@ function BlacklistFormModal(
 
             {duration === 'custom' ? (
               <Form.Item
-                label='自定义过期时间'
+                label={
+                  <span className={styles['expireLabel']}>
+                    自定义过期时间
+                    {remainText ? (
+                      <span
+                        className={
+                          remainText === '已过期' ? styles['remainExpired'] : styles['remainText']
+                        }
+                        aria-live='polite'>
+                        {remainText}
+                      </span>
+                    ) : null}
+                  </span>
+                }
                 name='customExpireAt'
                 rules={[
                   { required: true, message: '请选择过期时间' },
@@ -150,7 +237,8 @@ function BlacklistFormModal(
                       }
                     },
                   },
-                ]}>
+                ]}
+                className={styles['fullWidth']}>
                 <DatePicker
                   showTime
                   style={{ width: '100%' }}

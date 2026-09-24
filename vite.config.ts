@@ -1,9 +1,37 @@
 import react from '@vitejs/plugin-react';
+import type { ClientRequest, IncomingMessage } from 'http';
 import path from 'path';
 import AutoImport from 'unplugin-auto-import/vite';
-import { defineConfig, type UserConfig } from 'vite';
+import { defineConfig, type ProxyOptions, type UserConfig } from 'vite';
 import { analyzer } from 'vite-bundle-analyzer';
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
+
+/**
+ * 把连到 Vite 的客户端 IP 转给后端。
+ * changeOrigin 只改 Host，不会带上原始 IP。
+ * @example
+ * ```ts
+ * proxy: { '/api': createApiProxy() }
+ * ```
+ */
+const createApiProxy = (): ProxyOptions => ({
+  target: 'http://localhost:3000',
+  secure: false,
+  changeOrigin: true,
+  xfwd: true,
+  configure: (proxy) => {
+    proxy.on('proxyReq', (proxyReq: ClientRequest, req: IncomingMessage) => {
+      const raw = req.socket.remoteAddress || '';
+      const normalized = raw.replace(/^::ffff:/i, '');
+      const ip = normalized === '::1' ? '127.0.0.1' : normalized;
+      if (!ip) return;
+      proxyReq.setHeader('X-Real-IP', ip);
+      const prev = req.headers['x-forwarded-for'];
+      const forwarded = typeof prev === 'string' && prev.trim() ? `${prev}, ${ip}` : ip;
+      proxyReq.setHeader('X-Forwarded-For', forwarded);
+    });
+  },
+});
 
 export default defineConfig(({ mode }): UserConfig => {
   console.log('mode', mode);
@@ -73,12 +101,7 @@ export default defineConfig(({ mode }): UserConfig => {
         'Cross-Origin-Embedder-Policy': 'require-corp',
       }, */
       proxy: {
-        '/api': {
-          target: 'http://localhost:3000', //
-          secure: false,
-          changeOrigin: true,
-          // rewrite: (path) => path.replace(/^\/api/, ''),
-        },
+        '/api': createApiProxy(),
       },
     },
     preview: {
@@ -87,12 +110,7 @@ export default defineConfig(({ mode }): UserConfig => {
         'Cross-Origin-Embedder-Policy': 'require-corp',
       },
       proxy: {
-        '/api': {
-          target: 'http://localhost:3000', //
-          secure: false,
-          changeOrigin: true,
-          // rewrite: (path) => path.replace(/^\/api/, ''),
-        },
+        '/api': createApiProxy(),
       },
     },
     build: {

@@ -1,7 +1,9 @@
+import { reqCreateIpBlacklist } from '@/apis/ipBlacklist';
 import { reqDeleteParseLog, reqListParseLogs } from '@/apis/qishui/parseLog';
 import { CopyText, MyButton, MyPagination, SearchForm } from '@/components';
 import type { Option as SearchFormOption } from '@/components/SearchForm';
 import { useCompRef, useGetList, useSearchParams } from '@/hooks';
+import type { BlacklistFormValues } from '@/types/blacklist';
 import type {
   ParseLogListItem,
   ParseLogListStats,
@@ -9,13 +11,15 @@ import type {
   ParseLogStatus,
   ParseLogType,
 } from '@/types/parseLog';
-import { confirm, msgError, msgSuccess } from '@/utils/modal';
-import { DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { confirm, msgSuccess } from '@/utils/modal';
+import { DeleteOutlined, EyeOutlined, StopOutlined } from '@ant-design/icons';
 import { Card, Space, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import { useMemo } from 'react';
+import BlacklistFormModal from '../system/blacklist/components/BlacklistFormModal';
+import { resolveExpireAt } from '../system/blacklist/utils';
 import { maskCardSecretMiddle } from '../cardSecret/utils/maskCardSecret';
 import ParseLogDetailModal from './components/ParseLogDetailModal';
 import ParseLogStat from './components/ParseLogStat';
@@ -42,6 +46,7 @@ const defaultSearchParams: SearchParams = {
  */
 const ParseLogs: React.FC = () => {
   const detailModalRef = useCompRef(ParseLogDetailModal);
+  const blacklistFormRef = useCompRef(BlacklistFormModal);
   const { searchParams, setSearchParams } = useSearchParams(defaultSearchParams);
 
   const usedSearchParams = useMemo(() => {
@@ -120,6 +125,28 @@ const ParseLogs: React.FC = () => {
 
   const handleViewDetail = (record: ParseLogListItem) => {
     detailModalRef.current?.open(record);
+  };
+
+  const handleBlacklistIp = (record: ParseLogListItem) => {
+    const ip = record.ip?.trim().replace(/^::ffff:/i, '') || '';
+    const target = record.targetName || record.id;
+    blacklistFormRef.current?.open({
+      ip,
+      reason: `解析日志拉黑：${target}`.slice(0, 200),
+      remark: `日志 ${record.id}`.slice(0, 200),
+    });
+  };
+
+  const handleBlacklistSubmit = async (values: BlacklistFormValues) => {
+    const res = await reqCreateIpBlacklist({
+      ip: values.ip,
+      expireAt: resolveExpireAt(values.duration, values.customExpireAt),
+      reason: values.reason,
+      ...(values.remark ? { remark: values.remark } : {}),
+    });
+    if (res.code !== 200) {
+      throw new Error(res.message || '拉黑失败');
+    }
   };
 
   const columns: ColumnsType<ParseLogListItem> = [
@@ -259,7 +286,7 @@ const ParseLogs: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 100,
+      width: 140,
       align: 'center',
       fixed: 'right',
       render: (_, record) => (
@@ -280,6 +307,16 @@ const ParseLogs: React.FC = () => {
             icon={<DeleteOutlined />}
             toolTip='删除'
             onClick={() => handleDelete(record)}
+          />
+          {/* 拉黑ip */}
+          <MyButton
+            type='text'
+            size='small'
+            danger
+            permissionCode='ip_blacklist_create'
+            icon={<StopOutlined />}
+            toolTip='拉黑 IP'
+            onClick={() => handleBlacklistIp(record)}
           />
         </Space>
       ),
@@ -307,7 +344,7 @@ const ParseLogs: React.FC = () => {
           dataSource={list}
           loading={loading}
           pagination={false}
-          scroll={{ x: 2120 }}
+          scroll={{ x: 2160 }}
           onChange={(_, __, sorter) => {
             const { field, order } = sorter as SorterResult<ParseLogListItem>;
             setSearchParams({
@@ -326,6 +363,7 @@ const ParseLogs: React.FC = () => {
       </Card>
 
       <ParseLogDetailModal ref={detailModalRef} />
+      <BlacklistFormModal ref={blacklistFormRef} onSuccess={handleBlacklistSubmit} />
     </div>
   );
 };

@@ -1,27 +1,202 @@
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 28px;
+}
+
+.title {
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.subtitle {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: rgba(0, 0, 0, 0.48);
+}
+
 .form {
   :global {
     .ant-form-item {
       margin-bottom: 16px;
     }
+
+    .ant-form-item-label > label {
+      height: auto;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .ant-select {
+      width: 100%;
+    }
+
+    .ant-select-single .ant-select-selector {
+      height: 44px;
+      display: flex;
+      align-items: center;
+    }
+
+    textarea.ant-input {
+      min-height: 0;
+      padding-top: 10px;
+    }
   }
 }
 
-.section {
-  & + & {
-    margin-top: 8px;
-  }
+.section + .section {
+  margin-top: 4px;
 }
 
 .sectionTitle {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .formGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 24px;
+  grid-template-columns: minmax(0, 1.5fr) minmax(180px, 1fr);
+  column-gap: 16px;
+  align-items: start;
+}
+
+.ipField,
+.durationField {
+  min-width: 0;
 }
 
 .fullWidth {
   grid-column: 1 / -1;
+}
+
+.expireLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.remainText,
+.remainExpired {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 590;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.remainText {
+  color: #007aff;
+  background: rgba(0, 122, 255, 0.1);
+}
+
+.remainExpired {
+  color: #ff3b30;
+  background: rgba(255, 59, 48, 0.1);
+}
+
+.ipInput {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 16px;
+  letter-spacing: 0.01em;
+}
+
+.durationGroup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.chip,
+.chipActive {
+  height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.78);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 560;
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.chipActive {
+  background: #1d1d1f;
+  color: #fff;
+}
+
+.customExpire {
+  animation: reveal 180ms ease-out;
+}
+
+.okButton,
+.cancelButton {
+  height: 36px;
+  padding-inline: 16px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.cancelButton {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: transparent;
+  color: rgba(0, 0, 0, 0.78);
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip,
+  .chipActive {
+    &:active {
+      transform: none;
+    }
+  }
+
+  .customExpire {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .remainText {
+    background: #e8f1ff;
+  }
+
+  .remainExpired {
+    background: #ffe8e6;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .remainText,
+  .remainExpired {
+    border: 1px solid currentColor;
+  }
 }

@@ -1,8 +1,5 @@
 import type { BlacklistDuration, BlacklistSource, BlacklistStatus } from '@/types/blacklist';
 
-/** 拦截开关 localStorage key */
-export const IP_BLACKLIST_ENABLED_KEY = 'ip-blacklist-enabled';
-
 /** 来源文案 */
 export const BLACKLIST_SOURCE_TEXT_MAP: Record<BlacklistSource, string> = {
   manual: '手动拉黑',
@@ -24,12 +21,14 @@ export const BLACKLIST_SOURCE_OPTIONS = [
 /** 状态文案 */
 export const BLACKLIST_STATUS_TEXT_MAP: Record<BlacklistStatus, string> = {
   active: '生效中',
+  disabled: '已停用',
   unblocked: '已解除',
 };
 
 /** 状态筛选项 */
 export const BLACKLIST_STATUS_OPTIONS = [
   { label: '生效中', value: 'active' },
+  { label: '已停用', value: 'disabled' },
   { label: '已解除', value: 'unblocked' },
 ];
 
