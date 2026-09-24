@@ -250,6 +250,19 @@ const ParseLogs: React.FC = () => {
       width: 140,
       sorter: true,
       sortOrder: searchParams.sortField === 'ip' ? searchParams.sortOrder : undefined,
+      render: (val?: string | null) => {
+        const ip = val?.trim().replace(/^::ffff:/i, '') || '';
+        if (!ip) return <span className={styles['emptyText']}>-</span>;
+        return (
+          <a
+            className={styles['ipLink']}
+            href={`https://www.ipshudi.com/${encodeURIComponent(ip)}.htm`}
+            target='_blank'
+            rel='noopener noreferrer'>
+            {ip}
+          </a>
+        );
+      },
     },
     {
       title: 'UA',
