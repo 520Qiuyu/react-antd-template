@@ -16,6 +16,8 @@ export type CardSecretPanelTheme = 'qishui' | 'netease';
 interface CardSecretPanelProps {
   /** 配色主题：汽水绿 / 网易红 */
   theme?: CardSecretPanelTheme;
+  /** 使用与侧栏「下载设置」相同的背景 */
+  settingsSurface?: boolean;
 }
 
 /**
@@ -25,7 +27,10 @@ interface CardSecretPanelProps {
  * <CardSecretPanel theme='netease' />
  * ```
  */
-const CardSecretPanel: React.FC<CardSecretPanelProps> = ({ theme = 'qishui' }) => {
+const CardSecretPanel: React.FC<CardSecretPanelProps> = ({
+  theme = 'qishui',
+  settingsSurface = false,
+}) => {
   const { searchParams } = useSearchParams<{ cardSecret?: string }>();
   const cardSecret = useParseStore((state) => state.cardSecret);
   const getCardSecret = useParseStore((state) => state.getCardSecret);
@@ -264,7 +269,9 @@ const CardSecretPanel: React.FC<CardSecretPanelProps> = ({ theme = 'qishui' }) =
   }
 
   return (
-    <div className={styles['wrap']} data-theme={theme}>
+    <div
+      className={classNames(styles['wrap'], { [styles['isSettings']]: settingsSurface })}
+      data-theme={theme}>
       {cardSecret ? (
         <Spin spinning={refreshing} wrapperClassName={styles['secretSpin']}>
           {cardBody}

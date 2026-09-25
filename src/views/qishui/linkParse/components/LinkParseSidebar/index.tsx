@@ -1,4 +1,4 @@
-import { DownloadConcurrencyField, DownloadNameFormatField, DownloadSwitchField } from '@/components';
+import { CardSecretPanel, DownloadConcurrencyField, DownloadNameFormatField, DownloadSwitchField } from '@/components';
 import { useClickOutside, useSearchParams } from '@/hooks';
 import { DEFAULT_CONFIG, useConfig } from '@/hooks/useConfig';
 import {
@@ -8,8 +8,10 @@ import {
   QuestionCircleOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
+import { useResponsive } from 'ahooks';
 import { Select } from 'antd';
 import classNames from 'classnames';
+import { memo } from 'react';
 import type { SearchParams } from '../..';
 import type { LinkParseView } from '../../constants';
 import { useParseStore } from '../../store';
@@ -56,6 +58,8 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({
   const siderBarRef = useClickOutside(() => {
     setSidebarOpen(false);
   });
+  const responsive = useResponsive();
+  const isMobileSidebar = !responsive.lg;
 
   return (
     <aside
@@ -178,6 +182,8 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({
         {/* 下载名称格式 */}
         <DownloadNameFormatField theme='qishui' ext={downloadFormat} />
       </div>
+
+      {isMobileSidebar ? <CardSecretPanel theme='qishui' settingsSurface /> : null}
     </aside>
   );
 };

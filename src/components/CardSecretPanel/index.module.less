@@ -52,6 +52,19 @@
   }
 }
 
+.wrap.isSettings .secretCard {
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--lp-radius, 14px);
+  background: var(--lp-gradient-mesh);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  &::before {
+    display: none;
+  }
+}
+
 .secretCard {
   position: relative;
   margin-top: 28px;

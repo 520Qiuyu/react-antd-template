@@ -1,8 +1,9 @@
-import { DownloadConcurrencyField, DownloadNameFormatField, DownloadSwitchField } from '@/components';
+import { CardSecretPanel, DownloadConcurrencyField, DownloadNameFormatField, DownloadSwitchField } from '@/components';
 import { useClickOutside } from '@/hooks';
 import { DEFAULT_CONFIG, useConfig } from '@/hooks/useConfig';
 import type { NeteaseSoundQualityLevel } from '@/types/netease';
 import { ExportOutlined, ProfileOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { useResponsive } from 'ahooks';
 import { Select } from 'antd';
 import classNames from 'classnames';
 import { NETEASE_DOWNLOAD_QUALITY_OPTIONS, QUALITY_LABEL_MAP } from '../../constants/index';
@@ -33,6 +34,8 @@ const ParseSidebar: React.FC<ParseSidebarProps> = ({
   const siderBarRef = useClickOutside<HTMLElement>(() => {
     if (open) onClose();
   });
+  const responsive = useResponsive();
+  const isMobileSidebar = !responsive.lg;
   const { config, setConfig } = useConfig();
   const { neteasePreferredQuality } = {
     ...DEFAULT_CONFIG,
@@ -132,6 +135,8 @@ const ParseSidebar: React.FC<ParseSidebarProps> = ({
         {/* 下载名称格式 */}
         <DownloadNameFormatField theme='netease' ext={ext} />
       </div>
+
+      {isMobileSidebar ? <CardSecretPanel theme='netease' settingsSurface /> : null}
     </aside>
   );
 };
