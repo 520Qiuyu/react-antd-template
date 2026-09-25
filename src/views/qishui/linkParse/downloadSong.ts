@@ -91,10 +91,13 @@ export const downloadSongAudio = async ({
   let embedded = false;
   const outputFormat: EmbedOutputFormat =
     window.config.downloadFormat || DEFAULT_CONFIG.downloadFormat;
+  const shouldEmbed = window.config?.embedMetadata ?? DEFAULT_CONFIG.embedMetadata;
+  const shouldEmbedCover = window.config?.embedCover ?? DEFAULT_CONFIG.embedCover;
   if (embedMetadata) {
     try {
       onProgress?.('embedding', START_RATIO);
-      const coverBlob = data.cover ? await getCoverBlob(data.cover) : null;
+      const coverBlob =
+        shouldEmbedCover && data.cover ? await getCoverBlob(data.cover) : null;
       resultBlob = await embedMetadata({
         audio: resultBlob,
         cover: coverBlob,
@@ -104,12 +107,14 @@ export const downloadSongAudio = async ({
           : undefined,
         outputFormat,
         sourceCodec: item.codec,
-        metadata: {
-          title: data.title,
-          artist: data.artist,
-          lyrics: data.lrc,
-          album: data.album,
-        },
+        metadata: shouldEmbed
+          ? {
+              title: data.title,
+              artist: data.artist,
+              lyrics: data.lrc,
+              album: data.album,
+            }
+          : {},
         onProgress: (percent) => onProgress?.('embedding', percent / 100),
       });
       embedded = true;
@@ -122,6 +127,15 @@ export const downloadSongAudio = async ({
     resultBlob,
     buildSongFilename(data, item, embedded ? outputFormat : undefined, index),
   );
+
+  const shouldDownloadLyrics = window.config?.downloadLyrics ?? DEFAULT_CONFIG.downloadLyrics;
+  if (shouldDownloadLyrics) {
+    try {
+      downloadSongLyric(data, 'lrc', index);
+    } catch (error) {
+      console.log('download lyric skipped', error);
+    }
+  }
 };
 
 /**

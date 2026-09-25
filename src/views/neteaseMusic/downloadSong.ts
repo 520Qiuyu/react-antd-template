@@ -1,7 +1,7 @@
-import { resolveDownloadBasename } from '@/hooks/useConfig';
+import { DEFAULT_CONFIG, resolveDownloadBasename } from '@/hooks/useConfig';
 import type { EmbedAudioMetadataOptions, EmbedOutputFormat } from '@/hooks/useEmbedAudioMetadata';
 import type { ParseNeteaseSongResponseData } from '@/types/netease';
-import { downloadBlob, getFileBlob, getDownloadProgress } from '@/utils/download';
+import { downloadBlob, getDownloadProgress, getFileBlob } from '@/utils/download';
 import { formatNeteaseArtistNames, toHttpsUrl } from './utils';
 
 export type DownloadProgressPhase = 'downloading' | 'embedding';
@@ -105,10 +105,13 @@ export const downloadNeteaseSongAudio = async ({
   const outputFormat = resolveNeteaseEmbedFormat(sourceExt);
   const cover = toHttpsUrl(data.song?.al?.picUrl) || data.song?.al?.picUrl || '';
 
+  const shouldEmbed = window.config?.embedMetadata ?? DEFAULT_CONFIG.embedMetadata;
+  const shouldEmbedCover = window.config?.embedCover ?? DEFAULT_CONFIG.embedCover;
   if (embedMetadata && outputFormat) {
     try {
       onProgress?.('embedding', 0);
-      const coverBlob = cover ? await getFileBlob(cover).catch(() => null) : null;
+      const coverBlob =
+        shouldEmbedCover && cover ? await getFileBlob(cover).catch(() => null) : null;
       resultBlob = await embedMetadata({
         audio: resultBlob,
         cover: coverBlob,
@@ -118,12 +121,14 @@ export const downloadNeteaseSongAudio = async ({
           : undefined,
         outputFormat,
         sourceCodec: sourceExt,
-        metadata: {
-          title: data.song?.name,
-          artist: formatNeteaseArtistNames(data.song?.ar),
-          lyrics: data.lyric?.lrc,
-          album: data.song?.al?.name,
-        },
+        metadata: shouldEmbed
+          ? {
+              title: data.song?.name,
+              artist: formatNeteaseArtistNames(data.song?.ar),
+              lyrics: data.lyric?.lrc,
+              album: data.song?.al?.name,
+            }
+          : {},
         onProgress: (percent) => onProgress?.('embedding', percent),
       });
       onProgress?.('embedding', 100);
@@ -137,6 +142,15 @@ export const downloadNeteaseSongAudio = async ({
     resultBlob,
     buildNeteaseSongFilename(data, item, embedded ? outputFormat || undefined : undefined, index),
   );
+
+  const shouldDownloadLyrics = window.config?.downloadLyrics ?? DEFAULT_CONFIG.downloadLyrics;
+  if (shouldDownloadLyrics) {
+    try {
+      downloadNeteaseSongLyric(data, 'lrc', index);
+    } catch (error) {
+      console.log('download lyric skipped', error);
+    }
+  }
 };
 
 /**

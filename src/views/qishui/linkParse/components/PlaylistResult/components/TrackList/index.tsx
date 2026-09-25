@@ -1,5 +1,6 @@
 import { LazyImage, SearchForm } from '@/components';
 import type { Option as SearchFormOption } from '@/components/SearchForm';
+import { useConfig } from '@/hooks';
 import type { PlaylistMusicInfo } from '@/types/qishui';
 import { getOptions, isDebugging, isDev } from '@/utils';
 import {
@@ -24,12 +25,6 @@ import styles from './index.module.less';
 const PAGE_SIZE = 50;
 const DEBUGGER_MODE = isDebugging();
 
-const DOWNLOAD_PHASE_TEXT: Record<string, string> = {
-  downloading: '下载中',
-  decrypting: '解密中',
-  embedding: '元信息写入中',
-};
-
 const defaultSearchParams: SearchParams = {
   pageNum: 1,
   pageSize: PAGE_SIZE,
@@ -48,6 +43,7 @@ const TrackList: React.FC<TrackListProps> = ({
   onDownloadLyric,
 }) => {
   const trackDownloadMap = usePlaylistParseStore((state) => state.trackDownloadMap);
+  const { config } = useConfig();
   // REGION ========================= 筛选 =========================
   const [searchParams, setSearchParams] = useState<SearchParams>(defaultSearchParams);
   /** 筛选表单选项 */
@@ -177,6 +173,17 @@ const TrackList: React.FC<TrackListProps> = ({
       ),
     [filteredTracks, trackDownloadMap],
   );
+
+  const DOWNLOAD_PHASE_TEXT: Record<string, string> = useMemo(() => {
+    const { embedMetadata, embedCover } = config ?? {};
+    // 是否写入元信息
+    const shouldEmbedMetadata = embedMetadata || embedCover;
+    return {
+      downloading: '下载中',
+      decrypting: '解密中',
+      embedding: shouldEmbedMetadata ? '格式转换+元信息写入中' : '格式转换中',
+    };
+  }, [config]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTracks.length / PAGE_SIZE));
   const currentPage = Math.min(searchParams.pageNum, totalPages);

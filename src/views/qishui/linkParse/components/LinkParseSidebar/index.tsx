@@ -1,4 +1,4 @@
-import { DownloadConcurrencyField, DownloadNameFormatField } from '@/components';
+import { DownloadConcurrencyField, DownloadNameFormatField, DownloadSwitchField } from '@/components';
 import { useClickOutside, useSearchParams } from '@/hooks';
 import { DEFAULT_CONFIG, useConfig } from '@/hooks/useConfig';
 import {
@@ -153,6 +153,25 @@ const LinkParseSidebar: React.FC<LinkParseSidebarProps> = ({
             aria-label='首选下载音质'
           />
         </label>
+
+        <DownloadSwitchField
+          theme='qishui'
+          configKey='embedMetadata'
+          label='写入元数据'
+          description='歌名、歌手、专辑与歌词写入音频'
+        />
+        <DownloadSwitchField
+          theme='qishui'
+          configKey='embedCover'
+          label='写入封面'
+          description='把封面图片写入音频'
+        />
+        <DownloadSwitchField
+          theme='qishui'
+          configKey='downloadLyrics'
+          label='同时下载歌词'
+          description='同步保存 lrc 歌词'
+        />
 
         {/* 下载并发量 */}
         <DownloadConcurrencyField theme='qishui' />

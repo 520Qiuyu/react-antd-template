@@ -30,6 +30,12 @@ interface Config {
   downloadNameFormat: string;
   /** 歌单批量解析 / 下载并发数 */
   downloadConcurrency: 1 | 2 | 3 | 4 | 5;
+  /** 下载时是否把歌名、歌手、专辑、歌词写入音频 */
+  embedMetadata: boolean;
+  /** 下载时是否把封面图片写入音频 */
+  embedCover: boolean;
+  /** 下载音频时是否同时保存 lrc 歌词文件 */
+  downloadLyrics: boolean;
 }
 declare global {
   interface Window {
@@ -42,6 +48,9 @@ export const DEFAULT_CONFIG: Config = {
   neteasePreferredQuality: 'exhigh',
   downloadNameFormat: '【歌名】-【歌手】',
   downloadConcurrency: 2,
+  embedMetadata: true,
+  embedCover: true,
+  downloadLyrics: false,
 };
 
 export interface DownloadNameParts {
