@@ -1,28 +1,106 @@
+import { coverMimeFromExt, injectWavId3 } from '@/utils/wavId3';
+import CoreJsUrl from '@ffmpeg/core?url';
 import { FFmpeg, type LogEventCallback, type ProgressEventCallback } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
-import CoreJsUrl from '@ffmpeg/core?url';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { coverMimeFromExt, injectWavId3 } from '@/utils/wavId3';
 import { getObjectFromSearch } from './useSearchParams';
 
 const isProduction = import.meta.env.PROD;
-// 默认
-const FFMPEG_CORE_BASE_URL = isProduction
-  ? // ? 'https://cdn.qiuyu520.fun' // 七牛云cdn
-    'https://alicdn.qiuyu520.fun/npm/@ffmpeg/core@0.12.10/dist/esm' // 阿里云cdn
-  : 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm'; // jsdelivr
 
 const CDN_MAP = {
-  ali: 'https://alicdn.qiuyu520.fun/npm/@ffmpeg/core@0.12.10/dist/esm',
-  qiniu: 'https://cdn.qiuyu520.fun',
-  jsdelivr: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm',
+  ali: 'https://alicdn.qiuyu520.fun/npm/@ffmpeg/core@0.12.10/dist/esm', // 阿里云cdn
+  jsdelivr: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm', // jsdelivr
+  qiniu: 'https://cdn.qiuyu520.fun', // 七牛云cdn
 };
-// 自定义url
-const searchParams = getObjectFromSearch(window.location.hash) as { cdnType: keyof typeof CDN_MAP };
-const cdnType = searchParams?.cdnType as keyof typeof CDN_MAP;
-console.log('cdnType', cdnType);
-const cdnUrl = cdnType ? CDN_MAP[cdnType as keyof typeof CDN_MAP] : FFMPEG_CORE_BASE_URL;
-console.log('cdnUrl', cdnUrl);
+
+type FfmpegCdnType = keyof typeof CDN_MAP;
+
+/** 失败重试时的切换顺序 */
+const CDN_ORDER: FfmpegCdnType[] = ['ali', 'jsdelivr', 'qiniu'];
+
+const FFMPEG_CDN_STORAGE_KEY = 'ffmpeg-core-cdn-type';
+
+/**
+ * 判断值是否为已配置的 CDN 类型
+ * @example
+ * isFfmpegCdnType('ali') // true
+ */
+const isFfmpegCdnType = (value: unknown): value is FfmpegCdnType =>
+  typeof value === 'string' && value in CDN_MAP;
+
+/**
+ * 从地址栏读取 cdnType。HashRouter 参数在 hash 的 ? 之后，同时兼容 search
+ * @example
+ * readCdnTypeFromLocation() // 'jsdelivr' | null
+ */
+const readCdnTypeFromLocation = (): FfmpegCdnType | null => {
+  const hash = window.location.hash;
+  const hashQuery = hash.includes('?') ? hash.slice(hash.indexOf('?')) : '';
+  const fromHash = (getObjectFromSearch(hashQuery) as { cdnType?: unknown }).cdnType;
+  if (isFfmpegCdnType(fromHash)) return fromHash;
+
+  const fromSearch = (getObjectFromSearch(window.location.search) as { cdnType?: unknown }).cdnType;
+  return isFfmpegCdnType(fromSearch) ? fromSearch : null;
+};
+
+/**
+ * 读取上次加载成功的 CDN 类型
+ * @example
+ * readSavedCdnType() // 'ali' | null
+ */
+const readSavedCdnType = (): FfmpegCdnType | null => {
+  try {
+    const saved = localStorage.getItem(FFMPEG_CDN_STORAGE_KEY);
+    return isFfmpegCdnType(saved) ? saved : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * 记住当前可用的 CDN，下次优先使用
+ * @example
+ * saveCdnType('jsdelivr');
+ */
+const saveCdnType = (type: FfmpegCdnType) => {
+  try {
+    localStorage.setItem(FFMPEG_CDN_STORAGE_KEY, type);
+  } catch {
+    // 隐私模式等场景忽略写入失败
+  }
+};
+
+/**
+ * 解析本次启动使用的 CDN。
+ * 开发环境固定 jsDelivr，避免占用自有 CDN 流量。
+ * 生产环境：地址栏 cdnType > 上次成功记录 > 阿里云。
+ * @example
+ * resolveInitialCdnType() // 'ali'
+ */
+const resolveInitialCdnType = (): FfmpegCdnType => {
+  if (!isProduction) return 'jsdelivr';
+  const fromLocation = readCdnTypeFromLocation();
+  if (fromLocation) return fromLocation;
+  const saved = readSavedCdnType();
+  if (saved) return saved;
+  return 'ali';
+};
+
+let currentCdnType: FfmpegCdnType = resolveInitialCdnType();
+/** 上一轮 core 资源加载失败，下次重试先切到下一个 CDN */
+let shouldSwitchCdnOnRetry = false;
+
+/**
+ * 按 ali → jsdelivr → qiniu 轮换到下一个 CDN
+ * @example
+ * switchToNextCdn();
+ */
+const switchToNextCdn = () => {
+  const index = CDN_ORDER.indexOf(currentCdnType);
+  const nextIndex = index < 0 ? 0 : (index + 1) % CDN_ORDER.length;
+  currentCdnType = CDN_ORDER[nextIndex];
+  console.warn(`FFmpeg CDN 加载失败，重试切换到 ${currentCdnType}`);
+};
 
 /** 仅共享 core / wasm blob URL，避免每次内嵌重复下载 ~30MB */
 let cachedCoreURL: string | null = null;
@@ -95,6 +173,12 @@ const ensureCoreAssets = async (onProgress?: (percent: number) => void) => {
   }
 
   if (!coreAssetsPromise) {
+    if (isProduction && shouldSwitchCdnOnRetry) {
+      switchToNextCdn();
+      shouldSwitchCdnOnRetry = false;
+    }
+    const cdnTypeForThisLoad = currentCdnType;
+    const wasmBaseUrl = CDN_MAP[cdnTypeForThisLoad];
     setSharedStatus('loading');
     setSharedProgress(0);
     coreAssetsPromise = (async () => {
@@ -122,7 +206,7 @@ const ensureCoreAssets = async (onProgress?: (percent: number) => void) => {
           reportLoadProgress();
         }),
         fetchToBlobURL(
-          `${cdnUrl || FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`,
+          `${wasmBaseUrl}/ffmpeg-core.wasm`,
           'application/wasm',
           ({ received, total }) => {
             downloadState.wasmReceived = received;
@@ -134,11 +218,13 @@ const ensureCoreAssets = async (onProgress?: (percent: number) => void) => {
 
       cachedCoreURL = coreURL;
       cachedWasmURL = wasmURL;
+      if (isProduction) saveCdnType(cdnTypeForThisLoad);
       setSharedStatus('ready');
       setSharedProgress(100);
       return { coreURL, wasmURL };
     })().catch((loadError) => {
       coreAssetsPromise = null;
+      if (isProduction) shouldSwitchCdnOnRetry = true;
       throw loadError;
     });
   }
